@@ -1,7 +1,7 @@
 # UMBRA hardware facts (FM-1)
 
-Written in Phase 0 from the base tree's code (Felucca v1.7.0, commit 65b21d3) and M-VAVE's FM1 Open V14.
-**[unconfirmed]** marks a figure that needs a device build or the device to measure.
+Written in Phase 0 from the base tree's code (Felucca v1.7.0, commit 65b21d3), a measuring device build in CI
+(`.github/workflows/device-check.yml`) and M-VAVE's FM1 Open V14. **[unconfirmed]** marks a figure that needs the device.
 
 ## Chip and clock
 - JieLi AC791N (WL82), pi32v2, no FPU. Code executes in place from flash at 0x02000120.
@@ -30,7 +30,9 @@ The linker map (`firmware/app.ld`) covers 0x01C00000..0x01C80000 = **512 KiB**, 
 | POOL | **360 KiB** | big zero-initialised buffers |
 | NOINIT | ~15 KiB | survives reset: crash context, stacks |
 
-Used at Felucca 1.6.1: .data+.bss **61 of 72 KiB**, pool **329 of 360 KiB** (≈31 KiB free). The build enforces ≥ 4 KiB RAM and ≥ 8 KiB pool headroom. **[unconfirmed for 1.7.0 — needs one device build; numbers come from `./build.sh` output]**
+Measured (device build of the unchanged base tree, CI `device-check`, 2026-10-30): .data+.bss **61,844 of 73,728 B**
+(11.6 KiB free), pool **326,208 of 368,640 B** (**41.4 KiB free**). The build enforces ≥ 4 KiB RAM and ≥ 8 KiB pool
+headroom, so ~33 KiB of pool is usable for new buffers. `./build.sh` prints these on every build.
 
 Biggest pool users (from source):
 | Buffer | Bytes | Notes |
@@ -52,7 +54,7 @@ DESIGN §2's "4 × TAPE buffers" does not fit as written; Phase 1/4 have to choo
 ## Flash (1 MiB NOR, offsets from flash 0)
 | Range | Size | Use |
 | --- | --- | --- |
-| 0x000000..0x093000 | 588 KiB | boot + app area; app slot 0x8DFBC = 568 KiB (app 513 KB at 1.6.1, **[unconfirmed for 1.7.0]**) |
+| 0x000000..0x093000 | 588 KiB | boot + app area; app slot 0x8DFBC = 581,564 B; app image **513,532 B** (66 KiB free, measured) |
 | 0x093000..0x097000 | 16 KiB | FL_XDATA0: free for firmware data |
 | 0x097000..0x0E0000 | 292 KiB | store: settings, projects, user presets; **user sample slots** at 0xA0000 |
 | 0x0E0000..0x0E5000 | 20 KiB | update loader staging |

@@ -64,7 +64,7 @@ the host), TRS MIDI in, BLE MIDI; JieLi AC791N, single core by default (optional
 **Measured in Phase 0 (`docs/HARDWARE.md` has the details and sources):**
 - 44.1 kHz, ISR blocks of 128 frames, control blocks of 32 samples; 360 MHz, no FPU.
 - **No audio input** of any kind: TAPE resamples the FM-1's own output only.
-- 512 KiB internal SRAM, no PSRAM: 72 KiB RAM + 360 KiB pool, of which only ~31 KiB is free. The base tree's
+- 512 KiB internal SRAM, no PSRAM: 72 KiB RAM + 360 KiB pool, of which 41 KiB is free (33 KiB above the build's headroom). The base tree's
   delay (128 KiB), SLICER (32 KiB), engine state (4 × 12.6 KiB) and reverb/chorus (14 KiB) hold the rest.
 - Flash: 3 user sample slots × 80 KiB (~7.4 s each at 22.05 kHz ADPCM); 126 KB of CC0 samples in the app image.
 
