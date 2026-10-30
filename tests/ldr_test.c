@@ -10,8 +10,8 @@
 #include <string.h>
 #define __attribute__(x)   /* (the sources' .pool sections: no Mach-O section names) */
 
-#define FELUCCA_ID "ota-FM-1_900"
-#define FELUCCA_OTA_DRYRUN 0
+#define UMBRA_ID "ota-FM-1_900"
+#define UMBRA_OTA_DRYRUN 0
 
 static uint8_t nor[0x100000], *logical;
 static size_t logical_len;
@@ -79,6 +79,7 @@ static int ota_prog(uint32_t off, const void *p, uint32_t n) { (void)off; (void)
 static int ota_fread(uint32_t off, void *p, uint32_t n) { memcpy(p, nor + off, n); return 0; }
 static void ota_show(uint32_t step, int32_t code) { (void)step; (void)code; }
 static void ota_commit(const uint8_t *parm) { (void)parm; }
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/ota.c"
 
 static int ldr_fread(uint32_t off, void *p, uint32_t n) { memcpy(p, nor + off, n); return 0; }

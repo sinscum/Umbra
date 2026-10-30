@@ -6,8 +6,8 @@
  * (run_tests.sh). Built with -fsanitize=thread, any state two parts share while they render is reported as a race.
  * env C1_MASK: which parts go to the thread each block: "auto" (fx.c mix_split, the firmware's choice), "rot"
  * (the default: every split in turn, block by block), or a fixed mask (1..14) */
-#ifndef FELUCCA_CPU2
-#define FELUCCA_CPU2 1                              /* (the dual-core build: src/core.h) */
+#ifndef UMBRA_CPU2
+#define UMBRA_CPU2 1                              /* (the dual-core build: src/core.h) */
 #endif
 #include <pthread.h>
 #include <stdint.h>

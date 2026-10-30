@@ -890,7 +890,7 @@ static void demo_block(int32_t *out, uint32_t n, int comb8_on)
     events_block(n);
     for (i = 0; i < NPART; i++)
         mix_part(&trk[i], n SM_ARG(&mx[0]));
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     for (i = 0; i < NPART; i++)
         track_lfo_end(&trk[i]);                         /* (as fx.c mix_block) */
 #endif

@@ -42,7 +42,7 @@ jobs:
           HALI="-Ifirmware/hal -Ifirmware/bsp/chip -Ifirmware/bsp/boards/fm1 -Ifirmware/src"
           cc -O2 -ffp-contract=off -w $HALI -Ibuild/gen -Ifirmware/src -o build/emu_native web/emu/native_check.c -lm
           build/emu_native build/emu_native.f32
-          node web/emu/emu_test.mjs build/emu/felucca.wasm build/emu_native.f32
+          node web/emu/emu_test.mjs build/emu/umbra.wasm build/emu_native.f32
       - uses: actions/upload-artifact@v4
         with:
           name: emulator

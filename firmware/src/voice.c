@@ -59,7 +59,7 @@ static __attribute__((noinline)) uint32_t lfo_sync_inc(const track_t *t)   /* (n
     return q * CTL + (r * CTL + CTL) / cyc;
 }
 
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 /* the LFO's block, in two: its phase on the part's own core, in track_render (at the RATE the matrix may have moved,
  * mod.c), and the rest after the parts (fx.c mix_block, part by part as before: lfo_rand's shared generator is drawn
  * in the same order on one core or two). Nothing reads the LFO between the two */
@@ -539,7 +539,7 @@ static void engine_block(track_t *t)
  * up once a block here instead of once a voice in env_tick: the same numbers) */
 static uint32_t beat_samples(void);                /* (fx.c) */
 _Static_assert(CTL == 32, "esync_one: 4.6 CTL in Q16 is 9646899");
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #define T_ESYNC(t) ((t)->esync_k)                       /* the part's own (two cores render parts at once) */
 #else
 static uint32_t esync_k[3];      /* ATK's step, DEC's and REL's coefficient (Q16): the part's, this block (env_tick) */
@@ -617,7 +617,7 @@ static int32_t env_tick(track_t *t, voice_t *v)
  * the voices of side 0 into the part's spread_buf and the others into out, then adds spread_buf to out: out is every
  * voice, as always (the engines add into either the same way), spread_buf the left ones. A cost per block, none per
  * voice. A buffer per part (the two cores render parts at once, fx.c mix_block) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #define T_SPREAD(t) ((t)->spread_on)
 static int32_t spread_buf[NTRK][CTL];
 #define SPREAD_BUF(t) spread_buf[C1_PI(t)]
@@ -693,7 +693,7 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
             pe_new[i] = t->p[P_E0 + i];
             t->p[P_E0 + i] = t->pe_old[i];
         }
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     track_lfo_adv(t);                                   /* (the rest of its block after the parts: fx.c mix_block) */
 #else
     track_lfo_tick(t);

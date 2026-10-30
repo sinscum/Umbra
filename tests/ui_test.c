@@ -31,13 +31,13 @@
  *              the pages edit written alone, SLOT OWN, the sound following, one undo per gesture, the macros on top,
  *              projects and user presets keep the patch; FM6 only, not automatable.
  *   USB SERIAL #67: MENU > USB SERIAL ON (default, the descriptors as before) / OFF (audio + MIDI only, class 0):
- *              the menu, the settings, the descriptor at boot (built with the console, as the firmware: FELUCCA_CDC).
+ *              the menu, the settings, the descriptor at boot (built with the console, as the firmware: UMBRA_CDC).
  *   SCREEN OFF (1.1.5): MENU > DISPLAY > SCREEN OFF against a simulated clock and the panel's commands (lcd_power):
  *              dark after the time, nothing drawn, any input wakes it (SLPOUT, 120 ms, redraw, DISPON) and is
  *              swallowed; dialogs / count-in / UPDATE MODE keep it on; saved; the sound bit for bit while dark.
  * Built and run by tests/run_tests.sh. */
-#ifndef FELUCCA_CDC
-#define FELUCCA_CDC 1                                    /* (as src/felucca.c: the console built in, MENU > USB SERIAL) */
+#ifndef UMBRA_CDC
+#define UMBRA_CDC 1                                    /* (as src/umbra.c: the console built in, MENU > USB SERIAL) */
 #endif
 #include <stddef.h>
 #include <stdint.h>
@@ -140,10 +140,10 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
     for (j = 0; j < h && y + j < 240u; j++)
         for (i = 0; i < w && x + i < 240u; i++) host_put((y + j) * 240u + x + i, p[j * w + i]);
 }
-static struct { uint32_t stage; } felucca_dbg;
-#define FELUCCA_FLASH 0
-#ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "TEST"
+static struct { uint32_t stage; } umbra_dbg;
+#define UMBRA_FLASH 0
+#ifndef UMBRA_VERSION
+#define UMBRA_VERSION "TEST"
 #endif
 #include "../firmware/src/gfx.c"
 #include "../firmware/src/panel.c"
@@ -164,7 +164,7 @@ static int check(const char *what, int ok)
     return ok ? 0 : 1;
 }
 
-/* main.c felucca_init */
+/* main.c umbra_init */
 static void ui_power_on(void)
 {
     uint32_t i;
@@ -1420,7 +1420,7 @@ static int test_categories(void)
     memset(up_bank, 0, sizeof up_bank);
     for (e = 0; e < NENGINES; e++) {
         const char *c = PRESET_CAT[e];
-        if (!eng_ok(e) || e == ENGI_DIGITAL) continue;    /* (DIGITAL: FELUCCA_FM4 builds only, its sounds no category) */
+        if (!eng_ok(e) || e == ENGI_DIGITAL) continue;    /* (DIGITAL: UMBRA_FM4 builds only, its sounds no category) */
         ok &= str_len(c) == ENGINES[e]->npresets;
         for (k = 0; k < ENGINES[e]->npresets; k++)
             ok &= preset_cat(e, k) >= CAT_BASS && preset_cat(e, k) <= CAT_OTHER;
@@ -1428,7 +1428,7 @@ static int test_categories(void)
     bad += check("categories: every factory preset of every engine has one (the table's strings == the preset counts)",
                  ok && preset_cat(0, 2) == CAT_BASS && preset_cat(ENGI_DRUM, 0) == CAT_DRUM && preset_cat(ENGI_FM6, 0) == CAT_KEYS &&
                  preset_cat(ENGI_DRUM, 9) == CAT_DRUM && preset_cat(0, 99) == CAT_OTHER);
-#if FELUCCA_ADPCM
+#if UMBRA_ADPCM
     {   /* 1.8: ADPCM (engine 14, no row of its own) keeps its favourites in settings byte [15][13], through a round trip */
         persist_t p;
         int fok = favorite_set(ENGI_ADPCM, 6, 1) && favorite_has(ENGI_ADPCM, 6) && favorites.factory[15][13] == 0x40u &&
@@ -1460,7 +1460,7 @@ static int test_categories(void)
     bad += check("  the PRESETS knob steps through basses only (every engine), and round", ok && preset_pos(&total) == total - 1u);
     turn(EN_K4, 20);
     bad += check("  .. right to OTHER and no further (no wrap)", list_mode() == LIST_N - 1u && str_eq(list_name(list_mode()), "OTHER"));
-#if !FELUCCA_FM4                                           /* (DIGITAL's presets: OTHER's) */
+#if !UMBRA_FM4                                           /* (DIGITAL's presets: OTHER's) */
     {
         track_t before = *TSEL;
         ui.msg_t = 0;
@@ -1664,12 +1664,12 @@ static int test_menu_tabs(void)
             }
     }
     ui_prefs = 0;
-    bad += check("MENU tabs: DISPLAY CONTROL AUDIO MIDI SYSTEM (8 8 6 8 7 rows: 1.6.1 2ND CORE, a FELUCCA_CPU2=0 build SYSTEM 6; 1.5.5: SELECT, T1..T4 CHANNEL, AUTO SELECT, SCREEN WAKE), 1..8 each in a run, fit the page; tab gaps "
+    bad += check("MENU tabs: DISPLAY CONTROL AUDIO MIDI SYSTEM (8 8 6 8 7 rows: 1.6.1 2ND CORE, a UMBRA_CPU2=0 build SYSTEM 6; 1.5.5: SELECT, T1..T4 CHANNEL, AUTO SELECT, SCREEN WAKE), 1..8 each in a run, fit the page; tab gaps "
                  "constant (S, LARGE)",
                  ok && MTAB_COUNT == 5u && str_eq(MTAB_NAME[0], "DISPLAY") && str_eq(MTAB_NAME[MTAB_MIDI], "MIDI") &&
                  mtab_rows(MTAB_DISPLAY) == 8u && MI_TAB[MI_HOME] == MTAB_DISPLAY && mtab_rows(MTAB_CONTROL) == 8u && MI_TAB[MI_SELECT] == MTAB_CONTROL && mtab_rows(MTAB_AUDIO) == 6u &&
-                 mtab_rows(MTAB_MIDI) == 8u && MI_TAB[MI_MFOLLOW] == MTAB_MIDI && MI_TAB[MI_SCRWAKE] == MTAB_MIDI && MI_SCRWAKE + 1u == MI_LCLEAR && MI_TAB[MI_LCLEAR] == MTAB_MIDI && MI_TAB[MI_TCH4] == MTAB_MIDI && mtab_rows(MTAB_SYSTEM) == 6u + FELUCCA_CPU2 &&
-#if FELUCCA_CPU2
+                 mtab_rows(MTAB_MIDI) == 8u && MI_TAB[MI_MFOLLOW] == MTAB_MIDI && MI_TAB[MI_SCRWAKE] == MTAB_MIDI && MI_SCRWAKE + 1u == MI_LCLEAR && MI_TAB[MI_LCLEAR] == MTAB_MIDI && MI_TAB[MI_TCH4] == MTAB_MIDI && mtab_rows(MTAB_SYSTEM) == 6u + UMBRA_CPU2 &&
+#if UMBRA_CPU2
                  MI_TAB[MI_CPU2] == MTAB_SYSTEM &&
 #endif
                  MI_TAB[MI_TUNE] == MTAB_AUDIO &&   /* (1.5: LEARN CLEAR, HELP) */
@@ -1709,7 +1709,7 @@ static int test_menu_tabs(void)
     turn(EN_K4, 1); ok &= (ui_prefs & PREF_USB_FIXED) && fx_usb_fixed;
     turn(EN_K2, -1); ok &= !(ui_prefs & PREF_USB_FIXED) && !fx_usb_fixed;
     bad += check("MENU: any of KNOB 1..4 changes the selected row's value in any tab, the menu stays", ok && ui.menu == 1);
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     {   /* 1.6.1: 2ND CORE, OFF in every older setting (bit 7 of ui_prefs2 clear); up ON (BETA), down OFF, each with a
          * restart message; the value in words, not a switch (ui_menu.c MI_TEXT) */
         uint8_t p2 = ui_prefs2;
@@ -2021,7 +2021,7 @@ static int mono_screens(uint32_t pal, int (*chk)(void), uint32_t *n)
     uint32_t e, i;
     for (e = 0; e < NENGINES; e++) {
         if (!eng_ok(e))
-            continue;                               /* (DIGITAL without FELUCCA_FM4: never a track's) */
+            continue;                               /* (DIGITAL without UMBRA_FM4: never a track's) */
         for (i = 0; i < NPAGES; i++) {
             ui_power_on(); set_engine_of(TSEL, e); song.playing = 1; song.rec = 1;
             ui.home = 0; ui.page = (uint8_t)i; page_entered();
@@ -2848,7 +2848,7 @@ static int test_product_ux(void)
     int bad = 0, ok = 1;
     uint32_t i, p, b;
     for (i = 0; i < NPAGES; i++) {
-        ui_power_on(); set_engine_of(TSEL, 1);         /* (DIGITAL; without FELUCCA_FM4 FM6: no OP pages) */
+        ui_power_on(); set_engine_of(TSEL, 1);         /* (DIGITAL; without UMBRA_FM4 FM6: no OP pages) */
         ui.home = 0; ui.page = (uint8_t)i; page_entered();
         if (!page_visible(i))
             continue;
@@ -2919,7 +2919,7 @@ static int test_product_ux(void)
     ok = 1;
     for (i = 0; i < 8u; i++) { open_family(FAM_EDIT); ok &= page_visible(ui.page) && !(cur_page()->id[0] >= P_FM1_ATK && cur_page()->id[0] <= P_FM4_LEVEL); }
     bad += check("operator envelope pages are hidden on non-DIGITAL instruments", ok);
-#if FELUCCA_FM4
+#if UMBRA_FM4
     set_engine_of(TSEL, 1); open_family(FAM_EDIT); ok = 0;
     for (i = 0; i < 12u; i++) { if (cur_page()->id[0] == P_FM1_ATK) ok = 1; open_family(FAM_EDIT); }
     bad += check("DIGITAL exposes four envelopes and independent operator levels", ok);
@@ -3617,7 +3617,7 @@ static int test_edit_cycle(void)
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
     bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 FILTER VOICE VOICE 2 VOICE 3 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
-#if FELUCCA_FM4
+#if UMBRA_FM4
     set_engine_of(TSEL, 1);
     bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 VOICE 3 EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
@@ -3696,7 +3696,7 @@ static int test_sample_alert(void)
     frame();
     bad += check("GRAIN on an empty USR2: said", msg_is(nf));
     frames(1500);
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     set_engine_of(TSEL, 13u);                        /* SLICE, SRC USR3 */
     TSEL->p[P_E0] = 3;
     frame();
@@ -3728,7 +3728,7 @@ static int test_sample_alert(void)
     return bad;
 }
 
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
 /* SLICES (EDIT family, a SLICE track: ui_slice.c; the MAN slices of eng_slice.c, ported from hugelton/Felucca#27 by
  * andreahaku): in the EDIT cycle after EDIT 2 on SLICE only; BREAK shows its slices, edits need a user slot; the first
  * edit takes the slices shown (8 equal) as MAN and sets DIV MAN; KNOB 1 the marker (then END), KNOB 2 moves it,
@@ -4065,7 +4065,7 @@ static int test_quick_layers(void)
     }
     btn_up(B_EDIT); frame();
     bad += check("  the first 13 engines in PRESETS order have their white keys from F3 (ADPCM, the 14th, only with ENG; never DIGITAL)",
-                 ok && a == LY_INIT && LY_INIT == NENG_SHOWN - FELUCCA_ADPCM);
+                 ok && a == LY_INIT && LY_INIT == NENG_SHOWN - UMBRA_ADPCM);
     set_engine_of(TSEL, 0);
     lay_combo(B_EDIT, white(eng_rank(3))); key_up(white(eng_rank(3))); frame();
     turn(EN_K2, 1);
@@ -4906,7 +4906,7 @@ static int test_bughunt_ui2(void)
         bad += check("piano roll: the C-1 label stays inside the panel (every palette)", !out);
     }
     {   /* 7. EDIT: INIT is drawn in the cell after the engines, and that cell's white key is the one that inits */
-        uint32_t p, ok = LY_INIT == 13u + FELUCCA_FM4 && LY_CLEAN < 16u;   /* (layer_edit: INIT where it was before 1.8) */
+        uint32_t p, ok = LY_INIT == 13u + UMBRA_FM4 && LY_CLEAN < 16u;   /* (layer_edit: INIT where it was before 1.8) */
         for (p = LY_INIT; p < 16u; p++) {
             ui_power_on(); go_home(); frame();
             btn_down(B_EDIT); key_down(white(p)); frame(); frames(50);
@@ -4931,7 +4931,7 @@ static int test_large_face(void)
     return check("the L face holds every glyph of the strings drawn in it", !missing);
 }
 
-#if FELUCCA_FM4
+#if UMBRA_FM4
 /* The DIGITAL algorithm charts (ui_graph.c FM_CELL / FM_MOD) against the DSP: src/eng_digital.c's switch (alg)
  * in digital_render_legacy and digital_render_custom, written out here as "source>destination" routes and the
  * operators mixed to the output. Op 4's feedback is on every algorithm (drawn always). Also: the carriers sit
@@ -5029,7 +5029,7 @@ static int test_fm6_charts(void)
            check("FM6 charts: carriers on the bottom row, modulators a row up, one per cell, at most 4 rows", layout);
 }
 
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
 /* DIGITAL retired (src/fm4_convert.c): engine 1 is on no track and in no list; its sounds arrive as FM6 with a patch
  * of their own: a user preset of it, its preset numbers (set_engine_of / apply_preset_to), a track that got engine 1
  * any other way (the main loop's net); the favourites of its presets move to FM6's; the power-on pad is FM6 PAD */
@@ -5057,11 +5057,11 @@ static int test_fm4_retired(void)
     }
     bad += check("PRESETS KNOB 2: the engines in order, DIGITAL skipped, back to the first",
                  seen == all && TSEL->eng_req == 0u && eng_step(0, 1) == ENGI_FM6 && eng_step(ENGI_FM6, 1) == 2u &&
-                 eng_step(ENGI_FM6, -1) == 0u && eng_step(0, -1) == (FELUCCA_ADPCM ? ENGI_ADPCM : ENGI_DRUM));
+                 eng_step(ENGI_FM6, -1) == 0u && eng_step(0, -1) == (UMBRA_ADPCM ? ENGI_ADPCM : ENGI_DRUM));
     {   /* the display order (engines.c ENGINE_ORDER): every engine one can pick once; the PRESETS list follows it */
         static const char *const ORDER[] = {"ANALOG", "FM6", "PHASE", "LOFI", "SAMPLE", "VOICE", "TRIO", "WHEEL", "GRAIN",
                                             "PHYS", "NOISE", "SLICE", "DRUM",
-#if FELUCCA_ADPCM
+#if UMBRA_ADPCM
                                             "ADPCM",
 #endif
         };
@@ -8057,7 +8057,7 @@ static int test_click_menu(void)
 }
 
 /* #67 MENU > USB SERIAL: ON by default (and in every older setting): the console presented, the descriptors as
- * before. OFF: audio + MIDI only, device class 0, bcdUSB 1.10 (CFG_DESC_PLAIN: a FELUCCA_CDC=0 build's bytes), applied
+ * before. OFF: audio + MIDI only, device class 0, bcdUSB 1.10 (CFG_DESC_PLAIN: a UMBRA_CDC=0 build's bytes), applied
  * when the menu closes (one re-enumeration); saved; at boot the saved choice before USB starts (never on then off) */
 static int dev_class(void)                              /* the device class GET_DESCRIPTOR sends now (-1: none) */
 {
@@ -9907,7 +9907,7 @@ int main(void)
     bad += test_browse_no_pattern();
     bad += test_name();
     bad += test_edit_cycle();
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     bad += test_slices();
 #endif
     bad += test_sample_alert();
@@ -9934,8 +9934,8 @@ int main(void)
     bad += test_fx_map_columns();
     bad += test_help();
     bad += test_no_flash();
-#if FELUCCA_FM4
-    bad += test_fm_charts();                        /* (DIGITAL's charts: built with FELUCCA_FM4=1 only) */
+#if UMBRA_FM4
+    bad += test_fm_charts();                        /* (DIGITAL's charts: built with UMBRA_FM4=1 only) */
 #else
     bad += test_fm4_retired();
 #endif

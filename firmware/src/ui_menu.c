@@ -52,7 +52,7 @@ static const menu_credit_t MENU_CREDITS[] = {
     {"Tony Gies / MIT", MC_TEXT},
     {"https://github.com/tgies/klattsch", MC_URL},
     {"", MC_TEXT},
-#if FELUCCA_ADPCM
+#if UMBRA_ADPCM
     {"ADPCM DSP", MC_TITLE},
     {"Shay Green, ported by ugotworms / LGPL-2.1+", MC_TEXT},
     {"", MC_TEXT},
@@ -124,7 +124,7 @@ static int32_t menu_document(int32_t y, int draw)
     if (draw) {
         cv_text(6, y + 2, &AF_L, "FELUCCA", T_THEME);
         cv_text(6, y + 38, &AF_S, "Multi-engine synthesizer", T_TEXT);
-        cv_text(6, y + 58, &AF_M, FELUCCA_VERSION, T_THEME);
+        cv_text(6, y + 58, &AF_M, UMBRA_VERSION, T_THEME);
         cv_text_r(232, y + 61, &AF_S, __DATE__, T_MID, T_BG);
         cv_text(6, y + 82, &AF_S, "(C) 2026 Leo Kuroshita", T_TEXT);
         cv_text(6, y + 100, &AF_S, "H\xFCgelton Instruments", T_TEXT);
@@ -401,7 +401,7 @@ static void info_rows(void)                            /* (in screen rows: cv_oy
             GFX_HOOK_ALIGN(0, 0, 0, vy + AF_M.asc, AL_B, "info row unit on its value's baseline");
             cv_text_r(cv_text_r(MR_VR, vy + AF_M.asc - AF_S.asc, &AF_S, "%", T_MID, T_SURF) - 3, vy, &AF_M, cpu, T_THEME, T_SURF);
         } else {
-            cv_text_r(MR_VR, vy, &AF_M, k ? USB_N[info_usb()] : FELUCCA_VERSION, T_THEME, T_SURF);
+            cv_text_r(MR_VR, vy, &AF_M, k ? USB_N[info_usb()] : UMBRA_VERSION, T_THEME, T_SURF);
         }
     }
 }

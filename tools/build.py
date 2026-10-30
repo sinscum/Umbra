@@ -5,8 +5,8 @@
 
   tools/build.py [--release X.Y[-suffix]]
 
-Outputs in build/: felucca.bin (app), loader/ota.bin (update loader),
-felucca.fwsc (package). A release build (--release X.Y) writes felucca-X.Y.fwsc and a folder
+Outputs in build/: umbra.bin (app), loader/ota.bin (update loader),
+umbra.fwsc (package). A release build (--release X.Y) writes umbra-X.Y.fwsc and a folder
 release-X.Y/ with the package, the app, SHA256SUMS, the sample attribution and the licence files.
 See BUILDING.md for the toolchain and the SDK.
 
@@ -49,12 +49,12 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_900"                # package identity; release builds are FM-1_9XY
-VERSION = None                      # FELUCCA_VERSION for release builds (default: firmware/src/felucca.c)
-# FELUCCA_CPU2 (firmware/src/felucca.c), unset or 1, the default (1.6.1): the second core is built in, its entry and
+PRODUCT = "FM-1_800"                # package identity; release builds are FM-1_8XY (UMBRA)
+VERSION = None                      # UMBRA_VERSION for release builds (default: firmware/src/umbra.c)
+# UMBRA_CPU2 (firmware/src/umbra.c), unset or 1, the default (1.6.1): the second core is built in, its entry and
 # stacks (firmware/bsp/chip/fm1_cpu1.S) linked and its waiting loop (.c1_text) checked; MENU > SYSTEM > 2ND CORE starts it
-# (OFF by default: one core, as 1.6). FELUCCA_CPU2=0: none of it is built (1.6's one-core code and RAM)
-CPU2 = os.environ.get("FELUCCA_CPU2") != "0"
+# (OFF by default: one core, as 1.6). UMBRA_CPU2=0: none of it is built (1.6's one-core code and RAM)
+CPU2 = os.environ.get("UMBRA_CPU2") != "0"
 
 
 def toolchain():
@@ -97,17 +97,17 @@ def tc_all(*cmds):
 def generate():
     """generated headers (UI fonts, icons, keycaps, palettes, tables, samples)"""
     GEN.mkdir(parents=True, exist_ok=True)
-    for old in ("felucca_font.h", "felucca_icons.h"):     # headers of the bitmap font and icon atlas
+    for old in ("umbra_font.h", "umbra_icons.h"):     # headers of the bitmap font and icon atlas
         (GEN / old).unlink(missing_ok=True)
     tools = SRC / "tools"
     cmds = [[tools / "gen_aa_font.py", GEN / "ui_fonts.h", "--preset", "inter-tight"],
             [tools / "gen_aa_icons.py", GEN / "ui_icons.h"],
             [tools / "gen_aa_keycaps.py", GEN / "ui_keycaps.h"],
             [tools / "gen_ui_palettes.py", GEN / "ui_palettes.h"],
-            [tools / "gen_tables.py", GEN / "felucca_tables.h"],
-            [tools / "gen_fm6_patches.py", GEN / "felucca_fm6.h"],
-            [tools / "gen_samples.py", GEN / "felucca_samples.h"],
-            [tools / "gen_adpcm.py", GEN / "felucca_adpcm.h"]]
+            [tools / "gen_tables.py", GEN / "umbra_tables.h"],
+            [tools / "gen_fm6_patches.py", GEN / "umbra_fm6.h"],
+            [tools / "gen_samples.py", GEN / "umbra_samples.h"],
+            [tools / "gen_adpcm.py", GEN / "umbra_adpcm.h"]]
     procs = [subprocess.Popen([sys.executable, *map(str, c)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                               text=True) for c in cmds]
     failed = []
@@ -203,24 +203,24 @@ def ld_regions():
 
 def build_app():
     flags = [*CFLAGS, *HAL_INC, "-Ifirmware/src", "-Ibuild/gen"]
-    for flag in ("FELUCCA_FLASH", "FELUCCA_OTA", "FELUCCA_OTA_DRYRUN", "FELUCCA_OTA_RAMONLY", "FELUCCA_CDC",
-                 "FELUCCA_UART", "FELUCCA_UAC", "FELUCCA_UAC_TONE", "FELUCCA_UAC_48K", "FELUCCA_ICONS", "FELUCCA_SLICE", "FELUCCA_FM4",
-                 "FELUCCA_CDC_DEFAULT", "FELUCCA_UAC_AS_FIRST", "FELUCCA_CPU2", "FELUCCA_ADPCM"):
-        v = os.environ.get(flag)    # unset: the default in firmware/src/felucca.c
+    for flag in ("UMBRA_FLASH", "UMBRA_OTA", "UMBRA_OTA_DRYRUN", "UMBRA_OTA_RAMONLY", "UMBRA_CDC",
+                 "UMBRA_UART", "UMBRA_UAC", "UMBRA_UAC_TONE", "UMBRA_UAC_48K", "UMBRA_ICONS", "UMBRA_SLICE", "UMBRA_FM4",
+                 "UMBRA_CDC_DEFAULT", "UMBRA_UAC_AS_FIRST", "UMBRA_CPU2", "UMBRA_ADPCM"):
+        v = os.environ.get(flag)    # unset: the default in firmware/src/umbra.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")
-    v = os.environ.get("FELUCCA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
+    v = os.environ.get("UMBRA_USB_LAYOUT")   # firmware/src/usb.c: how the USB composite presents itself (#67), 0..3
     if v in ("0", "1", "2", "3"):
-        flags.append(f"-DFELUCCA_USB_LAYOUT={v}")
-    flags.append(f'-DFELUCCA_ID="{PRODUCT}"')
+        flags.append(f"-DUMBRA_USB_LAYOUT={v}")
+    flags.append(f'-DUMBRA_ID="{PRODUCT}"')
     if VERSION:
-        flags.append(f'-DFELUCCA_VERSION="{VERSION}"')
-    # felucca.c goes to LLVM IR without the optimizer, the main-loop functions (UI, stores, editor) are
-    # marked minsize (tools/size_fns.py), then the IR is compiled at -Os. FELUCCA_SIZE=0: -Os everywhere
-    size = os.environ.get("FELUCCA_SIZE") != "0"
+        flags.append(f'-DUMBRA_VERSION="{VERSION}"')
+    # umbra.c goes to LLVM IR without the optimizer, the main-loop functions (UI, stores, editor) are
+    # marked minsize (tools/size_fns.py), then the IR is compiled at -Os. UMBRA_SIZE=0: -Os everywhere
+    size = os.environ.get("UMBRA_SIZE") != "0"
     cmain = (("cc", *flags, "-S", "-emit-llvm", "-Xclang", "-disable-llvm-optzns", "-c",
-              FW / "src" / "felucca.c", "-o", OUT / "felucca.ll") if size else
-             ("cc", *flags, "-c", FW / "src" / "felucca.c", "-o", OUT / "felucca.o"))
+              FW / "src" / "umbra.c", "-o", OUT / "umbra.ll") if size else
+             ("cc", *flags, "-c", FW / "src" / "umbra.c", "-o", OUT / "umbra.o"))
     (OUT / "fm1_cpu1.o").unlink(missing_ok=True)
     tc_all(("cc", "-c", hal_file("crt0.S"), "-o", OUT / "crt0.o"),
            ("cc", "-c", hal_file("fm1_vec.S"), "-o", OUT / "fm1_vec.o"),
@@ -228,13 +228,13 @@ def build_app():
            *([("cc", "-c", hal_file("fm1_cpu1.S"), "-o", OUT / "fm1_cpu1.o")] if CPU2 else []),
            cmain)
     if size:
-        subprocess.run([sys.executable, SRC / "tools" / "size_fns.py", OUT / "felucca.ll", OUT / "felucca_size.ll"],
+        subprocess.run([sys.executable, SRC / "tools" / "size_fns.py", OUT / "umbra.ll", OUT / "umbra_size.ll"],
                        check=True)
         tc("cc", *[f for f in flags if not f.startswith(("-I", "-D", "-W"))], "-c",
-           OUT / "felucca_size.ll", "-o", OUT / "felucca.o")
-    elf = OUT / "felucca.elf"
+           OUT / "umbra_size.ll", "-o", OUT / "umbra.o")
+    elf = OUT / "umbra.elf"
     tc("pi32v2/bin/ld", "-T", FW / "app.ld", OUT / "crt0.o", OUT / "fm1_vec.o", OUT / "fm1_isr.o",
-       *([OUT / "fm1_cpu1.o"] if CPU2 else []), OUT / "felucca.o", "-o", elf)
+       *([OUT / "fm1_cpu1.o"] if CPU2 else []), OUT / "umbra.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin", "c1text.bin"):   # (c1text.bin: before the BSP, its own section)
         (OUT / sect).unlink(missing_ok=True)
     *_, syms, dis, rt = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, OUT / "text.bin"),
@@ -243,7 +243,7 @@ def build_app():
                                ("common/bin/objdump", "-t", elf),
                                ("common/bin/objdump", "-d", elf),
                                ("common/bin/objdump", "-d", "-j", ".ram_text", elf))
-    (OUT / "felucca.dis").write_text(dis)
+    (OUT / "umbra.dis").write_text(dis)
 
     def symv(name):
         return int(re.search(r"^([0-9a-f]+) .*\s" + name + r"$", syms, re.M).group(1), 16)
@@ -260,7 +260,7 @@ def build_app():
             img += b"\xff" * (load - APP_XIP - len(img))
             img += blob
     img += b"\xff" * (-len(img) % 4)
-    (OUT / "felucca.bin").write_bytes(img)
+    (OUT / "umbra.bin").write_bytes(img)
     return bytes(img), syms, dis, rt
 
 
@@ -299,9 +299,9 @@ def check(img, syms, dis, rt):
     else:
         notes.append(f".ram_text: {rt_insns} insns, no calls")
     c1_syms = re.findall(r"\s(fm1_cpu1_(?!stop)\w+)$", syms, re.M)
-    if not CPU2:                    # FELUCCA_CPU2=0: nothing of the second core (no stack, waiting loop, mailbox)
+    if not CPU2:                    # UMBRA_CPU2=0: nothing of the second core (no stack, waiting loop, mailbox)
         if c1_insns or c1_syms:
-            errors.append(f"FELUCCA_CPU2=0 build holds second-core code or data: {sorted(set(c1_syms))[:4]}")
+            errors.append(f"UMBRA_CPU2=0 build holds second-core code or data: {sorted(set(c1_syms))[:4]}")
         else:
             notes.append("one core: no second-core code, stack or mailbox")
     elif c1_calls:
@@ -387,7 +387,7 @@ def mmio_check():
 def main():
     global PRODUCT, VERSION
     ap = argparse.ArgumentParser()
-    ap.add_argument("--release", metavar="X.Y", help="release build: identity FM-1_9XY, version string vX.Y")
+    ap.add_argument("--release", metavar="X.Y", help="release build: identity FM-1_8XY, version string vX.Y")
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     ap.add_argument("--gen", action="store_true",       # UMBRA: what the browser emulator needs, no toolchain or SDK
                     help="only the generated headers (build/gen) for web/emu/build.sh")
@@ -396,14 +396,14 @@ def main():
         generate()
         print(f"gen      {GEN}")
         return 0
-    name = "felucca.fwsc"
+    name = "umbra.fwsc"
     if a.release:                   # one digit each: the identity has room for two (X.Y.Z and X.Y.Z.W keep X.Y's)
         m = re.fullmatch(r"(\d)\.(\d)(?:\.\d){0,2}(-[A-Za-z0-9]+)?", a.release)
         if not m:
             raise SystemExit(f"--release {a.release}: use X.Y, X.Y.Z, X.Y.Z.W or X.Y-suffix, one digit each")
-        PRODUCT = "FM-1_9" + m[1] + m[2]
+        PRODUCT = "FM-1_8" + m[1] + m[2]
         VERSION = "v" + a.release.lower()      # e.g. v1.0, v1.1-rc1
-        name = f"felucca-{a.release}.fwsc"
+        name = f"umbra-{a.release}.fwsc"
     if not (FW / "engines" / "src" / "felucca_engine.h").exists():
         raise SystemExit("firmware/engines is empty: the Felucca-Engines submodule "
                          "(git submodule update --init, or clone with --recurse-submodules)")
@@ -436,14 +436,14 @@ def main():
     att = SRC / "assets" / "samples-cc0" / "ATTRIBUTION.txt"
     if att.exists():
         shutil.copy(att, OUT / "ATTRIBUTION.txt")
-    print(f"app      {OUT / 'felucca.bin'}  {len(img)} B")
+    print(f"app      {OUT / 'umbra.bin'}  {len(img)} B")
     print(f"loader   {LDR / 'ota.bin'}  {len(ota)} B")
     print(f"package  {OUT / name}  {len(pkg)} B, identity {PRODUCT}")
     if a.release:                   # what a release carries: the package, the app and every licence they need
         rel = OUT / f"release-{a.release}"
         shutil.rmtree(rel, ignore_errors=True)
         (rel / "LICENSES").mkdir(parents=True)
-        app = f"felucca-{a.release}-app.bin"
+        app = f"umbra-{a.release}-app.bin"
         (rel / name).write_bytes(pkg)
         (rel / app).write_bytes(img)
         (rel / "SHA256SUMS").write_text("".join(f"{hashlib.sha256(b).hexdigest()}  {n}\n"

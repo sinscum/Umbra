@@ -1474,7 +1474,7 @@ const FM6 = (() => {
 
 /* ----------------------------------------------------------------- DIGITAL --- */
 /* DIGITAL (engine 1, four-operator FM) was replaced by FM6 (1.0): the firmware keeps engine 1 reserved (its name
-   "-"; a FELUCCA_FM4=1 build has DIGITAL back) and turns every DIGITAL sound into an FM6 one with a patch of its own
+   "-"; a UMBRA_FM4=1 build has DIGITAL back) and turns every DIGITAL sound into an FM6 one with a patch of its own
    (src/fm4_convert.c). This is the same conversion (test_web.mjs: == the firmware's, build/host/desc.json "FM4"), for
    library files and device slots of DIGITAL sounds. convert(p, pe0): p the values as DIGITAL has them (null: its
    defaults), P_E0 at pe0 (the OP ENV values at 61..80 when pe0 >= 81) -> {p: FM6's (the macros neutral, PTCH the
@@ -2730,7 +2730,7 @@ $("lang").addEventListener("click", () => { lang = lang === "ja" ? "en" : "ja"; 
 /* ---------------------------------------------------------------- tabs --- */
 /* one panel at a time; the last one is remembered (localStorage) and in the URL hash (#sound ...) */
 const TABS = ["sound", "fm6", "sequencer", "tracks", "library", "samples", "projects", "settings"];
-const TAB_KEY = "felucca-editor-tab";
+const TAB_KEY = "umbra-editor-tab";
 const TRACK_TABS = new Set(["sound", "sequencer", "tracks"]);
 let tab = (() => {
   const h = location.hash.slice(1);
@@ -2844,7 +2844,7 @@ const LAYOUT = (pe0) => [
   { t: "EDIT", engine: true, pages: [["EDIT 1", 0, [pe0, pe0 + 1, pe0 + 2, pe0 + 3]], ["EDIT 2", 0, [pe0 + 4, pe0 + 5, pe0 + 6, pe0 + 7]],
     ...(pe0 >= 91 && engName() === "DRUM" ? [["LANES", 0, P_LANES.slice(0, 4)], ["LANES 2", 0, P_LANES.slice(4)]] : [])] },   /* lane levels 83..90 */
   ...(pe0 >= 81 && engName() === "DIGITAL" ? [{ t: "OP ENV", pages: [   /* P_FM1_ATK 61: ATK DEC SUS REL LVL per operator (a
-                                                    FELUCCA_FM4=1 firmware only: DIGITAL retired, its engine is "-") */
+                                                    UMBRA_FM4=1 firmware only: DIGITAL retired, its engine is "-") */
     ...[0, 1, 2, 3].map((k) => [`OP${k + 1}`, 0, [61 + 5 * k, 62 + 5 * k, 63 + 5 * k, 64 + 5 * k]]),
     ["OP LVL", 0, [65, 70, 75, 80]]] }] : []),
   { t: "VOICE", pages: [["LEVEL", 0, [0]], ["VOICE", 0, [37, 38, 41, 42]], ["VOICE 2", 0, [43, 44, 39, 40]]] },
@@ -2884,7 +2884,7 @@ async function connect() {
       }
       access.onstatechange = onState;
     }
-    const isF = (p) => /felucca/i.test(p.name || "") && p.state !== "disconnected";
+    const isF = (p) => /umbra/i.test(p.name || "") && p.state !== "disconnected";
     const input = [...access.inputs.values()].find(isF);
     const output = [...access.outputs.values()].find(isF);
     if (!input || !output) { sayK("nodevice"); return; }
@@ -2938,7 +2938,7 @@ function disconnect(reasonKey = "disconnected") {
 
 function onState(e) {
   const p = e.port;
-  if (!p || !/felucca/i.test(p.name || "")) return;
+  if (!p || !/umbra/i.test(p.name || "")) return;
   if (dev && p.state === "disconnected" && (p.id === dev.input.id || p.id === dev.output.id)) {
     disconnect("lost");
   } else if (!dev && wantConnected && p.state === "connected" && p.type === "output") {
@@ -3617,7 +3617,7 @@ async function decodeFile(f) {
 
 /* ---- recording: the computer's input (getUserMedia, no echo cancelling / noise suppression / AGC),
  * raw PCM through an AudioWorklet, mixed to mono; it stops by itself when the slot is full */
-const REC_WORKLET = `registerProcessor("felucca-rec", class extends AudioWorkletProcessor {
+const REC_WORKLET = `registerProcessor("umbra-rec", class extends AudioWorkletProcessor {
   process(inputs) {
     const i = inputs[0];
     if (i && i.length && i[0].length) {
@@ -3659,7 +3659,7 @@ async function recStart(k) {
     const url = URL.createObjectURL(new Blob([REC_WORKLET], { type: "text/javascript" }));
     try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
     check();
-    const node = new AudioWorkletNode(ctx, "felucca-rec"), mute = ctx.createGain();
+    const node = new AudioWorkletNode(ctx, "umbra-rec"), mute = ctx.createGain();
     mute.gain.value = 0;                            /* pulled by the graph, but nothing is heard */
     ctx.createMediaStreamSource(stream).connect(node).connect(mute).connect(ctx.destination);
     rec = { k, ctx, stream, chunks: [], n: 0, max: Math.floor(left * 2 * ctx.sampleRate / SMP.RATE), peak: 0 };
@@ -4438,7 +4438,7 @@ $("savefile").addEventListener("click", () => {
     engineName: dev.info.engines[engine], presetName: (dev.names[engine] || [])[preset],
     engine, preset, p: dev.dump.p.slice(), g: dev.dump.g.slice(),
     steps: dev.steps.map((s) => ({ n: s.n, notes: s.notes.slice(), time: s.time, flags: s.flags, vel: s.vel })) };
-  download(`felucca-${fileSlug(data.engineName || "patch")}-${fileSlug(data.presetName || preset)}.json`, data);
+  download(`umbra-${fileSlug(data.engineName || "patch")}-${fileSlug(data.presetName || preset)}.json`, data);
 });
 $("loadfile").addEventListener("click", () => { $("file").value = ""; $("file").click(); });
 $("file").addEventListener("change", async () => {
@@ -4483,14 +4483,14 @@ $("file").addEventListener("change", async () => {
 });
 
 /* ----------------------------------------------------------- library --- */
-/* Patches live in IndexedDB "felucca-editor": store "patches" (by id), store "meta" ("layout": the
+/* Patches live in IndexedDB "umbra-editor": store "patches" (by id), store "meta" ("layout": the
    parameter keys / engine names the stored values are in). Without IndexedDB (some private windows)
    the library is kept in memory only. */
 const store = (() => {
   let dbp = null;
   const open = () => dbp || (dbp = new Promise((res) => {
     try {
-      const r = indexedDB.open("felucca-editor", 1);
+      const r = indexedDB.open("umbra-editor", 1);
       r.onupgradeneeded = () => { r.result.createObjectStore("patches", { keyPath: "id" }); r.result.createObjectStore("meta"); };
       r.onsuccess = () => res(r.result);
       r.onerror = r.onblocked = () => res(null);
@@ -4901,7 +4901,7 @@ $("bkexport").addEventListener("click", () => libOp(async (d, rqf) => {
     if (u.used) out.push({ name: u.name, engine: u.engine, p: u.p, pattern: u.pattern, grid: u.grid, slot: x.slot, fm6: u.fm6,
       engineName: reservedFm4(dev.info.engines, u.engine) ? "DIGITAL" : dev.info.engines[u.engine] });   /* (DIGITAL's values) */
   }
-  download(`felucca-bank-${today()}.json`, libraryFile("bank", out, libCtx()));
+  download(`umbra-bank-${today()}.json`, libraryFile("bank", out, libCtx()));
   sayK("ready");
 }));
 

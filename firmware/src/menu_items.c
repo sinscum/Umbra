@@ -16,8 +16,8 @@
 enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_SCOPE, MI_HOME, MI_HOLD, MI_ACCEL, MI_LATCH, MI_BPMLOCK, MI_SCLLED,
        MI_PREVIEW, MI_CHADD, MI_SELECT, MI_LOWCUT, MI_USB,
        MI_CLICK, MI_CLKLVL, MI_COUNTIN, MI_TUNE, MI_MIDIIN, MI_TCH1, MI_TCH2, MI_TCH3, MI_TCH4, MI_MFOLLOW, MI_SCRWAKE, MI_LCLEAR, MI_SERIAL, MI_RESTORE, MI_HELP,
-#if FELUCCA_CPU2
-       MI_CPU2,                                        /* (not in a FELUCCA_CPU2=0 build: core.h) */
+#if UMBRA_CPU2
+       MI_CPU2,                                        /* (not in a UMBRA_CPU2=0 build: core.h) */
 #endif
        MI_PANEL, MI_INFO, MI_ABOUT, MI_COUNT };
                                                        /* (1.1: the metronome's rows in AUDIO; 1.2: RESTORE LAST in
@@ -27,7 +27,7 @@ enum { MI_COLOR, MI_STYLE, MI_LARGE, MI_ANIM, MI_LEDS, MI_SCROFF, MI_SCOPE, MI_H
                                                         * in CONTROL, T1..T4 CHANNEL, AUTO SELECT and SCREEN WAKE
                                                         * in MIDI; 1.6.1: 2ND CORE in SYSTEM) */
 #define MI_VALUES MI_PANEL
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #define MI_TEXT(row) ((row) == MI_CPU2)                /* OFF / ON (BETA): its values as words, not a switch (ui_menu.c) */
 #else
 #define MI_TEXT(row) 0
@@ -41,7 +41,7 @@ static const char *const MI_NAME[MI_COUNT] = {"COLOR", "STYLE", "LARGE", "ANIM",
                                               "SPEAKER EQ", "USB LEVEL", "CLICK", "CLICK LEVEL", "COUNT-IN", "TUNE",
                                               "MIDI IN", "T1 CHANNEL", "T2 CHANNEL", "T3 CHANNEL", "T4 CHANNEL",
                                               "AUTO SELECT", "SCREEN WAKE", "LEARN CLEAR", "USB SERIAL", "RESTORE LAST", "HELP",
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
                                               "2ND CORE",
 #endif
                                               "CALIBRATION", "INFO",
@@ -73,7 +73,7 @@ static const uint8_t MI_TAB[MI_COUNT] = {
     MTAB_MIDI,                                                              /* SCREEN WAKE (1.5.5: DISPLAY is full) */
     MTAB_MIDI,                                                              /* LEARN CLEAR (1.5) */
     MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM,                                  /* USB SERIAL, RESTORE LAST, HELP (1.5) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     MTAB_SYSTEM,                                                            /* 2ND CORE (1.6.1) */
 #endif
     MTAB_SYSTEM, MTAB_SYSTEM, MTAB_SYSTEM,                                  /* CALIBRATION, INFO (1.2), ABOUT */
@@ -120,7 +120,7 @@ static const menu_flag_t MENU_FLAGS[] = {
     {MI_HELP, PREF_HELP, {"OFF", "ON"}},               /* 1.5, Discussion #156: ON, a hint per page / layer (ui_help.c) */
     {MI_MFOLLOW, PREF_MIDI_FOLLOW, {"OFF", "ON"}},     /* 1.5.5, #208: ON, MIDI IN notes select their track (ui_input.c) */
     {MI_SCRWAKE, PREF_WAKE_PANEL, {"+MIDI", "PANEL"}}, /* 1.5.5: PANEL, only the panel wakes SCREEN OFF (ui.c scr_input) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     {MI_CPU2, PREF_CPU2_ON, {"OFF", "ON (BETA)"}},     /* 1.6.1: ON, the second core (main.c, from the next power-on) */
 #endif
 };
@@ -144,9 +144,9 @@ static const uint8_t ANIM_ORD[3] = {1, 0, 2};          /* (a value's place in th
 /* 1.3 (Discussions #112, #134): what HOME shows under its cards (ui.c ui_home_view): the scope, or the four tracks */
 static const char *const HOME_N[HV_COUNT] = {"SCOPE", "TRACKS", "LEVELS"};   /* (1.5, #134: LEVELS) */
 
-/* MENU > USB SERIAL (#67). The serial console is a developer tool (README: FELUCCA_CDC). ON (the default) presents it,
+/* MENU > USB SERIAL (#67). The serial console is a developer tool (README: UMBRA_CDC). ON (the default) presents it,
  * the descriptors byte for byte as before; OFF re-enumerates as audio + MIDI only, device class 0 (the bytes of a
- * FELUCCA_CDC=0 build): macOS 13-15 then attach their USB audio driver (with the console Apple's CDC composite driver
+ * UMBRA_CDC=0 build): macOS 13-15 then attach their USB audio driver (with the console Apple's CDC composite driver
  * takes the device and the audio input never appears). USB-MIDI stays, and with it the editor, the update installer
  * and the soft key (SysEx on EP1). Applied at boot before USB starts (main.c: enumerated with it from the start, never
  * on then off) and while the menu is closed (ui_input: one re-enumeration when it closes, not one per KNOB 1 step).
@@ -155,11 +155,11 @@ static const char *const HOME_N[HV_COUNT] = {"SCOPE", "TRACKS", "LEVELS"};   /* 
 static uint32_t menu_serial_at;                        /* fm1_ms | 1 of the editor's change; 0 none */
 static void usb_serial_apply(void)
 {
-#if FELUCCA_CDC
+#if UMBRA_CDC
     if (menu_serial_at && fm1_ms - (menu_serial_at & ~1u) < 200u)   /* (& ~1: at an even fm1_ms the | 1 was 1 ms ahead) */
         return;
     menu_serial_at = 0;
-    usb_cdc_switch(FELUCCA_CDC_DEFAULT && !(ui_prefs & PREF_SERIAL_OFF));   /* (a FELUCCA_CDC_DEFAULT=0 build: off) */
+    usb_cdc_switch(UMBRA_CDC_DEFAULT && !(ui_prefs & PREF_SERIAL_OFF));   /* (a UMBRA_CDC_DEFAULT=0 build: off) */
 #endif
 }
 static const menu_flag_t *menu_flag(uint32_t row)
@@ -266,7 +266,7 @@ static void menu_put(uint32_t row, uint32_t v)
             ui_prefs = (uint8_t)(v ? ui_prefs | f->bit : ui_prefs & ~f->bit);
         fx_usb_fixed = (ui_prefs & PREF_USB_FIXED) != 0u;   /* (at once; every frame too: ui_input) */
         scope_mix = (ui_prefs2 & (PREF_SCOPE_MIX >> 16)) != 0u;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
         if (row == MI_CPU2)                            /* (the second core starts at power-on only, main.c; and
                                                         * once running it stays until the next one) */
             ui_message(v ? "2ND CORE ON: RESTART" : "2ND CORE OFF: RESTART");

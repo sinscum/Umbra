@@ -4,63 +4,70 @@
  * define, so the order matters. */
 
 /* ---------------------------------------------------- build options --- */
-/* build.py: FELUCCA_<NAME>=0 / 1 in the environment overrides these. Elsewhere: FELUCCA_SLICE, FELUCCA_FM4
- * (core.h: the SLICE engine, the DIGITAL engine), FELUCCA_ICONS (icons.c, the parameter icons; on by default),
- * FELUCCA_OTA_RAMONLY (ota.c). */
-#ifndef FELUCCA_FLASH
-#define FELUCCA_FLASH 1          /* flash driver + storage.c: settings, projects, user presets */
+/* build.py: UMBRA_<NAME>=0 / 1 in the environment overrides these. Elsewhere: UMBRA_SLICE, UMBRA_FM4
+ * (core.h: the SLICE engine, the DIGITAL engine), UMBRA_ICONS (icons.c, the parameter icons; on by default),
+ * UMBRA_OTA_RAMONLY (ota.c). */
+#ifndef UMBRA_FLASH
+#define UMBRA_FLASH 1          /* flash driver + storage.c: settings, projects, user presets */
 #endif
-#ifndef FELUCCA_OTA
-#define FELUCCA_OTA 1            /* M-UPGRADE update entry and the editor SysEx; needs FELUCCA_FLASH */
+#ifndef UMBRA_OTA
+#define UMBRA_OTA 1            /* M-UPGRADE update entry and the editor SysEx; needs UMBRA_FLASH */
 #endif
-#ifndef FELUCCA_OTA_DRYRUN
-#define FELUCCA_OTA_DRYRUN 0     /* 1 = stage, ask "success", then undo: no record, no reset */
+#ifndef UMBRA_OTA_DRYRUN
+#define UMBRA_OTA_DRYRUN 0     /* 1 = stage, ask "success", then undo: no record, no reset */
 #endif
-#ifndef FELUCCA_CDC
-#define FELUCCA_CDC 1            /* USB CDC-ACM serial console */
+#ifndef UMBRA_CDC
+#define UMBRA_CDC 1            /* USB CDC-ACM serial console */
 #endif
-#ifndef FELUCCA_UAC
-#define FELUCCA_UAC 1            /* USB audio input: the master output, 16-bit stereo 44.1 kHz (usb.c) */
+#ifndef UMBRA_UAC
+#define UMBRA_UAC 1            /* USB audio input: the master output, 16-bit stereo 44.1 kHz (usb.c) */
 #endif
-#ifndef FELUCCA_UAC_AS_FIRST
-#define FELUCCA_UAC_AS_FIRST 1   /* bsp/chip/usb.c (off there by default): the audio streaming interface first in the AC
+#ifndef UMBRA_UAC_AS_FIRST
+#define UMBRA_UAC_AS_FIRST 1   /* bsp/chip/usb.c (off there by default): the audio streaming interface first in the AC
                                   * collection, as since 1.5.1 (#67: macOS) */
 #endif
-#ifndef FELUCCA_UAC_TONE
-#define FELUCCA_UAC_TONE 0       /* bench: the USB input sends test triangles instead of the music */
+#ifndef UMBRA_UAC_TONE
+#define UMBRA_UAC_TONE 0       /* bench: the USB input sends test triangles instead of the music */
 #endif
-#ifndef FELUCCA_UART
-#define FELUCCA_UART 1           /* TRS MIDI IN on UART1 / PH8 */
+#ifndef UMBRA_UART
+#define UMBRA_UART 1           /* TRS MIDI IN on UART1 / PH8 */
 #endif
-#ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_900"    /* package identity (build.py: the .fwsc marker string) */
+#ifndef UMBRA_ID
+#define UMBRA_ID "FM-1_800"    /* package identity (build.py: the .fwsc marker string) */
 #endif
-#ifndef FELUCCA_CPU2
-#define FELUCCA_CPU2 1           /* 1 (1.6.1): the second core is built in and renders some parts when MENU > SYSTEM >
+#ifndef UMBRA_CPU2
+#define UMBRA_CPU2 1           /* 1 (1.6.1): the second core is built in and renders some parts when MENU > SYSTEM >
                                   * 2ND CORE is ON (BETA; OFF by default: one core, as 1.6; bsp/chip/fm1_cpu1.h, fx.c
-                                  * mix_block). 0 (FELUCCA_CPU2=0 build.py): none of it (no core 1 stack, waiting loop,
+                                  * mix_block). 0 (UMBRA_CPU2=0 build.py): none of it (no core 1 stack, waiting loop,
                                   * buffers or menu row). (The same default: core.h) */
 #endif
-#define FM1_CPU1 FELUCCA_CPU2      /* felucca-bsp chip/fm1_cpu1.h: the second core is built in (fm1_irq.h hands its
+#define FM1_CPU1 UMBRA_CPU2      /* felucca-bsp chip/fm1_cpu1.h: the second core is built in (fm1_irq.h hands its
                                     * faults to it); every reset holds it first either way (chip/fm1_sys.h) */
 #define FM1_CPU1_FALLBACK 1        /* a misread, a fault or a late job: core 1 retired, one core until power-off (and
                                     * main.c turns 2ND CORE off), not a restart: as Felucca's own second core did */
 #define FM1_CRASH_CTX_N 1u         /* chip/fm1_irq.h: the registers of the last crash only (80 B of .noinit; four would
                                     * not fit beside the project slots) */
-#ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.7.0" /* shown in the menu, the console and the editor; build.py --release X.Y */
+#ifndef UMBRA_USB_PRODUCT
+#define UMBRA_USB_PRODUCT "UMBRA"        /* the USB device's name (MIDI port, audio device): bsp/chip/usb.c */
 #endif
-#if FELUCCA_OTA && !FELUCCA_FLASH
-#error "FELUCCA_OTA needs FELUCCA_FLASH"
+#ifndef UMBRA_USB_MANUFACTURER
+#define UMBRA_USB_MANUFACTURER "UMBRA"
+#endif
+#ifndef UMBRA_VERSION
+#define UMBRA_VERSION "v0.1.0" /* shown in the menu, the console and the editor; build.py --release X.Y */
+#endif
+#if UMBRA_OTA && !UMBRA_FLASH
+#error "UMBRA_OTA needs UMBRA_FLASH"
 #endif
 
 /* ------------------------------------------------------------- HAL --- */
 #include <stdint.h>
+#include "umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "fm1_time.h"
 #include "fm1_sys.h"
 #include "fm1_irq.h"
 #include "fm1_guard.h"
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #include "fm1_cpu1.h"
 #define C1_ON() fm1_cpu1_on                  /* fx.c mix_block: a second core is answering */
 #define C1_RUN(fn, arg) fm1_cpu1_run(fn, arg)
@@ -73,7 +80,7 @@ static __attribute__((noinline)) int c1_wait(void) { return fm1_cpu1_wait(); }  
 #include "fm1_audio.h"
 #include "fm1_adc.h"
 #include "fm1_lcd_hw.h"
-#include "felucca_tables.h"      /* generated by build.py (tools/gen_tables.py) */
+#include "umbra_tables.h"      /* generated by build.py (tools/gen_tables.py) */
 
 /* ----------------------------------------------------- base, display --- */
 #include "../bsp/chip/libc.c"
@@ -91,7 +98,7 @@ static __attribute__((noinline)) int c1_wait(void) { return fm1_cpu1_wait(); }  
 
 /* ------------------------------------------------- MIDI, sequencer --- */
 #include "../bsp/chip/usb.c"
-#if FELUCCA_UART
+#if UMBRA_UART
 #include "midi_uart.c"
 #endif
 #include "song_chain.c"
@@ -102,7 +109,7 @@ static __attribute__((noinline)) int c1_wait(void) { return fm1_cpu1_wait(); }  
 #include "panel.c"
 #include "ui.c"
 #include "menu_items.c"          /* MENU's rows and settings (ui_menu.c, editor_menu.c) */
-#include "icons.c"               /* parameter icons (FELUCCA_ICONS), used by ui_draw.c */
+#include "icons.c"               /* parameter icons (UMBRA_ICONS), used by ui_draw.c */
 #include "ui_graph.c"
 #include "ui_draw.c"
 #include "ui_menu.c"
@@ -110,19 +117,19 @@ static __attribute__((noinline)) int c1_wait(void) { return fm1_cpu1_wait(); }  
 #include "ui_layer.c"              /* the quick layers (FX GLO SCL EDIT REC held; SEQ TOOLS: ui_tools.c) */
 
 /* --------------------------------------------- storage, update, editor --- */
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
 #include "fm1_flash.h"
 #include "storage_hw.c"
 #include "storage.c"
 #endif
-#include "upreset.c"             /* user presets (RAM mirror; flash with FELUCCA_FLASH) */
+#include "upreset.c"             /* user presets (RAM mirror; flash with UMBRA_FLASH) */
 #include "project.c"
-#if FELUCCA_OTA
+#if UMBRA_OTA
 #include "../bsp/chip/ota.c"
 #include "ota_hw.c"
 #include "editor.c"              /* web editor SysEx (needs the OTA SysEx plumbing) */
 #endif
-#if FELUCCA_CDC
+#if UMBRA_CDC
 #include "console.c"
 #endif
 #include "master.c"              /* the MASTER pot (#137: read before the audio starts) */

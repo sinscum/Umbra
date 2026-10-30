@@ -11,8 +11,8 @@
 #include <string.h>
 #define __attribute__(x)   /* (the sources' .pool sections: no Mach-O section names) */
 
-#define FELUCCA_ID "FM-1_900"
-#define FELUCCA_OTA_DRYRUN 0
+#define UMBRA_ID "FM-1_900"
+#define UMBRA_OTA_DRYRUN 0
 
 static uint8_t nor[0x100000];
 static uint8_t *logical;
@@ -114,6 +114,7 @@ static int ota_fread(uint32_t off, void *dst, uint32_t n) { memcpy(dst, nor + of
 static void ota_show(uint32_t step, int32_t code) { if (step == 9) last_code = code; }
 static void ota_commit(const uint8_t *parm) { committed = 1; memcpy(committed_parm, parm, 112); }
 
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/ota.c"
 
 static uint32_t ota_body_off(void)                  /* ota.bin data + 0x20 in the logical image */
@@ -199,8 +200,8 @@ int main(int argc, char **argv)
         host_reply(m, 7);
         ota_service();
         bad += check("handshake answered", ident_replies == 1);
-        bad += check("identity frame is " FELUCCA_ID,
-                     ota_msg[2] == 0x11 && !memcmp(ota_msg + 6, FELUCCA_ID, sizeof FELUCCA_ID - 1));
+        bad += check("identity frame is " UMBRA_ID,
+                     ota_msg[2] == 0x11 && !memcmp(ota_msg + 6, UMBRA_ID, sizeof UMBRA_ID - 1));
     }
 
     /* full session */

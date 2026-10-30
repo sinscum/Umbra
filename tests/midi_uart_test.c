@@ -7,10 +7,11 @@
 #include <stdio.h>
 #include <string.h>
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
-#define FELUCCA_OTA 1
-#define FELUCCA_CDC 0
+#define UMBRA_OTA 1
+#define UMBRA_CDC 0
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"   /* SIE register macros (never touched here) */
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/usb.c"
 #include "../firmware/src/midi_uart.c"
 

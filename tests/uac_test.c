@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* Host test of the USB audio input in src/usb.c (FELUCCA_UAC):
+/* Host test of the USB audio input in src/usb.c (UMBRA_UAC):
  *   descriptors  the configuration parsed as a host does: lengths, interface and endpoint counts,
  *                class codes, the UAC1 chain (AC header collection, terminals, AS general, type I
  *                format: 44100 and 48000 Hz, the isochronous endpoint: 49 frames), the IADs; with and
@@ -33,11 +33,12 @@
 #error "-DHALF_FRAMES=n (src/core.h; run_tests.sh passes it)"
 #endif
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
-#define FELUCCA_OTA 0
-#define FELUCCA_CDC T_CDC
-#define FELUCCA_UAC 1
+#define UMBRA_OTA 0
+#define UMBRA_CDC T_CDC
+#define UMBRA_UAC 1
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"   /* SIE register macros (never touched here) */
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/usb.c"
 
 static int fails;

@@ -414,8 +414,8 @@ class Builder:
 
 
 def slice_on():
-    """the SLICE engine is built (src/core.h: on unless FELUCCA_SLICE=0)"""
-    return os.environ.get("FELUCCA_SLICE", "1") != "0"
+    """the SLICE engine is built (src/core.h: on unless UMBRA_SLICE=0)"""
+    return os.environ.get("UMBRA_SLICE", "1") != "0"
 
 
 def input_key(have_cc0):

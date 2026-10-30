@@ -125,7 +125,7 @@ int main(void)
     static const char *const MASKS[] = {"rot", "auto", "5", "10", "3", "12", "1"};
     uint32_t n = 0, e, i, k, g, fail = 0;
     for (e = 0; e < NENGINES; e++) {                    /* every preset: four parts at a time */
-        if (!eng_ok(e))                                 /* (a retired number: DIGITAL without FELUCCA_FM4) */
+        if (!eng_ok(e))                                 /* (a retired number: DIGITAL without UMBRA_FM4) */
             continue;
         for (g = 0; g * NPART < ENGINES[e]->npresets; g++) {
             snprintf(names[n], sizeof names[n], "4 x %s %u..%u", ENGINES[e]->name, g * NPART, g * NPART + NPART - 1u);
@@ -141,7 +141,7 @@ int main(void)
     sc[n++] = (scen_t){"GRAIN NOISE VOICE LOFI", {8, 11, 5, 3}, {1, 4, 7, 10}, 0};
     sc[n++] = (scen_t){"TRIO WHEEL PHASE FM6", {6, 7, 2, ENGI_FM6}, {1, 4, 7, 10}, 0};
     sc[n++] = (scen_t){"PHYS morph + DRUM GRAIN ANALOG", {ENGI_PHYS, ENGI_DRUM, 8, 0}, {2, 1, 3, 5}, 1};
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     sc[n++] = (scen_t){"SAMPLE SLICE GRAIN PHASE", {ENGI_SAMPLE, 13, 8, 2}, {2, 1, 3, 5}, 0};
     sc[n++] = (scen_t){"SLICE FM6 SAMPLE DRUM", {13, ENGI_FM6, ENGI_SAMPLE, ENGI_DRUM}, {0, 2, 3, 4}, 0};
 #else

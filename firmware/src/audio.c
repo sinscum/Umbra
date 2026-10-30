@@ -14,17 +14,17 @@ static int32_t abuf[2u * HALF_WORDS] __attribute__((aligned(4)));
 
 /* diagnostics, kept across resets and UBOOT entry: read with `fm1t memr` */
 #define DBG_MAGIC 0x44424731u                       /* "DBG1" */
-struct felucca_dbg {
+struct umbra_dbg {
     uint32_t magic, halves, max_us, nested, in_audio, late, timer_irqs, ui_frames;
     uint32_t last_us, cpu_q8, boots;
     uint32_t stage, page, home;           /* where the main loop is (breadcrumbs) */
     uint32_t prev_stage, prev_page, prev_home, prev_rst, prev_frames;   /* as found at boot */
-} felucca_dbg __attribute__((section(".noinit")));
+} umbra_dbg __attribute__((section(".noinit")));
 static volatile uint32_t audio_halves, audio_max_us;
 static volatile uint32_t t5_nested_ticks;              /* TIMER4 ticks TIMER5 spent nested in this ISR (main.c) */
 static uint32_t audio_cpu_rem;                         /* keep the fractional IIR step: no low-load bias */
 
-#if FELUCCA_UAC
+#if UMBRA_UAC
 /* bsp/chip/usb.c uac_tap takes the samples as the I2S does (24-bit); here they are still Q15: up for it and back
  * (exact), only while a computer records (out of line: the audio ISR's own loops stay as they were) */
 static __attribute__((noinline)) void uac_tap_q15(int32_t *out, uint32_t n)
@@ -42,7 +42,7 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
 {
     uint32_t i;
     mix_block(out, n);
-#if FELUCCA_UAC
+#if UMBRA_UAC
     if (uac.feed)                                       /* the USB audio input: the same master output */
         uac_tap_q15(out, n);
 #endif
@@ -113,7 +113,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (bsp/chip/fm1_is
 {
     uint8_t p;
     uint32_t t0;
-    felucca_dbg.in_audio = 1;                   /* first: TIMER5 nests from here on (main.c) */
+    umbra_dbg.in_audio = 1;                   /* first: TIMER5 nests from here on (main.c) */
     p = fm1_audio_pending();
     t0 = fm1_ticks();
     t5_nested_ticks = 0;
@@ -125,7 +125,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (bsp/chip/fm1_is
             shed_req = 0;
             shed_voice();
         }
-#if FELUCCA_UAC
+#if UMBRA_UAC
         uac_render_start();
 #endif
         for (b = 0; b < HALF_FRAMES; b += CTL) {
@@ -145,14 +145,14 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (bsp/chip/fm1_is
             audio_cpu_rem = load % CPU_AVG;
         }
         if (fm1_audio_free_half() != half)
-            felucca_dbg.late++;                         /* the DMA moved on while we rendered */
-        felucca_dbg.halves++;
-        felucca_dbg.last_us = us;
-        if (us > felucca_dbg.max_us)
-            felucca_dbg.max_us = us;
-        felucca_dbg.cpu_q8 = song.cpu_q8;
+            umbra_dbg.late++;                         /* the DMA moved on while we rendered */
+        umbra_dbg.halves++;
+        umbra_dbg.last_us = us;
+        if (us > umbra_dbg.max_us)
+            umbra_dbg.max_us = us;
+        umbra_dbg.cpu_q8 = song.cpu_q8;
     }
-    felucca_dbg.in_audio = 0;
+    umbra_dbg.in_audio = 0;
 }
 extern void isr_alnk0(void);
 

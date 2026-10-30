@@ -20,7 +20,7 @@ Files to touch · `UMBRA_*` flag · the test that proves it · expected CPU and 
 On failure paste the first real error only. Usual causes: empty submodule, missing Pillow/fontTools, no emcc, Docker down, SDK path, a new file not added to the build list.
 
 ## 3. Test
-Browser: `node web/emu/emu_test.mjs build/emu/felucca.wasm` (CI also compares it with the native build). Full `tests/run_tests.sh` once device builds start (needs `./build.sh` and `AC79_SDK`). Read failures by kind:
+Browser: `node web/emu/emu_test.mjs build/emu/umbra.wasm` (CI also compares it with the native build). Full `tests/run_tests.sh` once device builds start (needs `./build.sh` and `AC79_SDK`). Read failures by kind:
 - **golden mismatch** → the sound changed. Intended? If not, it's a bug. Never `GOLDEN_UPDATE=1` without Shane's OK.
 - **cpu_baseline / target_budget** → report % Δ per device/engine; never `BUDGET_UPDATE=1` to pass. Offer a cheaper design.
 - **ram_budget** → report bytes Δ against `tests/ram_budget.txt`; shrink buffers or share them before raising the budget.

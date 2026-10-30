@@ -583,7 +583,7 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
         cv_blit((uint32_t)CARD_X(c), Y_LABEL);
         return;
     }
-    if (FELUCCA_ICONS && ic != ICON_NONE && label[0] && (ic - ICON_TRK < NTRK || icon_cell(&isz, ic) >= 0)) {
+    if (UMBRA_ICONS && ic != ICON_NONE && label[0] && (ic - ICON_TRK < NTRK || icon_cell(&isz, ic) >= 0)) {
         GFX_HOOK_ALIGN(0, LG_MY, 0, LG_MY + LG_MH, AL_V, "large card icon on its pill's line");
         cv_icon_in(COL_W - 5 - 16, LG_MY, 16, LG_MH, 16, ic, mot ? (hot ? T_ACCENT : T_THEME) : lc, T_SURF);
     }
@@ -643,7 +643,7 @@ static void draw_column_tall(uint32_t c, const char *label, const char *val, con
  * the accent. ratio: 0..1000 for the gauge, -1 = no gauge. icon: ICON_* (icons.c), ICON_AUTO = by label;
  * a label too long to share the card with its icon goes without it. A parameter MOTION drives (card_mot_next):
  * the motion icon in place of its own, in the theme colour; a long label moves it left, up to the card's edge;
- * a label with no room for it at all (or FELUCCA_ICONS=0): the label in the theme colour.
+ * a label with no room for it at all (or UMBRA_ICONS=0): the label in the theme colour.
  * vc: the value's colour (T_THEME, T_DIM inactive, T_ACCENT the knob just turned) */
 static void draw_column(uint32_t c, const char *label, const char *val, const char *unit, uint16_t vc,
                         int32_t ratio, uint32_t icon)
@@ -729,7 +729,7 @@ static void draw_column(uint32_t c, const char *label, const char *val, const ch
             uint32_t ic = mot ? ICON_X_MOTION : icon;
             if (mot && ix + ICON_CELL + ICON_GAP + lw > COL_W - 2)
                 ix = COL_W - 2 - lw - ICON_GAP - ICON_CELL;   /* a long label: MOTION's icon moves left */
-            if (FELUCCA_ICONS && ic != ICON_NONE && ix >= 1 && ix + ICON_CELL + ICON_GAP + lw <= COL_W - 2) {
+            if (UMBRA_ICONS && ic != ICON_NONE && ix >= 1 && ix + ICON_CELL + ICON_GAP + lw <= COL_W - 2) {
                 GFX_HOOK_ALIGN(ix, cy, ix, cy + chh, AL_V, "card icon on its label's line");
                 lx = ix + cv_icon_in(ix, cy, 0, chh, ICON_CELL, ic,   /* its ink on the label's line */
                                      mot ? (hot ? T_ACCENT : T_THEME) : lc, T_SURF) + ICON_GAP;
@@ -913,16 +913,16 @@ static void draw_foot(void)
     }
     {   /* row 2: engine icon + name, sound, page title at the right with its icon before it (MIXER, PHRASES, SONG,
          * AUTOMATION); icons: their ink on the names' capitals */
-        uint32_t pi = ui.home ? ICON_NONE : page_icon(pg), ei = FELUCCA_ICONS ? engine_icon(ename) : ICON_NONE;
+        uint32_t pi = ui.home ? ICON_NONE : page_icon(pg), ei = UMBRA_ICONS ? engine_icon(ename) : ICON_NONE;
         int32_t r = 232, tx, ex, need = text_w(&AF_S, pn), ew = text_w(&AF_S, ename);
-        ex = 8 + (FELUCCA_ICONS ? 12 + 5 : 0) + (ew < 80 ? ew : 80);   /* (where the engine's name ends) */
+        ex = 8 + (UMBRA_ICONS ? 12 + 5 : 0) + (ew < 80 ? ew : 80);   /* (where the engine's name ends) */
         tx = r - text_w(&AF_S, ti) - (pi != ICON_NONE ? 16 : 0);
         if (!ui.home && pg->graph == GR_EVENTS && tx - 12 - (ex + 10) < need) {
             str_cpy(ti + 4, ti + 10, sizeof ti - 4);    /* #93: "AUTOMATION 6/6" -> "AUTO 6/6" where the sound's name */
             tx = r - text_w(&AF_S, ti) - (pi != ICON_NONE ? 16 : 0);   /* would be cut (MENU > LARGE) */
         }
         x = 8;
-        if (FELUCCA_ICONS) {
+        if (UMBRA_ICONS) {
             if (ei != ICON_NONE)
                 GFX_HOOK_ALIGN(0, 19 + AF_S_CAP_Y, 0, 19 + AF_S_CAP_Y + AF_S_CAP_H, AL_V,
                                "footer icons on the names' line");
@@ -1137,7 +1137,7 @@ static void draw_columns(void)
         draw_act_column(3, "SAVE", T_THEME, ICON_AUTO);
         return;
     }
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (cur_page()->graph == GR_SLICES) {                /* SLICE POS, then SPLIT JOIN (ui_slice.c) */
         uint32_t n = slice_count(), j = slice_sel(), src, div, ok = slice_src(&src, &div) && src;
         char u[8];
@@ -1325,7 +1325,7 @@ static void draw_columns(void)
 }
 
 
-/* The power-on splash (main.c fm1_main, web/emu felucca_web.c; 1.1.5): a RAISE square centred on the screen, square
+/* The power-on splash (main.c fm1_main, web/emu umbra_web.c; 1.1.5): a RAISE square centred on the screen, square
  * corners (in every style; LINE too: RAISE from the palette's SURF), in it in AF_M, the ink SPL_PAD in from the left:
  * at the top the name and the version, the first line's capitals' top SPL_PAD down; at the bottom the maker and
  * "with community", the last line's capitals' bottom (its baseline) SPL_PAD up from the square's bottom. Both
@@ -1337,7 +1337,7 @@ static void draw_columns(void)
 #define SPL_X0 ((240u - SPL_SQ) / 2u)               /* its top-left on the screen (x and y) */
 #define SPL_PAD 16                                  /* the text's inset: left (its ink), top and bottom (the capitals) */
 #define SPL_PITCH 20                                /* line to line */
-static const char *const SPLASH_LINES[] = {"Felucca", FELUCCA_VERSION, "H\xFCgelton Instruments", "with community"};
+static const char *const SPLASH_LINES[] = {"Felucca", UMBRA_VERSION, "H\xFCgelton Instruments", "with community"};
 /* a band of two lines, h tall, at y on the screen: the first line's top at ly; the two lines' capitals declared
  * against al0..al1 (mode: AL_V the band centred there, AL_B the last baseline on al1) */
 static void splash_band(uint32_t y, uint32_t h, int32_t ly, const char *const *l, uint32_t mode, int32_t al0,
@@ -1613,18 +1613,18 @@ static void ui_draw_page(uint32_t counting)
         return;
     }
     if (!ui.home && !page_visible(ui.page)) {          /* an OP page of a track that is not DIGITAL (without
-                                                         * FELUCCA_FM4: any track): EDIT 1 */
+                                                         * UMBRA_FM4: any track): EDIT 1 */
         ui.page = (uint8_t)page_first(FAM_EDIT);
         page_entered();
     }
     cursor_fix();
     if (ui.force)
         draw_frame();
-    felucca_dbg.stage = 3;
+    umbra_dbg.stage = 3;
     draw_head();
-    felucca_dbg.stage = 4;
+    umbra_dbg.stage = 4;
     draw_columns();
-    felucca_dbg.stage = 5;
+    umbra_dbg.stage = 5;
     draw_graph();
     if (ui.msg_t && !--ui.msg_t && ui.msg2[0]) {     /* the second message (ui_notices) */
         str_cpy(ui.msg, ui.msg2, sizeof ui.msg);
@@ -1637,7 +1637,7 @@ static void ui_draw_page(uint32_t counting)
         ui.hot_t--;
     if (ui.help_t)
         ui.help_t--;
-    felucca_dbg.stage = 6;
+    umbra_dbg.stage = 6;
     draw_foot();
     ui.force = 0;
 }

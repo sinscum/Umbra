@@ -23,8 +23,8 @@ Also ships: browser emulator page, web editor, cheat sheet — GitHub Pages.
 ## Lineage (internal — never user-facing)
 The code tree is a fork of **Felucca** (hugelton/Felucca, GPL-3.0-only); its `BUILDING.md` is the
 source of truth for toolchain, tests and emulator until UMBRA's own replaces it. Phase 0 rebrands it:
-- outputs `felucca.bin` / `felucca.fwsc` → `umbra.bin` / `umbra.fwsc`; package identity and version strings;
-- `FELUCCA_*` build flags → `UMBRA_*` (same defaults; build green with each at 0 and 1);
+- outputs `umbra.bin` / `umbra.fwsc` → `umbra.bin` / `umbra.fwsc`; package identity and version strings;
+- `UMBRA_*` build flags → `UMBRA_*` (same defaults; build green with each at 0 and 1);
 - every user-facing string, the boot screen, web pages, README.
 Felucca's name stays **only** in `LICENSE`, `LICENSING.md`, `CREDITS.md`, copyright headers of files
 derived from it, and git history — the GPL requires that attribution.

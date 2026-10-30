@@ -4,7 +4,7 @@
  * guards; then LCD, input (TIMER5 IRQ, 10 kHz), audio (ALNK0 IRQ). */
 extern uint32_t _data_start[], _data_end[], _data_load[], _bss_start[], _bss_end[];
 extern uint32_t _pool_start[], _pool_end[], _rt_start[], _rt_end[], _rt_load[];
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #endif
 
 
@@ -49,7 +49,7 @@ static void fm1_fault(const fm1_crash_t *c)
 }
 
 /* power-on: the parts with their default sounds (TRK_DEF); the sequencers empty */
-static void felucca_init(void)
+static void umbra_init(void)
 {
     uint32_t i;
     chain_defaults(&chain_config);
@@ -101,11 +101,11 @@ static void boot_leds(void)
 static void fm1_main(void)
 {
     uint32_t ms;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     uint8_t c1_told = 0;                                /* 2ND CORE MISREAD shown (and ON cleared) */
 #endif
     persist_boot();
-#if FELUCCA_OTA
+#if UMBRA_OTA
     if (flash_ok)
         ota_boot_cleanup();                             /* staging area left by an update */
 #endif
@@ -113,26 +113,26 @@ static void fm1_main(void)
     usb_serial_apply();                                 /* (#67: the saved USB SERIAL before usb_start) */
     lcd_init();
     draw_splash();                                      /* ui_draw.c (1.1.5) */
-    if (felucca_dbg.magic != DBG_MAGIC) {
-        memset(&felucca_dbg, 0, sizeof felucca_dbg);
-        felucca_dbg.magic = DBG_MAGIC;
+    if (umbra_dbg.magic != DBG_MAGIC) {
+        memset(&umbra_dbg, 0, sizeof umbra_dbg);
+        umbra_dbg.magic = DBG_MAGIC;
     }
-    felucca_dbg.boots++;
-    felucca_dbg.max_us = 0;
-    felucca_dbg.in_audio = 0;                       /* .noinit: a reset inside the audio ISR left it set, and
+    umbra_dbg.boots++;
+    umbra_dbg.max_us = 0;
+    umbra_dbg.in_audio = 0;                       /* .noinit: a reset inside the audio ISR left it set, and
                                                        TIMER5 would treat every tick as nested (no USB poll) */
-    felucca_dbg.prev_stage = felucca_dbg.stage;     /* a WDT reset leaves the last breadcrumb here */
-    felucca_dbg.prev_page = felucca_dbg.page;
-    felucca_dbg.prev_home = felucca_dbg.home;
-    felucca_dbg.prev_frames = felucca_dbg.ui_frames;
-    felucca_dbg.prev_rst = fm1_boot.p3_rst;
+    umbra_dbg.prev_stage = umbra_dbg.stage;     /* a WDT reset leaves the last breadcrumb here */
+    umbra_dbg.prev_page = umbra_dbg.page;
+    umbra_dbg.prev_home = umbra_dbg.home;
+    umbra_dbg.prev_frames = umbra_dbg.ui_frames;
+    umbra_dbg.prev_rst = fm1_boot.p3_rst;
     fm1_input_init();
     fm1_adc_init();
     panel_init();
-    felucca_init();
+    umbra_init();
     master_boot();
     kb_boot_hold = 1;                         /* #137: no notes from the keys before the UI (seq.c keyboard_block) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     if (!bootguard.failed && (ui_prefs2 & (PREF_CPU2_ON >> 16))) {
         /* the second core (felucca-bsp chip/fm1_cpu1.h; fx.c mix_block hands it parts), at power-on, before the
          * audio and the timers (started later it never reaches its entry). It starts in the chip's ROM: fm1_cpu1_start
@@ -143,7 +143,7 @@ static void fm1_main(void)
 #endif
     audio_init();
     usb_start();
-#if FELUCCA_UART
+#if UMBRA_UART
     uart_midi_init();
 #endif
     boot_leds();
@@ -172,7 +172,7 @@ static void fm1_main(void)
             bootguard.pending = 0;
             bootguard.failed = 0;
         }
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
         if (*(volatile uint8_t *)&fm1_cpu1_gave_up && !c1_told) {   /* (the ISR's) */
             c1_told = 1;                                /* (once: ON set again afterwards stays, for the next power-on) */
             if (ui_prefs2 & (PREF_CPU2_ON >> 16)) {
@@ -218,7 +218,7 @@ static void fm1_main(void)
                 fm1_enter_uboot();
             }
         }
-#if FELUCCA_OTA
+#if UMBRA_OTA
         ed_service();                                   /* web editor SysEx */
         ota_service();                                  /* M-UPGRADE handshake */
         if (usb.ota_req) {                              /* M-UPGRADE upgrade command */
@@ -242,23 +242,23 @@ static void fm1_main(void)
             bootguard.pending = 0;
             fm1_enter_uboot();
         }
-#if FELUCCA_CDC
+#if UMBRA_CDC
         cdc_task();
 #endif
-        felucca_dbg.ui_frames++;
-        felucca_dbg.page = ui.page;
-        felucca_dbg.home = ui.home;
-        felucca_dbg.stage = 1;
+        umbra_dbg.ui_frames++;
+        umbra_dbg.page = ui.page;
+        umbra_dbg.home = ui.home;
+        umbra_dbg.stage = 1;
         ui_input();
         settings_poll();                              /* queued settings save: only while stopped */
         autosave_poll();                              /* (1.2) the music, stopped and idle: project.c */
-        felucca_dbg.stage = 2;
+        umbra_dbg.stage = 2;
         ui_leds();
         ui_draw();
-        felucca_dbg.stage = 9;
+        umbra_dbg.stage = 9;
         while (fm1_ms - m < 15u) {                               /* ~60 UI frames/s at most */
             ui_input();
-#if FELUCCA_OTA
+#if UMBRA_OTA
             ed_service();                       /* editor replies without waiting for the next frame */
 #endif
         }
@@ -268,7 +268,7 @@ static void fm1_main(void)
 void fm1_cstart(void)
 {
     uint32_t *s, *d, p3, src, wdt;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     fm1_cpu1_stop();                           /* (after Jangada, X0X): a second core still running from before
                                                 * this reset (a watchdog, a fault, another firmware) would read the RAM
                                                 * cleared below */

@@ -292,7 +292,7 @@ static uint32_t step_leds(void)
 static int keys_own(void)
 {
     return (name_on() && !ui.menu) || ui.layer || grid_on()
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
            || (!ui.menu && !name_on() && slice_page_on())
 #endif
         ;
@@ -364,7 +364,7 @@ static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys t
         *br = 0;
     c = name_on() && !ui.menu ? name_leds() : ui.layer ? layer_leds(br) : grid_on() ? grid_leds() :
                  (fm1_in.notes & ~kb_layer) | play_leds() | step_leds() | (song_keys_on() ? song_leds() : 0u);
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (!ui.layer && !ui.menu && !name_on() && slice_page_on())
         c |= slice_leds();                              /* SLICES: and the keys of the selected slice */
 #endif
@@ -1000,7 +1000,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         }
         return;
     }
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (pg->graph == GR_SLICES && slot < 2u) {           /* SLICES: KNOB 1 the marker, 2 moves it (ui_slice.c) */
         if (slice_page_ok())                              /* (the engine changed before ui_draw left the page) */
             slice_knob(slot, steps);
@@ -1086,7 +1086,7 @@ static void act_do(void)
             pat_load_ui(TSEL, pat_pick());
         return;
     }
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (cur_page()->graph == GR_SLICES) {                 /* SPLIT / JOIN: stays picked (split again, join again) */
         if (slice_page_ok())
             slice_act(c);
@@ -1480,7 +1480,7 @@ static void ui_input(void)
     midi_take();                                        /* (MIDI IN notes: lights, SCREEN WAKE, AUTO SELECT's) */
     midi_pc_poll();                                     /* MIDI Program Change (before fm6_poll: a bank voice) */
     fm6_poll();                                         /* FM6: PTCH turned -> its patch */
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
     for (k = 0; k < NTRK; k++)                          /* a DIGITAL sound any other way (the paths convert it */
         if (trk[k].eng_req == ENGI_DIGITAL)             /* already): FM6 (fm4_convert.c) */
             fm4_track(&trk[k]);
@@ -1727,7 +1727,7 @@ static void ui_input(void)
         ml_oct(oct);
     }
     song.grid = (uint8_t)keys_mode();                 /* (seq.c: the keys are the grid's) */
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (notes && slice_page_on())                       /* SLICES: a key picks the slice it plays */
         slice_keys_pick(notes);
 #endif

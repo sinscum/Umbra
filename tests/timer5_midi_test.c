@@ -6,14 +6,15 @@
 #include <stdio.h>
 #include <string.h>
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
-#define FELUCCA_OTA 0
-#define FELUCCA_CDC 0
-#define FELUCCA_UAC 0
-#ifndef FELUCCA_UART
-#define FELUCCA_UART 1
+#define UMBRA_OTA 0
+#define UMBRA_CDC 0
+#define UMBRA_UAC 0
+#ifndef UMBRA_UART
+#define UMBRA_UART 1
 #endif
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/hal/fm1_uart.h"
 static uint32_t rx_pending, rx_write, rx_polls;
 static uint32_t host_rx_take(void) { uint32_t n = rx_pending; rx_pending = 0; rx_polls++; return n; }
@@ -21,11 +22,11 @@ static uint32_t host_rx_take(void) { uint32_t n = rx_pending; rx_pending = 0; rx
 #ifdef TIMER5_SYNTH_TEST
 #define UI_TEST_NO_MAIN 1
 /* Keep the UI's small diagnostic stub separate from the real timer fields. */
-#define felucca_dbg ui_debug_stub
+#define umbra_dbg ui_debug_stub
 #define fm1_delay_ms unused_timer_delay
 #include "ui_test.c"
 #undef fm1_delay_ms
-#undef felucca_dbg
+#undef umbra_dbg
 #else
 #include "../firmware/bsp/chip/usb.c"
 #include "../firmware/src/midi_uart.c"
@@ -38,11 +39,11 @@ static void fm1_timer5_ack(void) { acks++; }
 static void fm1_input_tick(void) { scans++; }
 static void host_usb_poll(void) { usb_polls++; }
 #define usb_poll() host_usb_poll()
-#undef FELUCCA_UAC
-#define FELUCCA_UAC 1
+#undef UMBRA_UAC
+#define UMBRA_UAC 1
 static void uac_service(void) { uac_polls++; }
 #define FM1_TICKS_PER_US 1u
-static struct { uint32_t timer_irqs, nested, in_audio; } felucca_dbg;
+static struct { uint32_t timer_irqs, nested, in_audio; } umbra_dbg;
 static uint32_t t5_nested_ticks;
 #include "../firmware/src/timer5.c"
 #ifndef TIMER5_SYNTH_TEST
@@ -97,15 +98,15 @@ int main(void) {
             bytes_sent++;
         }
         /* 4.5 ms renders alternate with 1.5 ms outside the render. */
-        felucca_dbg.in_audio = host_us % 6000u < 4500u;
+        umbra_dbg.in_audio = host_us % 6000u < 4500u;
 #ifdef TIMER5_SYNTH_TEST
         host_ticks = host_us;
 #endif
         uint32_t usb_before = usb_polls;
         fm1_timer5_irq();
-        if (felucca_dbg.in_audio && usb_polls != usb_before) usb_deferred_ok = 0;
+        if (umbra_dbg.in_audio && usb_polls != usb_before) usb_deferred_ok = 0;
         /* Audio consumes only after a render, as on hardware. */
-        if (!felucca_dbg.in_audio) {
+        if (!umbra_dbg.in_audio) {
             uint32_t read = mi_r;
             while (read != mi_w) {
                 uint32_t at = read++ % MQ, pkt = midi_in_q[at];
@@ -135,7 +136,7 @@ int main(void) {
         }
     }
     for (uint32_t i = 0; i < 60; i++) {
-        host_us += 100; felucca_dbg.in_audio = 0;
+        host_us += 100; umbra_dbg.in_audio = 0;
 #ifdef TIMER5_SYNTH_TEST
         host_ticks = host_us;
 #endif
@@ -165,7 +166,7 @@ int main(void) {
 #else
     mi_r = read;
 #endif
-#if FELUCCA_UART
+#if UMBRA_UART
     bad += check("TRS clock timestamps stay within 1 ms under saturated CC and 4.5 ms audio renders", clock_timing_ok && clocks_seen == clocks_sent);
     bad += check("interleaved realtime preserves every CC, with no DMA/queue drops", cc_ok && cc_seen == cc_sent && !um.drops && !midi_in_overflow && um.bytes == bytes_sent);
     bad += check("TRS is polled at 2 kHz throughout nested audio", rx_polls >= 20000u && rx_polls <= 20020u);
@@ -173,7 +174,7 @@ int main(void) {
     bad += check("UART-disabled build never polls or queues TRS input", !rx_polls && !mi_w);
 #endif
     bad += check("USB MIDI remains deferred during audio while USB audio is serviced", usb_deferred_ok && usb_polls && uac_polls);
-    bad += check("panel scan and nested accounting remain active", scans == acks && scans == felucca_dbg.timer_irqs && felucca_dbg.nested > 70000u);
+    bad += check("panel scan and nested accounting remain active", scans == acks && scans == umbra_dbg.timer_irqs && umbra_dbg.nested > 70000u);
     printf("wire: %u CC messages, %u clock pulses, %u bytes; drops: %u; max clock timestamp lag: %u ms\n", cc_seen, clocks_seen, bytes_sent, um.drops, clock_lag_max);
     return bad != 0;
 }

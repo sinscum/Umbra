@@ -629,7 +629,7 @@ static void graph_sample(uint16_t c)
     }
 }
 
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
 /* SLICES (ui_slice.c): the waveform from the marker before the selected one to the one after it (the selected
  * slice tinted, its marker the accent, outside the slices DIM), under it the whole material with every marker and
  * the view; then the selected slice's length and the source */
@@ -902,7 +902,7 @@ static void graph_fm6env(const track_t *t, uint16_t c)
     cv_text_r(228, 4 - GOY, &AF_S, b, T_TEXT, T_SURF);
 }
 
-#if FELUCCA_FM4
+#if UMBRA_FM4
 /* DIGITAL's eight algorithms as FM charts, read from src/eng_digital.c's switch (alg) (ui_test.c checks
  * these tables against it). FM_CELL: per operator 1..4 its grid cell, the column in 24 px steps (bits 0..2)
  * and the row above the output bus (bits 4..5; row 0 = the carriers). FM_MOD: per destination operator d a
@@ -1229,11 +1229,11 @@ static uint32_t graph_signature(void)
     if (pg->graph == GR_EVENTS)                      /* AUTOMATION: the rows, the one selected, + ADD's place, PLAY,
                                                       * QUANTIZE */
         h = (h ^ ev_sig()) * 16777619u;
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (pg->graph == GR_SLICES && slice_page_ok()) h ^= slice_sig();
 #endif
     if (pg->scope == SC_ENGINE && (ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL || t->eng_req % NENGINES == ENGI_FM6 ||
-                                   (FELUCCA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL)))
+                                   (UMBRA_FM4 && t->eng_req % NENGINES == ENGI_DIGITAL)))
         h ^= (ui.hot_t ? ui.hot_col + 1u : 0u) * 65537u;
     if ((pg->scope == SC_ENGINE || fop_page(pg->graph)) && t->eng_req % NENGINES == ENGI_FM6)   /* the patch (PAT's algorithm,
                                                      * levels, FB; the operator pages: the operator, the stage) */
@@ -1263,7 +1263,7 @@ static uint32_t graph_signature(void)
 static const char *eng_abbr(const char *name)
 {
     static const char *const A[][2] = {{"ANALOG", "ANLG"},
-#if FELUCCA_FM4
+#if UMBRA_FM4
                                        {"DIGITAL", "DGTL"},
 #endif
                                        {"PHASE", "PHAS"}, {"LOFI", "LOFI"},
@@ -1849,7 +1849,7 @@ static void home_track_row(uint32_t c)
         xr -= 6;
     }
     x = 24;
-    if (FELUCCA_ICONS && !large) {                   /* the engine's icon on the name's capitals */
+    if (UMBRA_ICONS && !large) {                   /* the engine's icon on the name's capitals */
         uint32_t ei = engine_icon(ENGINES[t->eng_req % NENGINES]->name);
         if (ei != ICON_NONE)
             GFX_HOOK_ALIGN(0, TR_NY(large), 0, TR_NY(large) + ch, AL_V, "tracks row icon on the name's line");
@@ -2330,7 +2330,7 @@ static void draw_graph(void)
             cv_oy = 0;
             panel_note("TURN TO PICK", "[OCT+] CONFIRM", 0);
             break;
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
         case GR_SLICES:
             cv_oy = 0;
             graph_slices();
@@ -2347,7 +2347,7 @@ static void draw_graph(void)
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
             else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_SAMPLE && sample_wave.ready) graph_sample(c);
             else if (pg->scope == SC_ENGINE && t->eng_req % NENGINES == ENGI_FM6) graph_fm6(t, c, 6u);   /* EDIT 1 and 2 */
-#if FELUCCA_FM4
+#if UMBRA_FM4
             else if ((pg->scope == SC_ENGINE || pg->id[0] == P_FM1_LEVEL) && t->eng_req % NENGINES == ENGI_DIGITAL)
                 graph_fm(t, c);                      /* (OP LEVEL too: the levels on the chart) */
 #endif

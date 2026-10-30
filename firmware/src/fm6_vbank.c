@@ -50,7 +50,7 @@ static void fm6_bank_changed(void)
             fm6_adopt(tr);
 }
 
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
 _Static_assert(FVB_LEN <= ST_PAYLOAD_MAX, "the payload fits st_buf");
 static uint32_t fvb_stage(void) { return st_sector(OBJ_AUTOSAVE, fvb_tx.copy); }
 

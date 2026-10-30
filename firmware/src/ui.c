@@ -420,7 +420,7 @@ static int layer_locked(void);
 static uint32_t layer_leds(uint32_t *br);
 static uint32_t layer_btn(void);
 
-/* FM operator pages belong to DIGITAL; they never appear on other instruments (without FELUCCA_FM4: never). SLICES:
+/* FM operator pages belong to DIGITAL; they never appear on other instruments (without UMBRA_FM4: never). SLICES:
  * a SLICE track's (ui_slice.c); LANES / LANES 2 a DRUM track's (its lane levels); FILTER an ANALOG track's; OPERATOR, OP ENV, OPERATOR 2 an FM6
  * track's (its patch's operators, ui_fm6op.c) */
 static int page_visible(uint32_t i)
@@ -431,7 +431,7 @@ static int page_visible(uint32_t i)
         return ENGINES[TSEL->eng_req % NENGINES] == &ENG_ANALOG;
     if (PAGES[i].graph >= GR_FMOP && PAGES[i].graph <= GR_FMENV)
         return TSEL->eng_req % NENGINES == ENGI_FM6;
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (PAGES[i].graph == GR_SLICES)
         return ENGINES[TSEL->eng_req % NENGINES] == &ENG_SLICE;
 #else
@@ -439,7 +439,7 @@ static int page_visible(uint32_t i)
         return 0;
 #endif
     return !(PAGES[i].fam == FAM_EDIT && PAGES[i].id[0] >= P_FM1_ATK &&
-             PAGES[i].id[0] <= P_FM4_LEVEL) || (FELUCCA_FM4 && TSEL->eng_req % NENGINES == ENGI_DIGITAL);
+             PAGES[i].id[0] <= P_FM4_LEVEL) || (UMBRA_FM4 && TSEL->eng_req % NENGINES == ENGI_DIGITAL);
 }
 
 static uint32_t page_first(uint32_t fam)
@@ -878,7 +878,7 @@ static struct {
     uint32_t t_ms;               /* time of the last load (the editor's SETs after it belong to it) */
 } undo __attribute__((section(".pool")));   /* (main loop only: off the audio code's .bss) */
 static uint8_t undo_depth;       /* loads nest (an engine jump loads its first preset): the outer one counts;
-                                  * felucca_init / project_load raise it to take no copy at all */
+                                  * umbra_init / project_load raise it to take no copy at all */
 static uint32_t pat_sig[NTRK];   /* steps_sig of the pattern the last pattern load put into each track: such
                                   * steps, untouched, are replaced by the next pattern without asking */
 static uint8_t pat_last[NTRK];   /* that pattern's list index + 1, 0 = none */
@@ -1290,7 +1290,7 @@ static uint32_t preset_rank(const engine_t *e, uint32_t k)
 
 #define preset_shown(e) (ENGINES[e]->npresets - (ENGINES[e]->presets == SMP_PRESET_TABLE ? SMP_NALIAS : 0u))
 
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
 /* DIGITAL (engine 1, retired): t's sound = p, values as DIGITAL has them, converted to FM6 with a patch of its own
  * (fm4_convert.c). Every path that brings a DIGITAL sound into a track ends here: a track never keeps engine 1 */
 static void fm4_apply(track_t *t, int16_t *p)
@@ -1338,7 +1338,7 @@ static void apply_preset_to(track_t *t, uint32_t pi)
 {
     const engine_t *e = ENGINES[t->eng_req % NENGINES];
     uint32_t i;
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
     if (t->eng_req % NENGINES == ENGI_DIGITAL) {
         fm4_load_preset(t, pi);
         return;
@@ -1386,7 +1386,7 @@ static void set_engine_of(track_t *t, uint32_t ei)
 {
     const engine_t *e = ENGINES[ei % NENGINES];
     uint32_t i;
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
     if (ei % NENGINES == ENGI_DIGITAL) {             /* DIGITAL (retired): its first preset, as FM6 */
         fm4_load_preset(t, 0);
         return;
@@ -1416,7 +1416,7 @@ static void clean_engine_of(track_t *t)
 {
     uint32_t ei = t->eng_req % NENGINES, i;
     const engine_t *e = ENGINES[ei];
-#if !FELUCCA_FM4
+#if !UMBRA_FM4
     if (ei == ENGI_DIGITAL) {                         /* (retired: it becomes FM6, fm4_track) */
         set_engine_of(t, ei);
         return;
@@ -1836,7 +1836,7 @@ static int act_ready(void)
         return pat_last[s] != pat_pick() + 1u || steps_sig(TSEL) != pat_sig[s];
     if (cur_page()->graph == GR_USER)
         return c == 3u ? !song.playing : up_used(ui.uslot) && (c == 1u || !song.playing);
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     if (cur_page()->graph == GR_SLICES)
         return slice_act_ready(c);
 #endif

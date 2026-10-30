@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-#define FELUCCA_FAVORITES 1
+#define UMBRA_FAVORITES 1
 /* Stable engine/preset references; fixed capacity independent of optional engines. Engines 0..13 have a row of
  * favourites each (a bit per factory preset); rows 14 and 15 hold the MIDI LEARN map (midi_learn.c) and settings
  * (settings_persist.c), so an engine from 14 on keeps its favourites in a settings byte of its own: ADPCM (1.8, 8
@@ -17,7 +17,7 @@ static uint8_t *fav_bit(uint32_t engine, uint32_t preset, uint8_t *mask)   /* th
         *mask = (uint8_t)(1u << (preset % 8u));
         return &favorites.factory[engine][preset / 8u];
     }
-#if FELUCCA_ADPCM
+#if UMBRA_ADPCM
     if (engine == ENGI_ADPCM && preset < 8u) {
         *mask = (uint8_t)(1u << preset);
         return &favorites.factory[15][13];

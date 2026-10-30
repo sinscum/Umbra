@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 ugotworms */
-/* The ADPCM engine (eng_adpcm.c, FELUCCA_ADPCM=1), on the host:
+/* The ADPCM engine (eng_adpcm.c, UMBRA_ADPCM=1), on the host:
  *   build/host/adpcm_test REF.bin|- OUTDIR       (-: no reference, part 1 skipped)
  * 1. the voice against snes_spc: every scenario of adpcm_cases.h on adpcm_dsp.c's voice, compared
  *    sample for sample with REF.bin (tests/adpcm_ref.cpp: the same scenarios on SPC_DSP.cpp). The key-on

@@ -63,7 +63,7 @@ const bkBase64 = (bytes) => { let s = ""; for (const b of bytes) s += String.fro
 export function readBackup(file) {
   if (typeof file === "string") file = JSON.parse(file);
   const ids = file && Array.isArray(file.objects) ? idsOf(file.objects.length) : null;
-  if (!file || file.format !== "felucca-backup" || file.version !== 1 || !ids)
+  if (!file || file.format !== "umbra-backup" || file.version !== 1 || !ids)
     throw new Error("Not a complete Felucca backup");
   const objects = file.objects.map((o, i) => {
     if (!o || o.id !== ids[i] || !Number.isInteger(o.size) || o.size < 0 || o.size > (o.id >= 32 ? 81920 : 3840) ||
@@ -105,7 +105,7 @@ export async function captureBackup(request, firmware, onProgress = () => {}) {
     if (bkCrc(bytes) !== o.crc) throw new Error("The device changed during backup. Try again while stopped.");
     objects.push({ ...o, data: bkBase64(bytes) });
   }
-  const file = { format: "felucca-backup", version: 1, firmware, created: new Date().toISOString(), objects };
+  const file = { format: "umbra-backup", version: 1, firmware, created: new Date().toISOString(), objects };
   readBackup(file); return file;
 }
 export async function restoreBackup(request, file, onProgress = () => {}) {

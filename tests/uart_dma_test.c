@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <string.h>
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
-#define FELUCCA_OTA 1
-#define FELUCCA_CDC 0
+#define UMBRA_OTA 1
+#define UMBRA_CDC 0
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 static uint32_t con_read(void), count_read(void);
 static void con_write(uint32_t v), sync_io(void);
@@ -20,6 +20,7 @@ static void con_write(uint32_t v), sync_io(void);
 #define FM1_UART1_COUNT_READ() count_read()
 #define FM1_UART1_SYNC() sync_io()
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/usb.c"
 #include "../firmware/src/midi_uart.c"
 /* Layout comes from the pinned wl82 SDK WL82.h, not a host register guess. */

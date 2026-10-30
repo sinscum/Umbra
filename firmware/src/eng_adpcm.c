@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 ugotworms */
 /* ADPCM: short 4-bit ADPCM (BRR) waves through a Gaussian interpolator, stepped ADSR / GAIN envelopes, a noise
- * source and an echo with an 8-tap FIR (adpcm_dsp.c, ported from snes_spc). Off by default: FELUCCA_ADPCM=1 builds
+ * source and an echo with an 8-tap FIR (adpcm_dsp.c, ported from snes_spc). Off by default: UMBRA_ADPCM=1 builds
  * it. Each part is one DSP: its voices share the rate counter and the noise, and it has its echo. The DSP runs at
  * 32 kHz; its samples are linearly interpolated to 44.1 kHz.
  * State: a part's voices, its DSP and its echo line are one adp_part_t in the part's engine memory (engines.c
@@ -13,7 +13,7 @@
  * longer release. The echo: one per part, mono, at most 192 ms (the original's 240 ms does not fit the RAM:
  * ADP_EDL_MAX). The waves and presets: tools/gen_adpcm.py.
  * Not here: pitch modulation, the voices' stereo volumes (a part is mono).
- * Off by default (core.h FELUCCA_ADPCM 0): too heavy for the FM-1. Measured on one (Felucca 1.7.0 + this engine,
+ * Off by default (core.h UMBRA_ADPCM 0): too heavy for the FM-1. Measured on one (Felucca 1.7.0 + this engine,
  * 2026-10-28, console `status` cpu_pct after 10 s of held chords, 2ND CORE OFF):
  *   ANALOG SAW LEAD, 8 voices, one part                17 %
  *   ADPCM ORGAN, 8 voices, one part, no echo           54 %
@@ -22,8 +22,8 @@
  *   ADPCM on all four parts                            76 %, renders past the 2.9 ms deadline (audio_late), voices shed
  * so a voice costs about three ANALOG voices and an echo about 8 % a part, where the host measures it as ANALOG's. */
 #include "adpcm_dsp.c"                  /* the DSP (LGPL-2.1-or-later) */
-#define ADP_PRESETS                     /* (felucca_adpcm.h: the preset table too) */
-#include "felucca_adpcm.h"              /* tools/gen_adpcm.py: the waves and presets */
+#define ADP_PRESETS                     /* (umbra_adpcm.h: the preset table too) */
+#include "umbra_adpcm.h"              /* tools/gen_adpcm.py: the waves and presets */
 
 #define ADP_RATE_Q16 47555u             /* 32000 / 44100, Q16: DSP samples per output sample */
 #define ADP_ONE (1u << 16)              /* one DSP sample in that phase, Q16 */

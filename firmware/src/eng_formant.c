@@ -65,7 +65,7 @@ static void vowel_at(int32_t pos, int32_t *f, int32_t *b)
 }
 
 typedef struct { int32_t a, b, c; } fres_t;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 /* breath noise: an xorshift for all a part's voices (one per part, as the two cores render parts at once) */
 _Static_assert(NTRK == 4, "formant_nz: a seed per part");
 static int32_t formant_nz[NTRK] = {0x2545F491, 0x2545F491, 0x2545F491, 0x2545F491};

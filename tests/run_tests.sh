@@ -23,7 +23,7 @@
 #                   PNGs of GREY MONO GREEN PAPER NIGHT in build/ui_new (tests/ui_render.py), the findings in build/ui_new/report.txt;
 #                   FM6's 32 algorithm charts as drawn (no box overlapping, no route through a box or crossing another), again
 #                   on OPERATOR with each operator picked and its frequency text at its widest (1.2, #76);
-#                   DIGITAL's screens (its algorithm charts, OP ENV) with FELUCCA_FM4=1 too (build/ui_fm4: lint, GREY, MONO);
+#                   DIGITAL's screens (its algorithm charts, OP ENV) with UMBRA_FM4=1 too (build/ui_fm4: lint, GREY, MONO);
 #                   every frame of the rolling digits (lint, GREY, MONO), their filmstrips in build/ui_slot;
 #                   the alignment: every text / icon / keycap meant to be centred, or on its neighbours' line, by its
 #                   ink against its box (cells, chips, buttons, rows, knobs, the roll's strip, the keycaps' pills), every
@@ -170,10 +170,10 @@
 # NOISE (tests/noise_test.c): the engine (engines/src/eng_noise.c): COLR's slope (white, pink, brown), the filter and the
 #                   register clock following the key, META periodic at the key, no DC, no clipping at the
 #                   corners, a note from silence the same twice, the cost per voice; demos in build/noise_demo/.
-# DIGITAL -> FM6 (tests/fm4_test.c, built with FELUCCA_FM4=1): the retired four-operator engine against its conversion
+# DIGITAL -> FM6 (tests/fm4_test.c, built with UMBRA_FM4=1): the retired four-operator engine against its conversion
 #                   (src/fm4_convert.c): routes and carriers per algorithm, the presets' PTCH, and the sound (pitch,
 #                   centroid, RMS envelope) of its presets and algorithms; demos in build/fm4_demo/. tests/digital_test.c
-#                   (FELUCCA_FM4=1 too): DIGITAL's operator envelopes. Default builds have no DIGITAL (engine 1 reserved).
+#                   (UMBRA_FM4=1 too): DIGITAL's operator envelopes. Default builds have no DIGITAL (engine 1 reserved).
 #                   tests/fm4_div0_test.c (UBSan, #61): the conversion without a divide that can be 0 gives the values the
 #                   guarded form gave (every INDEX x FLT ENV, random sounds); a 0.9 project with DIGITAL ORGAN converts.
 # FM6 (tests/fm6_test.c): the 6-operator FM engine (src/eng_fm6.c, src/fm6_core.c): the 32 algorithms' carriers, the
@@ -231,7 +231,7 @@ run "TRS MIDI parser" "$OUT/midi_uart_test"
 
 $CC -O2 -o "$OUT/timer5_midi_test" tests/timer5_midi_test.c
 run "TRS timestamping during audio with saturated CC input" "$OUT/timer5_midi_test"
-$CC -O2 -DFELUCCA_UART=0 -o "$OUT/timer5_midi_nouart_test" tests/timer5_midi_test.c
+$CC -O2 -DUMBRA_UART=0 -o "$OUT/timer5_midi_nouart_test" tests/timer5_midi_test.c
 run "TIMER5 with TRS input disabled" "$OUT/timer5_midi_nouart_test"
 
 HALF=$(sed -n 's/^#define HALF_FRAMES \([0-9]*\).*/\1/p' firmware/src/core.h)
@@ -241,7 +241,7 @@ $CC -O2 -DT_CDC=0 -DHALF_FRAMES=$HALF -o "$OUT/uac_test_nocdc" tests/uac_test.c 
 run "USB audio input: descriptors (without CDC), ring and packets, resampler, 48 kHz stream" "$OUT/uac_test_nocdc"
 # USB descriptor layouts (#67): CDC UAC LAYOUT CDC-presented 48K; layout 0 and the console left out = 1.0's bytes
 # (+ the 48 kHz rate with 48K = 1, the default; 48K = 0: byte for byte; + the AC collection's audio streaming
-# interface first, FELUCCA_UAC_AS_FIRST = 1, the default since 1.6)
+# interface first, UMBRA_UAC_AS_FIRST = 1, the default since 1.6)
 for v in 1.1.0.1.1 1.1.1.1.1 1.1.2.1.1 1.1.3.1.1 1.1.0.0.1 1.1.2.0.1 0.1.0.1.1 1.1.0.1.0 1.1.0.0.0 1.1.2.1.0 0.1.0.1.0 \
          1.0.0.1.1 1.0.1.1.1 1.0.0.0.1 0.0.0.1.1; do
     IFS=. read -r t_cdc t_uac t_lay t_on t_48 <<EOF
@@ -251,7 +251,7 @@ EOF
         tests/usb_desc_test.c
     run "USB descriptors: CDC $t_cdc (presented $t_on), UAC $t_uac (48 kHz $t_48), layout $t_lay" "$OUT/usb_desc_test"
 done
-# FELUCCA_UAC_AS_FIRST=0 (#67): the AC collection of 1.0 .. 1.5 (MIDI first), 1.0's bytes; the parser model of the
+# UMBRA_UAC_AS_FIRST=0 (#67): the AC collection of 1.0 .. 1.5 (MIDI first), 1.0's bytes; the parser model of the
 # kernel AppleUSBAudio (macOS <= 15) stops before the audio streaming interface there
 for v in 1.1.0.1.1 1.1.0.0.1 1.1.0.1.0 1.1.0.0.0 0.1.0.1.1; do
     IFS=. read -r t_cdc t_uac t_lay t_on t_48 <<EOF
@@ -263,17 +263,17 @@ EOF
         "$OUT/usb_desc_test"
 done
 
-[ -f build/felucca.fwsc ] || { echo "run ./build.sh first"; exit 1; }
+[ -f build/umbra.fwsc ] || { echo "run ./build.sh first"; exit 1; }
 
 $CC -DOWN_PKG=1 -o "$OUT/ota_test" tests/ota_test.c
-run "M-UPGRADE entry (own loader)" "$OUT/ota_test" build/felucca.fwsc
+run "M-UPGRADE entry (own loader)" "$OUT/ota_test" build/umbra.fwsc
 
-head -c 200000 build/felucca.bin > "$OUT/old_app.bin"
+head -c 200000 build/umbra.bin > "$OUT/old_app.bin"
 python3 tools/fm1pkg_make.py "$OUT/old_app.bin" build/loader/ota.bin "$OUT/old.fwsc" >/dev/null
 $CC -o "$OUT/ldr_test" tests/ldr_test.c
-run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+run "update loader: other app -> this build" "$OUT/ldr_test" "$OUT/old.fwsc" build/umbra.fwsc
 
-if [ -f build/gen/felucca_tables.h ]; then
+if [ -f build/gen/umbra_tables.h ]; then
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/hostsim" tests/hostsim.c -lm
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/scale_test" tests/scale_test.c -lm
     run "scales: white-key mapping and note lifecycle" "$OUT/scale_test"
@@ -310,11 +310,11 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "USB/TRS clock, bend, sustain, ownership and panic recovery" "$OUT/midi_control_test"
     $CC -O1 -w -DTIMER5_SYNTH_TEST=1 -Ibuild/gen -Ifirmware/src -o "$OUT/timer5_cc_clock_test" tests/timer5_midi_test.c -lm
     run "TRS clock and four sequencers under saturated learned CCs (full upstream map)" "$OUT/timer5_cc_clock_test"
-    $CC -O1 -w -DFELUCCA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/digital_test" tests/digital_test.c -lm
-    run "DIGITAL (retired, built here with FELUCCA_FM4=1): operator envelopes/levels" "$OUT/digital_test"
-    $CC -O2 -w -DFELUCCA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/fm4_test" tests/fm4_test.c -lm
+    $CC -O1 -w -DUMBRA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/digital_test" tests/digital_test.c -lm
+    run "DIGITAL (retired, built here with UMBRA_FM4=1): operator envelopes/levels" "$OUT/digital_test"
+    $CC -O2 -w -DUMBRA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/fm4_test" tests/fm4_test.c -lm
     mkdir -p build/fm4_demo
-    run "DIGITAL -> FM6: the conversion against DIGITAL (FELUCCA_FM4=1): pitch, centroid, RMS envelope; demos" \
+    run "DIGITAL -> FM6: the conversion against DIGITAL (UMBRA_FM4=1): pitch, centroid, RMS envelope; demos" \
         "$OUT/fm4_test" build/fm4_demo
     $CC -O2 -w -fsanitize=integer-divide-by-zero -fno-sanitize-recover=all -Ibuild/gen -Ifirmware/src \
         -o "$OUT/fm4_div0_test" tests/fm4_div0_test.c -lm
@@ -332,26 +332,26 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "settings: PER1..PER4 migration, palette ids and preference preservation" "$OUT/settings_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test" tests/ui_test.c -lm
     run "UI: sounds keep steps, undo, recording, MIDI overflow, pending saves, panel recovery, drum grid, song chain, GREY gray, MONO neutral" "$OUT/ui_test"
-    $CC -w -DFELUCCA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_c1" tests/ui_test.c -lm
-    run "UI, a FELUCCA_CPU2=0 build: MENU > SYSTEM without 2ND CORE, the rest as the default build" "$OUT/ui_test_c1"
+    $CC -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_c1" tests/ui_test.c -lm
+    run "UI, a UMBRA_CPU2=0 build: MENU > SYSTEM without 2ND CORE, the rest as the default build" "$OUT/ui_test_c1"
     $CC -DPREEMPT -g -fwrapv -fsanitize=address,undefined -fno-sanitize=shift -fno-sanitize-recover=all -w \
         -Ibuild/gen -Ifirmware/src -o "$OUT/drumfuzz" tests/drumfuzz_test.c -lm
     run "DRUM grid stress (#211, ASan / UBSan): random grid editing, locks, undo, engines over a playing synth, the ISR anywhere" \
         "$OUT/drumfuzz" 1 6 1500
     run "DRUM grid stress (#211) with a SONG playing" "$OUT/drumfuzz" 101 3 1500 song
-    FV=$(sed -n 's/^#define FELUCCA_VERSION "\([^"]*\)".*/\1/p' firmware/src/felucca.c | head -n 1)   # (the splash, ABOUT: the real version)
-    $CC -O1 -w "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render" tests/ui_render.c -lm
+    FV=$(sed -n 's/^#define UMBRA_VERSION "\([^"]*\)".*/\1/p' firmware/src/umbra.c | head -n 1)   # (the splash, ABOUT: the real version)
+    $CC -O1 -w "-DUMBRA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render" tests/ui_render.c -lm
     mkdir -p build/ui_new/ppm build/ui_slot
     run "UI renders: layout lint (every screen and palette, every page, engine and column value), GREY gray, MONO neutral, alignment by ink (1 px fails), draw cost, LARGE one value size per knob (#251)" \
         "$OUT/ui_render" build/ui_new build/ui_slot
     if python3 -c "import PIL" 2>/dev/null; then python3 tests/ui_render.py build/ui_new build/ui_slot; fi
-    $CC -w -DFELUCCA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_fm4" tests/ui_test.c -lm
-    run "UI built with FELUCCA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts" "$OUT/ui_test_fm4"
-    $CC -w -DFELUCCA_ADPCM=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_adpcm" tests/ui_test.c -lm
-    run "UI built with FELUCCA_ADPCM=1 (off by default): ADPCM last in PRESETS, no EDIT key (INIT stays on E5), its favourites" "$OUT/ui_test_adpcm"
-    $CC -O1 -w -DFELUCCA_FM4=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render_fm4" tests/ui_render.c -lm
+    $CC -w -DUMBRA_FM4=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_fm4" tests/ui_test.c -lm
+    run "UI built with UMBRA_FM4=1 (DIGITAL, kept in the tree): its OP pages, EDIT cycle, algorithm charts" "$OUT/ui_test_fm4"
+    $CC -w -DUMBRA_ADPCM=1 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_adpcm" tests/ui_test.c -lm
+    run "UI built with UMBRA_ADPCM=1 (off by default): ADPCM last in PRESETS, no EDIT key (INIT stays on E5), its favourites" "$OUT/ui_test_adpcm"
+    $CC -O1 -w -DUMBRA_FM4=1 "-DUMBRA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render_fm4" tests/ui_render.c -lm
     mkdir -p build/ui_fm4/ppm build/ui_fm4_slot
-    run "UI renders with FELUCCA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral" \
+    run "UI renders with UMBRA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral" \
         "$OUT/ui_render_fm4" build/ui_fm4 build/ui_fm4_slot
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_test" tests/audio_test.c -lm
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
@@ -366,8 +366,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test" tests/editor_test.c -lm
     run "editor: real C protocol, malformed transfers, queue recovery, MENU settings (writes build/host/menu.json)" \
         env MENU_JSON="$OUT/menu.json" "$OUT/editor_test"
-    $CC -w -DFELUCCA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test_c1" tests/editor_test.c -lm
-    run "editor, a FELUCCA_CPU2=0 build: MENU settings without 2ND CORE (ids 0..31)" "$OUT/editor_test_c1"
+    $CC -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test_c1" tests/editor_test.c -lm
+    run "editor, a UMBRA_CPU2=0 build: MENU settings without 2ND CORE (ids 0..31)" "$OUT/editor_test_c1"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/robust_test" tests/robust_test.c -lm
     run "robustness: crafted sample slots, engine numbers, retained old projects, preset patterns, malformed requests" \
         "$OUT/robust_test"
@@ -403,8 +403,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     run "REVERB TYPE: ROOM / SPRING bit-identical, SPRING and HALL decay / stability / level, HALL silence / stereo / ringing, model changes, cost, demos" "$OUT/reverb_test" build/fx_demo build/reverb_demo
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/regress" tests/regress.c -lm
     run "regression: golden renders, health, voices, CPU budget (2ND CORE OFF: one core)" "$OUT/regress" tests/golden.txt tests/cpu_baseline.txt
-    $CC -O2 -w -DFELUCCA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/regress_cpu2_0" tests/regress.c -lm
-    run "regression, a FELUCCA_CPU2=0 build (none of the second core): the same golden renders and CPU budget" \
+    $CC -O2 -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/regress_cpu2_0" tests/regress.c -lm
+    run "regression, a UMBRA_CPU2=0 build (none of the second core): the same golden renders and CPU budget" \
         "$OUT/regress_cpu2_0" tests/golden.txt tests/cpu_baseline.txt
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for
     # bit
@@ -421,9 +421,9 @@ if [ -f build/gen/felucca_tables.h ]; then
             env TSAN_OPTIONS=halt_on_error=1 "$OUT/dualcore_tsan"
     fi
     # Felucca-Engines (firmware/engines, MIT): its own test, then its standalone host built with Felucca's generated
-    # tables against its golden renders (the same hashes: build/gen/felucca_tables.h has the engines' tables)
+    # tables against its golden renders (the same hashes: build/gen/umbra_tables.h has the engines' tables)
     run "Felucca-Engines: its own tables, host and golden renders" sh firmware/engines/tests/run.sh
-    $CC -O2 -w '-DFE_TABLES_H="felucca_tables.h"' -Ibuild/gen -o "$OUT/fe_host" firmware/engines/tests/fe_host.c
+    $CC -O2 -w '-DFE_TABLES_H="umbra_tables.h"' -Ibuild/gen -o "$OUT/fe_host" firmware/engines/tests/fe_host.c
     "$OUT/fe_host" > "$OUT/fe_renders.txt" || fail=1
     run "Felucca-Engines with Felucca's tables: the engines' golden renders" diff -u firmware/engines/tests/golden.txt "$OUT/fe_renders.txt"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/union_test" tests/union_test.c -lm
@@ -446,7 +446,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     else
         echo "== skip PHYS reference test (no DaisySP: set DAISYSP to a checkout)"
     fi
-    if true; then                           # (the engine is built here whatever the firmware's default: FELUCCA_ADPCM=1)
+    if true; then                           # (the engine is built here whatever the firmware's default: UMBRA_ADPCM=1)
         S=${SNES_SPC:-vendor/snes_spc}/snes_spc
         REF=-                               # (no snes_spc checkout: the comparison with it is skipped, the rest runs)
         if [ -f "$S/SPC_DSP.cpp" ] && command -v c++ >/dev/null 2>&1; then
@@ -454,9 +454,9 @@ if [ -f build/gen/felucca_tables.h ]; then
             "$OUT/adpcm_ref" "$OUT/adpcm_ref.bin" >/dev/null
             REF="$OUT/adpcm_ref.bin"
         fi
-        $CC -O2 -w -DFELUCCA_ADPCM=1 -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/adpcm_test" tests/adpcm_test.c -lm
+        $CC -O2 -w -DUMBRA_ADPCM=1 -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/adpcm_test" tests/adpcm_test.c -lm
         mkdir -p build/adpcm_demo
-        run "ADPCM (FELUCCA_ADPCM=1, off by default): the voice against snes_spc (with SNES_SPC), counters, presets, pitch, the engine memory, demos" \
+        run "ADPCM (UMBRA_ADPCM=1, off by default): the voice against snes_spc (with SNES_SPC), counters, presets, pitch, the engine memory, demos" \
             "$OUT/adpcm_test" "$REF" build/adpcm_demo
     fi
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drum_test" tests/drum_test.c -lm
@@ -469,7 +469,7 @@ if [ -f build/gen/felucca_tables.h ]; then
     mkdir -p build/fm6_demo
     run "FM6: algorithms, envelopes, retrigger, DC, clipping, macros, patch formats, voices, cost, demos" "$OUT/fm6_test" build/fm6_demo
     # SLICE is in the standard build (firmware/src/core.h): its test always runs (after #22 by andreahaku)
-    if grep -q '^#define SLC_BREAK_BPM ' build/gen/felucca_samples.h; then
+    if grep -q '^#define SLC_BREAK_BPM ' build/gen/umbra_samples.h; then
         mkdir -p build/slice_demo
         python3 tests/slice_loop.py build/slice_demo/loop
         python3 tools/fm1_sample_upload.py build LOOP build/slice_demo/loop build/slice_demo/loop.wav:60 >/dev/null
@@ -477,11 +477,11 @@ if [ -f build/gen/felucca_tables.h ]; then
         run "SLICE: tables, onsets, reverse, keys, modes, MAN slices and their store, demos" "$OUT/slice_test" \
             build/slice_demo/loop build/slice_demo
     else
-        echo "== SLICE: build/ was made with FELUCCA_SLICE=0 (no BREAK); run ./build.sh without it first"
+        echo "== SLICE: build/ was made with UMBRA_SLICE=0 (no BREAK); run ./build.sh without it first"
         fail=1
     fi
     # SAMPLE's PIANO (1.5: as 1.1.5), SLICE's PIANO (its middle C zone), 1.2's PIANO HD in a user slot
-    if grep -q '^    {"PIANO", 0, 5},' build/gen/felucca_samples.h; then
+    if grep -q '^    {"PIANO", 0, 5},' build/gen/umbra_samples.h; then
         mkdir -p build/sample_demo build/piano_hd
         python3 tools/gen_samples.py --user-slot PIANO "PIANO HD" build/piano_hd/PIANO_HD >/dev/null
         $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/sample_test" tests/sample_test.c -lm
@@ -503,7 +503,7 @@ san_ok() {
 }
 if [ "${SANITIZE:-1}" = 0 ]; then
     echo "== skip the sanitizer runs (SANITIZE=0)"
-elif [ ! -f build/gen/felucca_tables.h ]; then
+elif [ ! -f build/gen/umbra_tables.h ]; then
     echo "== skip the sanitizer runs (run ./build.sh once)"
 elif ! san_ok; then
     echo "== skip the sanitizer runs (the compiler has no ASan / UBSan)"
@@ -522,9 +522,9 @@ else
     $STRICT_CC -o "$A/uart_dma_test_strict" tests/uart_dma_test.c -lm
     run "Strict ASan/UBSan (no exclusions): uart_dma_test" "$A/uart_dma_test_strict"
     $SCC -o "$A/ldr_test" tests/ldr_test.c
-    run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" build/felucca.fwsc
+    run "ASan/UBSan: update loader (other app -> this build)" "$A/ldr_test" "$OUT/old.fwsc" build/umbra.fwsc
     $SCC -DOWN_PKG=1 -o "$A/ota_test" tests/ota_test.c
-    run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" build/felucca.fwsc
+    run "ASan/UBSan: M-UPGRADE entry (own loader)" "$A/ota_test" build/umbra.fwsc
     for t in editor_test project_test backup_test robust_test fun10_test fm6bank_test midi_drift_test; do
         $SCC -o "$A/$t" tests/$t.c -lm
         run "ASan/UBSan: $t" "$A/$t"
@@ -540,7 +540,7 @@ else
 fi
 
 run "regression: target cost of the render loops (pi32v2 disassembly)" python3 tests/target_budget.py \
-    build/felucca.dis tests/target_budget.txt
+    build/umbra.dis tests/target_budget.txt
 
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 
@@ -553,14 +553,14 @@ fi
 
 if ! command -v emcc >/dev/null 2>&1; then
     echo "== skip the browser emulator (no emcc: Emscripten builds web/emu)"
-elif ! command -v node >/dev/null 2>&1 || [ ! -f build/gen/felucca_tables.h ]; then
+elif ! command -v node >/dev/null 2>&1 || [ ! -f build/gen/umbra_tables.h ]; then
     echo "== skip the browser emulator (needs node and build/gen)"
 else
     run "browser emulator: the firmware to WebAssembly (web/emu/build.sh -> build/emu)" sh web/emu/build.sh
     cc -O2 -ffp-contract=off -w $HALI -Ibuild/gen -Ifirmware/src -o "$OUT/emu_native" web/emu/native_check.c -lm
     run "browser emulator: the same song from the native build" "$OUT/emu_native" "$OUT/emu_native.f32"
     run "browser emulator: boot, keys, MIDI, screen, LEDs, PLAY, a save kept across instances, = native, cost" \
-        node web/emu/emu_test.mjs build/emu/felucca.wasm "$OUT/emu_native.f32"
+        node web/emu/emu_test.mjs build/emu/umbra.wasm "$OUT/emu_native.f32"
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }

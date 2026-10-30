@@ -4,7 +4,7 @@
  * flash handed back before boot) follows X0X's browser build, web/emu/x0x_web.c of charlesvestal/fm1-x0x
  * (GPL-3.0), a Felucca fork. */
 /* Felucca in the browser: the firmware's sources, as the host tests build them (tests/hostsim.c: libc,
- * engines, voices, FX, sequencer; then the UI, main.c, storage and projects, in src/felucca.c's order),
+ * engines, voices, FX, sequencer; then the UI, main.c, storage and projects, in src/umbra.c's order),
  * compiled to WebAssembly and run in an AudioWorklet against a simulated FM-1:
  *   - the device clock: TIMER4 ticks (24 MHz) and fm1_ms advance with the audio the worklet asks for; the
  *     audio ISR (audio.c fm1_alnk0_irq, the real one) renders each I2S half (HALF_FRAMES) as the DMA would
@@ -17,19 +17,19 @@
  *     sample slots read through it as XIP); the page keeps its storage sectors and gives them back at boot.
  * Not here: USB (MIDI, audio, the editor, updates), TRS MIDI, the serial console, the battery (full), the
  * crash / UBOOT paths. Nothing of the firmware changes for this file.
- *   web/emu/build.sh  ->  build/emu/{felucca.wasm, worklet.js, index.html} */
+ *   web/emu/build.sh  ->  build/emu/{umbra.wasm, worklet.js, index.html} */
 #include <stdint.h>
 
-#define FELUCCA_WEB 1
-#ifndef FELUCCA_CDC
-#define FELUCCA_CDC 1                    /* as src/felucca.c: MENU > USB SERIAL is there (nothing behind it) */
+#define UMBRA_WEB 1
+#ifndef UMBRA_CDC
+#define UMBRA_CDC 1                    /* as src/umbra.c: MENU > USB SERIAL is there (nothing behind it) */
 #endif
-#define FELUCCA_FLASH 1
-#define FELUCCA_OTA 0
-#define FELUCCA_UAC 0
-#define FELUCCA_UART 0
-#ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "WEB"
+#define UMBRA_FLASH 1
+#define UMBRA_OTA 0
+#define UMBRA_UAC 0
+#define UMBRA_UART 0
+#ifndef UMBRA_VERSION
+#define UMBRA_VERSION "WEB"
 #endif
 
 static uint8_t nor[0x100000];            /* the SPI NOR (erased: 0xFF) */
@@ -207,7 +207,7 @@ static void fl_plain_window_init(void) {}
 #include "../../firmware/src/project.c"
 
 /* ------------------------------------------------- main.c and its HAL --- */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 typedef struct { uint32_t magic, count, vec, pc, emu, dbg, rets, core; } fm1_crash_t;
 #else
 typedef struct { uint32_t magic, count, vec, pc, emu, dbg, rets; } fm1_crash_t;
@@ -235,14 +235,14 @@ static void fm1_wdt_arm(uint32_t v) { (void)v; }
 static void fm1_mailbox_clear(void) {}
 static void fm1_guard_enable(uint32_t m) { (void)m; }
 enum { FM1_GUARD_STACK = 1, FM1_GUARD_WRITE = 2, FM1_GUARD_BUS = 4, FM1_GUARD_PC = 8 };
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 /* the second core (felucca-bsp chip/fm1_cpu1.h): none here, one core whatever MENU > 2ND CORE says (fx.c mix_block's
- * C1_ON() is 0 without felucca.c's macros) */
+ * C1_ON() is 0 without umbra.c's macros) */
 static uint8_t fm1_cpu1_on, fm1_cpu1_gave_up;
 static void fm1_cpu1_stop(void) {}
 static int fm1_cpu1_start(void) { return -1; }
 #endif
-#if FELUCCA_CDC
+#if UMBRA_CDC
 static void cdc_task(void) {}
 #endif
 /* main.c's calls into the USB driver (registers): nothing here (usb.c's own functions stay as they are) */
@@ -268,12 +268,12 @@ static void web_power_on(void)
     usb_serial_apply();
     lcd_init();
     draw_splash();                        /* main.c: the splash (ui_draw.c) */
-    memset(&felucca_dbg, 0, sizeof felucca_dbg);
-    felucca_dbg.magic = DBG_MAGIC;
+    memset(&umbra_dbg, 0, sizeof umbra_dbg);
+    umbra_dbg.magic = DBG_MAGIC;
     fm1_input_init();
     fm1_adc_init();
     panel_init();
-    felucca_init();
+    umbra_init();
     master_boot();                        /* main.c (#137): the pot's level from the first block */
     kb_boot_hold = 1;                     /* main.c (#137): the keys silent under the splash */
     audio_init();
@@ -290,7 +290,7 @@ static void web_frame(void)
     if (b > 0)
         song.batt_raw = song.batt_raw ? song.batt_raw + (b - song.batt_raw) / 32 : b;
     master_poll();
-    felucca_dbg.ui_frames++;
+    umbra_dbg.ui_frames++;
     ui_input();
     settings_poll();
     autosave_poll();

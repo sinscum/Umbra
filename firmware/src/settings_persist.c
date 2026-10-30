@@ -75,10 +75,10 @@ static int settings_import(persist_t *p, int n)
     settings.zoom = p->zoom;
     settings_hold = (uint8_t)hold_from_stored(p->bold);
     settings_leds = (uint8_t)leds_from_stored(p->zoom);
-#ifdef FELUCCA_FAVORITES
+#ifdef UMBRA_FAVORITES
     memcpy(&favorites, &p->favorites, sizeof favorites);
     favorites.filter = favorites.filter == 1u;
-#if defined(FM4_NPRESETS) && !FELUCCA_FM4
+#if defined(FM4_NPRESETS) && !UMBRA_FM4
     {   /* DIGITAL's starred presets (engine 1, retired) -> the FM6 presets that cover them (fm4_convert.c) */
         uint32_t k;
         for (k = 0; k < FM4_NPRESETS; k++)
@@ -108,7 +108,7 @@ static void settings_export(persist_t *p)
     p->zoom = settings.zoom = leds_to_stored(settings.zoom, settings_leds);
     p->panel = panel;
     p->bold = hold_to_stored(p->bold, settings_hold);
-#ifdef FELUCCA_FAVORITES
+#ifdef UMBRA_FAVORITES
     memcpy(&p->favorites, &favorites, sizeof favorites);
 #endif
 }

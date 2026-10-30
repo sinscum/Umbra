@@ -79,7 +79,7 @@ typedef struct {                 /* a part's, while mix_part renders it (one per
     uint8_t kid[NMSLOT];         /* per-block: the parameter, its stored value */
     int16_t keep[NMSLOT];
 } modw_t;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 static modw_t mod_w[NTRK];
 #define MOD(t) (mod_w[C1_PI(t)])
 #else

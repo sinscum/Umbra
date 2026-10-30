@@ -31,6 +31,7 @@
 static uint32_t host_now;                          /* TIMER4 ticks (24 MHz) */
 #define FM1_INPUT_NOW() host_now
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#include "../firmware/src/umbra_bsp.h"   /* UMBRA: UMBRA_* -> the names the BSP reads */
 #include "../firmware/bsp/chip/fm1_time.h"
 #include "../firmware/bsp/chip/fm1_gpio.h"
 static volatile uint32_t host_reg[16][64];        /* the GPIO registers, as memory (the LED test below) */

@@ -27,7 +27,7 @@ static int sample_slots(void)
     h->magic = SMP_USER_MAGIC; h->version = 1; h->nz = 16; h->data_len = dl;
     for (i = 0; i < 16u; i++) zone_set(&h->zone[i], 32u * i, 2u * (dl - 32u * i));
     smp_user_scan(0);
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
     printf("robust: SLICE material of 16 overlapping zones: %u samples (the slot holds %u)\n", slc_usr[0].len,
            2u * dl);
     bad += check("16 overlapping zones: the SLICE scan is at most the slot's size", usr_nz[0] == 16u &&

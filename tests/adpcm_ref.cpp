@@ -2,7 +2,7 @@
 // Copyright (C) 2026 ugotworms
 // The reference for tests/adpcm_test.c: the scenarios of adpcm_cases.h on snes_spc's SPC_DSP.cpp
 // (LGPL-2.1-or-later, built from a checkout: -I<snes_spc>/snes_spc; run_tests.sh: SNES_SPC), the waves of
-// build/gen/felucca_adpcm.h in its 64 KiB RAM.
+// build/gen/umbra_adpcm.h in its 64 KiB RAM.
 //   adpcm_ref OUT.bin      writes, per case: int32 n, then n int16 samples (the left output)
 // Voice 0 alone, its volumes and the master's at -128: the DSP's output is then the voice's own
 // output exactly ((x * -128) >> 7 twice), so the port is compared before any volume.
@@ -15,7 +15,7 @@ static int ref_n;
 #define SPC_DSP_OUT_HOOK(l, r) (ref_out[ref_n++] = (int16_t)(l))
 #include "SPC_DSP.cpp"
 
-#include "felucca_adpcm.h"
+#include "umbra_adpcm.h"
 #include "adpcm_cases.h"
 
 static uint8_t ram[0x10000];

@@ -26,7 +26,7 @@ static void fm1_audio_ack_half(void) {}
 static void fm1_audio_init(int32_t *b, uint32_t n, void (*isr)(void), uint32_t p)
 { (void)b; (void)n; (void)isr; (void)p; }
 void isr_alnk0(void) {}
-#define FELUCCA_UAC 1                                  /* audio.c taps USB audio: here into tap */
+#define UMBRA_UAC 1                                  /* audio.c taps USB audio: here into tap */
 static int32_t tap_blk[2 * CTL];
 static struct { uint32_t feed; } uac = {1};             /* a computer records (audio.c: uac_tap_q15) */
 static void uac_tap(const int32_t *out, uint32_t n)     /* (24-bit, as bsp/chip/usb.c takes it): kept as Q15 */

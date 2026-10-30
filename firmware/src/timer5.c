@@ -16,7 +16,7 @@ void fm1_timer5_irq(void)
     static uint32_t sub, owed;
     uint32_t t0 = fm1_ticks(), usb_due = sub % 5u == 0u;
     fm1_timer5_ack();
-    felucca_dbg.timer_irqs++;
+    umbra_dbg.timer_irqs++;
     fm1_input_tick();
     {   /* milliseconds from the 24 MHz TIMER4 (robust to a late tick) */
         static uint32_t last, acc;
@@ -29,15 +29,15 @@ void fm1_timer5_irq(void)
     }
     if (usb_due)
         owed |= 1u;                             /* 2 kHz: all USB SIE traffic lives here */
-#if FELUCCA_UART
+#if UMBRA_UART
     if (sub % 5u == 2u)
         uart_midi_poll();                       /* 2 kHz, including during audio: <= 2 new wire bytes per poll */
 #endif
     if (++sub == 10u)
         sub = 0;
-    if (felucca_dbg.in_audio) {
-        felucca_dbg.nested++;
-#if FELUCCA_UAC
+    if (umbra_dbg.in_audio) {
+        umbra_dbg.nested++;
+#if UMBRA_UAC
         if (usb_due)
             uac_service();
 #endif

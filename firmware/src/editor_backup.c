@@ -65,7 +65,7 @@ static uint32_t ed_bk_capture(void)
     project_capture(&proj_scratch);
     if (!proj_pack((project_store_t *)ED_BK_RAW, &proj_scratch)) return 2;
     ed_bk_gen = ++proj_wire_gen;
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
     ed_bk_settings = persist_saved;                 /* fields absent from this build survive */
 #else
     memset(&ed_bk_settings, 0, sizeof ed_bk_settings);
@@ -129,7 +129,7 @@ static uint32_t ed_bk_commit(void)
         sync_reload = 1; ui.force = 1;
         return upf_save() == 2 ? 4u : 0u;           /* (a failed write keeps the restored RAM copy) */
     } else return 1;
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
     if (!flash_ok || st_save(obj, raw, ed_bk_len)) return 4;
 #else
     (void)obj;
@@ -143,7 +143,7 @@ static uint32_t ed_bk_commit(void)
         memcpy(&ed_bk_settings, raw, sizeof ed_bk_settings);
         settings_import(&ed_bk_settings, sizeof ed_bk_settings);
         panel_init(); settings_init(); palette_apply();
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
         persist_saved = ed_bk_settings; persist_pending = 0;
 #endif
     } else {

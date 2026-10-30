@@ -6,15 +6,15 @@ Written in Phase 0 from the base tree's code (Felucca v1.7.0, commit 65b21d3) an
 ## Chip and clock
 - JieLi AC791N (WL82), pi32v2, no FPU. Code executes in place from flash at 0x02000120.
 - System clock 360 MHz (PLL1 540 MHz × 2/3, `firmware/bsp/chip/fm1_clock.h`): ~8,160 cycles per output sample at 44.1 kHz.
-- Second core exists (`FELUCCA_CPU2`, built in, OFF by default: MENU > SYSTEM > 2ND CORE, beta).
+- Second core exists (`UMBRA_CPU2`, built in, OFF by default: MENU > SYSTEM > 2ND CORE, beta).
 
 ## Audio
 | | Value | Source |
 | --- | --- | --- |
-| Sample rate | **44,100 Hz** (`FS`); the I2S clock actually runs ~44,117.6 Hz | `build/gen/felucca_tables.h`, `audio.c` DAC_TICKS |
+| Sample rate | **44,100 Hz** (`FS`); the I2S clock actually runs ~44,117.6 Hz | `build/gen/umbra_tables.h`, `audio.c` DAC_TICKS |
 | ISR block | **128 frames** (half buffer, 2.9 ms) | `core.h` HALF_FRAMES |
 | Control block | **32 samples** (`CTL`), 4 per ISR block | Felucca-Engines tables |
-| Output | stereo Q15 to the DAC (headphones / line, speaker); USB audio *to* the host 16-bit stereo 44.1 / 48 kHz | `felucca.c` FELUCCA_UAC, `bsp/chip/usb.c` |
+| Output | stereo Q15 to the DAC (headphones / line, speaker); USB audio *to* the host 16-bit stereo 44.1 / 48 kHz | `umbra.c` UMBRA_UAC, `bsp/chip/usb.c` |
 | Load shedding | above 85 % of a block the audio side sheds work | `audio.c` SHED_TICKS |
 | Audio **input** | **None.** The SAR ADC reads only the MASTER pot, the battery and two key-matrix rows; USB audio is output-only (UAC "input" = the FM-1 as a microphone for the host). No mic/line codec path in the BSP. | `bsp/boards/fm1/fm1_adc.h`, `usb.c` |
 

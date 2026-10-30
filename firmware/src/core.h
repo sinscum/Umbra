@@ -13,33 +13,33 @@
 #define NTRK NPART               /* tracks (the formats and the protocol count these): every track is a part */
 #define NSTEP 64
 #define HALF_FRAMES 128          /* I2S half buffer: 2.9 ms at 44.1 kHz (a key waits 0..1 half, then plays 1 half later) */
-#ifndef FELUCCA_SLICE
-#define FELUCCA_SLICE 1          /* the SLICE engine (eng_slice.c), engine 13; FELUCCA_SLICE=0 builds without it */
+#ifndef UMBRA_SLICE
+#define UMBRA_SLICE 1          /* the SLICE engine (eng_slice.c), engine 13; UMBRA_SLICE=0 builds without it */
 #endif
-#ifndef FELUCCA_FM4
-#define FELUCCA_FM4 0            /* the DIGITAL engine (eng_digital.c, four-operator FM): kept in the tree, not built
+#ifndef UMBRA_FM4
+#define UMBRA_FM4 0            /* the DIGITAL engine (eng_digital.c, four-operator FM): kept in the tree, not built
                                   * by default; replaced by FM6, its sounds convert (fm4_convert.c) */
 #endif
-#ifndef FELUCCA_CPU2
-#define FELUCCA_CPU2 1           /* the second core (src/felucca.c): 1 = built in, MENU > 2ND CORE ON lets it render
+#ifndef UMBRA_CPU2
+#define UMBRA_CPU2 1           /* the second core (src/umbra.c): 1 = built in, MENU > 2ND CORE ON lets it render
                                   * some parts; 0 = none of it */
 #endif
-#define C1_NP (FELUCCA_CPU2 ? NPART : 1)   /* the copies of the state a part's render writes that parts shared before the
+#define C1_NP (UMBRA_CPU2 ? NPART : 1)   /* the copies of the state a part's render writes that parts shared before the
                                             * second core (mod.c, voice.c SPREAD, eng_formant.c): one each with two cores,
                                             * one for all with one, as up to 1.6 */
 #define C1_PI(t) ((uint32_t)((t) - trk) % C1_NP)   /* a part's copy */
-#ifndef FELUCCA_ADPCM
-#define FELUCCA_ADPCM 0          /* the ADPCM engine (eng_adpcm.c), engine 14: not built by default (FELUCCA_ADPCM=1 builds
+#ifndef UMBRA_ADPCM
+#define UMBRA_ADPCM 0          /* the ADPCM engine (eng_adpcm.c), engine 14: not built by default (UMBRA_ADPCM=1 builds
                                   * it): on the FM-1 it costs about three ANALOG voices a voice (eng_adpcm.c, the figures) */
 #endif
-#if FELUCCA_ADPCM && !FELUCCA_SLICE
-#error "FELUCCA_ADPCM needs FELUCCA_SLICE (ADPCM is engine 14, after SLICE)"
+#if UMBRA_ADPCM && !UMBRA_SLICE
+#error "UMBRA_ADPCM needs UMBRA_SLICE (ADPCM is engine 14, after SLICE)"
 #endif
-#define NENGINES (13 + FELUCCA_SLICE + FELUCCA_ADPCM)   /* SLICE (13), then ADPCM (14): the other engines keep their
+#define NENGINES (13 + UMBRA_SLICE + UMBRA_ADPCM)   /* SLICE (13), then ADPCM (14): the other engines keep their
                                                          * numbers */
 #define ENGI_ADPCM 14u
-#define ENGI_DIGITAL 1u          /* reserved without FELUCCA_FM4: never selectable (eng_ok), its sounds load as FM6 */
-#define NENG_SHOWN (NENGINES - !FELUCCA_FM4)   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
+#define ENGI_DIGITAL 1u          /* reserved without UMBRA_FM4: never selectable (eng_ok), its sounds load as FM6 */
+#define NENG_SHOWN (NENGINES - !UMBRA_FM4)   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
                                                 * in the display order of engines.c ENGINE_ORDER */
 #define UP_SLOTS 32u             /* user presets (upreset.c) */
 
@@ -313,7 +313,7 @@ typedef struct track {
     uint8_t tail;                /* blocks to mix after the last voice (the DIST / INSERT tail) */
     uint8_t ins_run;             /* the INSERT still sounds (fx.c track_insert: its wet share above 0) */
     uint8_t cond_loop;           /* 1.5.5 (#209): the loop of its LEN playing (0..COND_LOOPS - 1, seq.c seq_tick) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     /* the second core: a part's render state, its own, so the two cores' parts share nothing (fx.c mix_block); in
      * the pad that keeps sizeof(track_t) a multiple of 16 (14 bytes before) */
     uint8_t lfo_wrap;            /* the LFO's phase wrapped this block: its S&H is drawn after the parts (voice.c) */

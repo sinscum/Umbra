@@ -505,7 +505,7 @@ static void rev_clear(void)
     hl.x = hl.m = hl.s = hl.hp = hl.he = 0;
 }
 
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 /* the dry mix and the sends, as each core adds its parts into them (after Jangada: mx[1] is the second core's,
  * mix_block), and a part's own block (b; mx[0].b also the fade of a reverb model change, after the parts) */
 typedef struct { int32_t l[CTL], r[CTL], c[CTL], d[CTL], v[CTL], b[CTL]; } mixsum_t;
@@ -807,7 +807,7 @@ static __attribute__((noinline)) void track_insert(track_t *t, int32_t *b, uint3
 /* one block of the whole mix (shared with hostsim.c): events -> each part (with its modulation matrix)
  * -> dist -> INSERT -> SLICER -> level / pan / sends -> buses -> master; out: stereo Q15 */
 static void events_block(uint32_t n);                    /* seq.c */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 static int32_t wet[CTL];                                 /* (the dry mix and the sends: mx[0], above) */
 #else
 static int32_t send_c[CTL], send_d[CTL], send_r[CTL], wet[CTL], mix_l[CTL], mix_r[CTL];
@@ -863,14 +863,14 @@ static __attribute__((noinline)) void mix_spread(track_t *t, int32_t *b, uint32_
  * voice (ENG_VCOST: the host's instructions per sample, tests/regress.c CPU at 8 notes held less the idle mix, over the
  * engine's voices), and the DIST, INSERT and sends while it sounds or its tail runs. ENGINES[] order; DIGITAL as FM6
  * when built, nothing when retired. An estimate: it only steers the split, the sound does not depend on it */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 static uint16_t part_cost[NTRK];                        /* the last block's, per part */
-static const uint16_t ENG_VCOST[NENGINES] = {163, FELUCCA_FM4 ? 181 : 0, 162, 67, 70, 174, 144, 143, 189, 309, 113, 134,
+static const uint16_t ENG_VCOST[NENGINES] = {163, UMBRA_FM4 ? 181 : 0, 162, 67, 70, 174, 144, 143, 189, 309, 113, 134,
                                              181,
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
                                              129,
 #endif
-#if FELUCCA_ADPCM
+#if UMBRA_ADPCM
                                              168,      /* ADPCM (ORGAN, 1693 instructions / sample at 8 notes) */
 #endif
 };
@@ -882,12 +882,12 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
 {
     int32_t *b = SM(b);
     uint32_t i;
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     uint32_t nr;
 #endif
     mod_begin(t);                                       /* the matrix's per-block values into t->p (mod.c) */
     T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON);   /* (SPREAD, mix_spread) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     nr = track_render(t, b, n);
     part_cost[(uint32_t)(t - trk) % NTRK] = (uint16_t)(nr * ENG_VCOST[t->engine % NENGINES] + (nr || t->tail ? 60u : 0u));
     if (nr)
@@ -986,7 +986,7 @@ static __attribute__((noinline)) void perf_master(int32_t *out, uint32_t n)
  * shared generator, part by part: voice.c track_lfo_end). tests/dualcore_test.c checks it, under ThreadSanitizer too.
  * Without a second core (the host, the browser, MENU > 2ND CORE OFF, one that did not answer or stopped) C1_RUN takes
  * nothing and this core renders them all */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
 #ifndef C1_RUN
 #define C1_ON() 0                                       /* a second core is answering */
 #define C1_RUN(fn, arg) 0                               /* hand it fn(arg): 1 = taken */
@@ -1041,7 +1041,7 @@ static void mix_block(int32_t *out, uint32_t n)
         send_c[i] = send_d[i] = send_r[i] = mix_l[i] = mix_r[i] = 0;
     events_block(n);
     perf = perf_begin(n);                               /* the FX hold layer at work (perform.c) */
-#if FELUCCA_CPU2
+#if UMBRA_CPU2
     uint32_t m = C1_ON() ? C1_SPLIT() & ((1u << NPART) - 1u) : 0u;
     if (m && !C1_RUN(c1_parts, m | n << 8))
         m = 0;

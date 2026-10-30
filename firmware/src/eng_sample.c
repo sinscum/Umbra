@@ -17,7 +17,7 @@ typedef struct {
     const char *name;
     uint16_t z0, nz;
 } smp_set_t;
-#include "felucca_samples.h"
+#include "umbra_samples.h"
 #if defined(SMP_PERC_SLOT) && SMP_PERC_SLOT != SMP_SET_PERC
 #error "tools/gen_samples.py PERC_SLOT != core.h SMP_SET_PERC"
 #endif
@@ -64,7 +64,7 @@ static const char *const SMP_ALL_NAMES[SMP_NALL] = {SMP_SET_NAMES_INIT, "USR1", 
 #define SMP_USER_XIP(k) fm1_xip_ptr(SMP_USER_BASE + (k) * SMP_USER_SIZE)
 #endif
 static const uint8_t *smp_user_xip(uint32_t k) { return SMP_USER_XIP(k); }
-#if FELUCCA_SLICE
+#if UMBRA_SLICE
 static void slc_user_scan(uint32_t k, int valid);   /* eng_slice.c: SLICE's slice table of the slot */
 #else
 #define slc_user_scan(k, valid) ((void)0)

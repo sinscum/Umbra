@@ -7,7 +7,7 @@
 //   the user preset bank / librarian, library files, live pushes, older-firmware fallback, the v3 tracks
 //   and the mixer, the v5 drum grid in steps and user presets), its tab layout and ja/en strings,
 //   and the user-sample pipeline byte for byte against tools/sampleio.py
-// - fm1pkg.js: productOf and logicalImage on build/felucca.fwsc (skipped without a build)
+// - fm1pkg.js: productOf and logicalImage on build/umbra.fwsc (skipped without a build)
 // - fm1ota.js: a full install and an unplug during the write against a simulated FM-1
 
 import { execFileSync } from "node:child_process";
@@ -24,12 +24,12 @@ const eq = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 const py = (code, ...args) => execFileSync("python3", ["-c", code, ...args], { maxBuffer: 1 << 26 });
 const HERE = new URL(".", import.meta.url).pathname;
 /* what lives outside web/, each overridable (a web-only checkout passes them, or the checks skip):
-   FELUCCA_DESC  the firmware's parameter / protocol table (tests/descdump.c -> build/host/desc.json)
-   FELUCCA_TOOLS the firmware's tools (tools/fm1_sample_upload.py, the sample format's reference)
-   FELUCCA_ROOT  the Felucca tree with a ./build.sh build (the package check) */
-const DESC = process.env.FELUCCA_DESC || join(HERE, "../build/host/desc.json");
-const TOOLS = process.env.FELUCCA_TOOLS || join(HERE, "../tools");
-const FW_ROOT = process.env.FELUCCA_ROOT || join(HERE, "..");
+   UMBRA_DESC  the firmware's parameter / protocol table (tests/descdump.c -> build/host/desc.json)
+   UMBRA_TOOLS the firmware's tools (tools/fm1_sample_upload.py, the sample format's reference)
+   UMBRA_ROOT  the Felucca tree with a ./build.sh build (the package check) */
+const DESC = process.env.UMBRA_DESC || join(HERE, "../build/host/desc.json");
+const TOOLS = process.env.UMBRA_TOOLS || join(HERE, "../tools");
+const FW_ROOT = process.env.UMBRA_ROOT || join(HERE, "..");
 
 /* ------------------------------------------------------------ editor protocol --- */
 const html = readFileSync(join(HERE, "editor.html"), "utf8");
@@ -1569,7 +1569,7 @@ function wav(sr, ch, bits, float, frames, f) {
 }
 
 function samplesMatch() {
-  const dir = mkdtempSync(join(tmpdir(), "felucca-web-"));
+  const dir = mkdtempSync(join(tmpdir(), "umbra-web-"));
   const files = [
     ["tone_A4.wav", wav(44100, 1, 16, false, 9000, (i) => Math.sin(i * 0.0627) * Math.exp(-i / 4000))],
     ["pad C3.wav", wav(48000, 2, 24, false, 7000, (i, c) => Math.sin(i * (c ? 0.031 : 0.0313)) * 0.7)],
@@ -1586,7 +1586,7 @@ function samplesMatch() {
     execFileSync("python3", [join(TOOLS, "fm1_sample_upload.py"), "build", "Mix ä 12345", join(dir, "slot"), ...files]);
     const pyHdr = readFileSync(join(dir, "slot.hdr")), pyData = readFileSync(join(dir, "slot.bin"));
     ok(eq(js.hdr, pyHdr) && eq(js.data, pyData), `samples: editor == sampleio.py (${files.length} WAV formats, ${js.data.length} B)`);
-  } else console.log("samples: editor == sampleio.py (no FELUCCA_TOOLS)                skip");
+  } else console.log("samples: editor == sampleio.py (no UMBRA_TOOLS)                skip");
   /* recording / trimming: takeSample (a cut of the raw input, faded at the cuts, normalised), autoTrim */
   const R = E.SMP.RATE, raw = new Float64Array(R);       /* 1 s: silence, a tone from 0.25 to 0.6 s, silence */
   for (let i = Math.round(R * 0.25); i < Math.round(R * 0.6); i++) raw[i] = Math.sin(i * 0.2) * 0.3;
@@ -1622,7 +1622,7 @@ function samplesMatch() {
 
 /* ------------------------------------------------------- packages: JS == Python --- */
 async function packages() {
-  const pkg = join(FW_ROOT, "build/felucca.fwsc");
+  const pkg = join(FW_ROOT, "build/umbra.fwsc");
   if (!existsSync(pkg)) {
     console.log("packages: skipped (run ./build.sh first)");
     return;

@@ -143,7 +143,7 @@ static void upf_set(uint32_t k, const uint8_t *pk)
  * newest copy (see the top) */
 static int upf_save(void)
 {
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
     st_hdr_t h;
     int to = -1;
     if (!flash_ok)
@@ -179,7 +179,7 @@ static uint32_t upf_migrate(const fm6_bank_t *b)
 
 static void upf_boot(void)                       /* up_boot, after the user preset banks */
 {
-#if FELUCCA_FLASH
+#if UMBRA_FLASH
     st_hdr_t h;
     if (flash_ok && st_load(OBJ_UPFM6, &upf, sizeof upf) == (int)sizeof upf && upf_valid(&upf))
         return;

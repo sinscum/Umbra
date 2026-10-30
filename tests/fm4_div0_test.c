@@ -18,8 +18,8 @@
 #undef main
 #define PROJ_HOST 1
 #include "../firmware/src/project.c"
-#if FELUCCA_FM4
-#error "fm4_div0_test converts DIGITAL sounds: build it without FELUCCA_FM4"
+#if UMBRA_FM4
+#error "fm4_div0_test converts DIGITAL sounds: build it without UMBRA_FM4"
 #endif
 
 /* fm4_convert as it was before #61's fix (1.0.3): the reference for the values */
