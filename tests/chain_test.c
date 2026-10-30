@@ -165,20 +165,20 @@ int main(void)
     {
         int ok = 1;
         for (d = 0; d < DEV_COUNT; d++) {
-            ok &= strlen(DEV_DESC[d].tag) == 3u && strlen(DEV_DESC[d].name) <= 8u && DEV_DESC[d].ntypes >= 1u;
-            for (k = 0; k < DEV_DESC[d].ntypes; k++)
-                ok &= DEV_DESC[d].types[k].name && strlen(DEV_DESC[d].types[k].name) <= 8u;
+            ok &= strlen(UCH_DESC[d].tag) == 3u && strlen(UCH_DESC[d].name) <= 8u && UCH_DESC[d].ntypes >= 1u;
+            for (k = 0; k < UCH_DESC[d].ntypes; k++)
+                ok &= UCH_DESC[d].types[k].name && strlen(UCH_DESC[d].types[k].name) <= 8u;
         }
         ck("descriptors: 5 devices, 3-letter tags, names <= 8, each with a type", ok);
         chain_reset();
         chain_set_type(0, DEV_FILTER, 200);
         chain_set_type(9, DEV_FILTER, 0);
         chain_set_bypass(0, 9, 1);
-        ck("a type out of range, a track or device out of range: refused", chain[0].type[DEV_FILTER] == 0 &&
-                                                                        chain[0].bypass == 0);
+        ck("a type out of range, a track or device out of range: refused", uchain[0].type[DEV_FILTER] == 0 &&
+                                                                        uchain[0].bypass == 0);
         chain_set_bypass(1, DEV_SPACE, 1);
         chain_set_bypass(1, DEV_SPACE, 0);
-        ck("bypass on, then off: cleared", chain[1].bypass == 0);
+        ck("bypass on, then off: cleared", uchain[1].bypass == 0);
     }
     printf(bad ? "chain: %d FAILED\n" : "chain: all ok\n", bad);
     return bad ? 1 : 0;

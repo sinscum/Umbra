@@ -35,7 +35,7 @@ static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0}};
 static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0}};
 static const dev_type_t DEV_T_DRIVE[] = {{"BASIC", 0}};       /* the base tree's, already in its budget */
 static const dev_type_t DEV_T_SPACE[] = {{"SENDS", 0}};
-static const dev_desc_t DEV_DESC[DEV_COUNT] = {
+static const dev_desc_t UCH_DESC[DEV_COUNT] = {
     {"SOURCE", "SRC", 1, DEV_T_SOURCE},
     {"GRANULAR", "GRN", 1, DEV_T_GRANULAR},
     {"FILTER", "FLT", 1, DEV_T_FILTER},
@@ -44,16 +44,16 @@ static const dev_desc_t DEV_DESC[DEV_COUNT] = {
 };
 
 typedef struct {
-    uint8_t type[DEV_COUNT];    /* index into DEV_DESC[d].types */
+    uint8_t type[DEV_COUNT];    /* index into UCH_DESC[d].types */
     uint8_t bypass;             /* bit d: device d bypassed */
 } umbra_chain_t;
 
-static volatile umbra_chain_t chain[NTRK];             /* zero = every slot its first type, nothing bypassed */
+static volatile umbra_chain_t uchain[NTRK];             /* zero = every slot its first type, nothing bypassed */
 
 static inline uint32_t chain_off(const track_t *t, uint32_t d)
 {
 #if UMBRA_CHAIN
-    return (chain[(uint32_t)(t - trk) % NTRK].bypass >> d) & 1u;
+    return (uchain[(uint32_t)(t - trk) % NTRK].bypass >> d) & 1u;
 #else
     (void)t; (void)d;
     return 0;
@@ -74,19 +74,19 @@ static void chain_set_bypass(uint32_t tr, uint32_t d, int on)
 {
     uint8_t m = (uint8_t)(1u << d);
     if (tr < NTRK && d < DEV_COUNT)
-        chain[tr].bypass = (uint8_t)(on ? chain[tr].bypass | m : chain[tr].bypass & ~m);
+        uchain[tr].bypass = (uint8_t)(on ? uchain[tr].bypass | m : uchain[tr].bypass & ~m);
 }
 static void chain_set_type(uint32_t tr, uint32_t d, uint32_t type)
 {
-    if (tr < NTRK && d < DEV_COUNT && type < DEV_DESC[d].ntypes)
-        chain[tr].type[d] = (uint8_t)type;
+    if (tr < NTRK && d < DEV_COUNT && type < UCH_DESC[d].ntypes)
+        uchain[tr].type[d] = (uint8_t)type;
 }
 static void chain_reset(void)                           /* every track: first types, nothing bypassed */
 {
     uint32_t i, d;
     for (i = 0; i < NTRK; i++) {
         for (d = 0; d < DEV_COUNT; d++)
-            chain[i].type[d] = 0;
-        chain[i].bypass = 0;
+            uchain[i].type[d] = 0;
+        uchain[i].bypass = 0;
     }
 }
