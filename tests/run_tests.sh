@@ -206,7 +206,7 @@ mkdir -p "$OUT"
 HALI="-Ifirmware/hal -Ifirmware/bsp/chip -Ifirmware/bsp/boards/fm1 -Ifirmware/src"   # (src: uac_fir.h, which bsp/chip/usb.c includes)
 CC="${CC:-cc} -O1 -Wall -Wno-unused-function $HALI"
 fail=0
-run() { echo "== $1"; shift; "$@" || fail=1; }
+run() { echo "== $1"; t="$1"; shift; "$@" || { fail=1; echo "FAILED: $t"; }; }   # UMBRA: name the step that failed
 
 $CC -o "$OUT/storage_test" tests/storage_test.c
 $CC -Ibuild/gen -Ifirmware/src -o "$OUT/signed_audio_scaling_test" tests/signed_audio_scaling_test.c -lm
