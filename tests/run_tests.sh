@@ -208,6 +208,9 @@ CC="${CC:-cc} -O1 -Wall -Wno-unused-function $HALI"
 fail=0
 run() { echo "== $1"; t="$1"; shift; "$@" || { fail=1; echo "FAILED: $t"; }; }   # UMBRA: name the step that failed
 
+$CC -o "$OUT/ram_test" tests/ram_test.c                 # UMBRA: its audio buffers against tests/ram_budget.txt
+run "UMBRA audio memory: firmware/src/umbra_mem.h within tests/ram_budget.txt" "$OUT/ram_test" tests/ram_budget.txt
+
 $CC -o "$OUT/storage_test" tests/storage_test.c
 $CC -Ibuild/gen -Ifirmware/src -o "$OUT/signed_audio_scaling_test" tests/signed_audio_scaling_test.c -lm
 run "DSP signed arithmetic: fixed DC/lowcut/FM6 vectors and phase wrap" "$OUT/signed_audio_scaling_test"
