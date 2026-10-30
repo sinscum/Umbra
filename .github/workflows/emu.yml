@@ -1,0 +1,63 @@
+# UMBRA: the browser emulator, the test target until the device is. On every push and pull request: the generated
+# headers (./build.sh --gen: no JieLi toolchain or SDK), the firmware's sources compiled to WebAssembly
+# (web/emu/build.sh), and its test against the same song built natively (web/emu/emu_test.mjs). On main, the
+# emulator published to GitHub Pages so it can be played in a browser. No device package is built here.
+name: emu
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: emu-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Python packages (Pillow with libraqm for the UI fonts, fontTools)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libraqm0
+          python3 -m pip install pillow fonttools numpy
+          python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+      - name: Generated headers
+        run: ./build.sh --gen
+      - name: Browser emulator
+        run: docker run --rm -v "$PWD:/src" -w /src -u "$(id -u):$(id -g)" emscripten/emsdk:3.1.74 sh web/emu/build.sh
+      - name: Emulator test (boot, keys, MIDI, screen, save, = native build, cost)
+        run: |
+          HALI="-Ifirmware/hal -Ifirmware/bsp/chip -Ifirmware/bsp/boards/fm1 -Ifirmware/src"
+          cc -O2 -ffp-contract=off -w $HALI -Ibuild/gen -Ifirmware/src -o build/emu_native web/emu/native_check.c -lm
+          build/emu_native build/emu_native.f32
+          node web/emu/emu_test.mjs build/emu/felucca.wasm build/emu_native.f32
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emulator
+          path: build/emu
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        with:
+          path: build/emu
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

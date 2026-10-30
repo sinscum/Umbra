@@ -37,13 +37,14 @@ git push
 - `pip3 install Pillow fonttools mido python-rtmidi`
 - `tools/get_toolchain.sh` → `~/.jieli/toolchain`
 - `git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK`
-- Optional: Node.js (web tests), Emscripten (browser emulator)
+- Node.js and Emscripten (the browser emulator — UMBRA's test target). Or skip local builds: CI builds the emulator on every push and publishes it to GitHub Pages (repo Settings → Pages → Source: **GitHub Actions**).
+- The toolchain and SDK above are only needed later, for device firmware.
 - Keep M-VAVE's stock V15 `FM-1.fwsc` downloaded before any hardware test
 
 ## 4. Start Claude Code in the repo and paste this
 
 > Read CLAUDE.md, docs/DESIGN.md and docs/ROADMAP.md, and open docs/mockups/umbra-screen.html for the screen layout. We're doing **Phase 0 only** — no new DSP and no device changes.
-> 1. Run the preflight and get `./build.sh` and `tests/run_tests.sh` green on the unchanged fork.
+> 1. Get the browser emulator green on the unchanged fork (`./build.sh --gen`, `web/emu/build.sh`, the emu CI workflow, live on GitHub Pages). No device firmware yet.
 > 2. Write `docs/HARDWARE.md` from the code: sample rate, block size, free RAM after boot (and where it lives), flash map and free space, any audio input path in the BSP, how SAMPLE/SLICE and user slots load audio, and each engine's CPU % from the baseline files. Mark anything you couldn't confirm.
 > 3. Skim m-vave/fm1_open: its licence, and any hardware facts that fill gaps in HARDWARE.md.
 > 4. Propose the final button map for DESIGN §7 against the base tree's controls.

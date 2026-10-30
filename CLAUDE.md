@@ -44,15 +44,22 @@ No other firmware names, earlier working names, themes or projects appear anywhe
 4. Read the files you'll change and their tests. Don't guess BSP or engine APIs — mirror the closest existing engine/FX.
 5. Check `docs/HARDWARE.md` (written in Phase 0). If a number isn't there, measure it.
 
-## The loop (every change)
+## The loop (every change) — browser first
 ```
-./build.sh                    # build/umbra.bin (after the Phase 0 rebrand), build/loader/ota.bin, build/*.fwsc
-tests/run_tests.sh            # host + web tests; needs AC79_SDK
-web/emu/build.sh && python3 -m http.server -d build/emu 8790
+./build.sh --gen              # build/gen only (fonts, tables, samples); no JieLi toolchain or SDK
+web/emu/build.sh && python3 -m http.server -d build/emu 8790    # play it at http://localhost:8790/
 ```
-Done = builds, tests pass, heard in the emulator. Hardware last, only when Shane says so.
+Every push also builds and tests the emulator in CI (`.github/workflows/emu.yml`) and publishes it from `main`
+to GitHub Pages, so each change can be played in a browser without building anything.
+
+Done = emulator builds, its test passes, heard in the browser. **No device firmware** (`./build.sh` without
+`--gen`, `.fwsc` packages, `tests/run_tests.sh`'s target checks) until Shane has tested the change in the
+browser and asks for it. Hardware last, only when Shane says so.
 
 ## Hard rules
+- **Browser before device.** Every feature must be playable in the browser emulator (`web/emu`); if the
+  emulator can't show it, extend the emulator in the same change. Don't build or prepare device packages until
+  Shane has tested in the browser and asks.
 - **Never flash.** Never run `fm1_install.py` without `--info`, or any write to the device. Prepare the package, print the exact command, stop.
 - **Golden hashes and budgets are tripwires.** Never `GOLDEN_UPDATE=1` / `BUDGET_UPDATE=1` to make a test pass; only after Shane confirms the change was intended, listing which renders changed and why.
 - **CPU budget is the real constraint.** Target: 4 tracks, full chain, defaults ≤ 70 % of one core. Report the delta after any DSP change. Over budget → cheaper version first (fewer grains/bands/voices, control-rate modulation, tables), 2nd core last.

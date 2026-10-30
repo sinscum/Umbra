@@ -1,16 +1,18 @@
 # UMBRA roadmap
 
-Each phase ends with a demo Shane can hear in the browser emulator. Don't start a phase until the
-previous one's acceptance list is ticked. Hardware tests only when Shane asks.
+Each phase ends with a demo Shane can hear in the browser emulator — published to GitHub Pages from `main` by
+CI (`.github/workflows/emu.yml`). Don't start a phase until the previous one's acceptance list is ticked.
+Device firmware (`./build.sh` without `--gen`, `.fwsc` packages) is built only after a phase has been tested in
+the browser and Shane asks; hardware tests only when Shane asks.
 
 ## Phase 0 — Fork, measure, decide (no new DSP)
 - Fork the base tree and **rebrand it fully** per CLAUDE.md → Lineage: output names, package identity and version strings, `UMBRA_*` flags, boot screen, every user-facing string. Check what `fm1_install.py` and the web installer expect of the identity before changing it.
 - `grep -ri` the tree for the old name: the only hits left should be LICENSE, LICENSING.md, CREDITS.md, copyright headers.
-- Build + full test suite green on the unchanged fork.
+- Browser emulator green on the unchanged fork: `./build.sh --gen`, `web/emu/build.sh`, `web/emu/emu_test.mjs`, the CI workflow, and the emulator live on GitHub Pages. The device build and the full `tests/run_tests.sh` wait until Shane asks for device firmware.
 - Write `docs/HARDWARE.md` from the code, not guesses: sample rate, block size, free RAM after boot (internal / PSRAM), flash map and space left, whether any audio input exists in the BSP, how the base tree's SAMPLE/SLICE and user sample slots load audio, CPU % of each existing engine at 4 voices from `tests/cpu_baseline.txt`.
 - Skim FM1 Open's repo and licence; note anything useful (sample slots, audio paths) in HARDWARE.md.
 - Propose the final control map (DESIGN §7) against the base tree's `docs/controls.jpg`.
-- **Accept:** green build/tests, HARDWARE.md, control map approved, buffer sizes in DESIGN §2 replaced with real numbers.
+- **Accept:** emulator green and playable on GitHub Pages, HARDWARE.md, control map approved, buffer sizes in DESIGN §2 replaced with real numbers.
 
 ## Phase 1 — Chain skeleton
 - Track model: 4 tracks × 5 device slots, each slot bypassable, typed, with params and a declared CPU cost. SOURCE = SYNTH (existing engines) only; other devices are pass-through stubs.
