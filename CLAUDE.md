@@ -79,6 +79,7 @@ browser and asks for it. Hardware last, only when Shane says so.
 
 ## Recovery facts
 - Black screen: look for USB device **WL80UBOOT** (4C4A:8057) — chip boot mode.
+- M-VAVE's stock recovery image `FM-1_015.fwsc` is Apache-2.0 (published in FM1 Open), so UMBRA may ship or link it.
 - Recovery: FM-1-transporter (kurogedelic) via Seeed XIAO RP2040; back up flash first, then M-VAVE's `FM-1.fwsc` (V15). Keep the stock package downloaded before any hardware test.
 
 ## Skills in this repo (`.claude/skills/`)

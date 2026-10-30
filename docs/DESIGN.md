@@ -61,14 +61,17 @@ Known: 240×240 colour TFT; 4 knobs; function buttons HOME, SEQ, GLO, SAVE, LFO,
 ARP, REC, OCT−, OCT+; 27 silicone keys (16 white = steps); speaker, battery, USB-C (MIDI + audio *to*
 the host), TRS MIDI in, BLE MIDI; JieLi AC791N, single core by default (optional 2nd core exists, OFF).
 
-**Unknown until Phase 0 measures it — every buffer size below depends on these:**
-- Free RAM for audio buffers (internal SRAM vs. any PSRAM).
-- Engine sample rate and block size (`firmware/src/core.h`).
-- Whether *any* audio input path exists (BSP ADC/mic). Assume none.
-- Flash space left for user sample slots.
+**Measured in Phase 0 (`docs/HARDWARE.md` has the details and sources):**
+- 44.1 kHz, ISR blocks of 128 frames, control blocks of 32 samples; 360 MHz, no FPU.
+- **No audio input** of any kind: TAPE resamples the FM-1's own output only.
+- 512 KiB internal SRAM, no PSRAM: 72 KiB RAM + 360 KiB pool, of which only ~31 KiB is free. The base tree's
+  delay (128 KiB), SLICER (32 KiB), engine state (4 × 12.6 KiB) and reverb/chorus (14 KiB) hold the rest.
+- Flash: 3 user sample slots × 80 KiB (~7.4 s each at 22.05 kHz ADPCM); 126 KB of CC0 samples in the app image.
 
-Buffer arithmetic (mono, 16-bit): 1 s at 48 kHz = 94 KB; at 24 kHz = 47 KB. 8-bit µ-law halves that
-(TAPE quality "LO" — the degradation suits the genre).
+Buffer arithmetic (mono): 1 s at 44.1 kHz = 86 KiB at 16-bit (HI), 43 KiB at 8-bit µ-law (LO); at 22.05 kHz, half
+that. **UMBRA's audio memory must replace the base tree's buffers, not add to them:** the delay's 128 KiB gives
+~6 s of LO audio at 22.05 kHz shared across tracks, the SLICER's 32 KiB four short GRANULAR rings. Phase 1 sets
+the split in `firmware/src/umbra_mem.h`.
 
 ## 3. The chain
 
@@ -127,20 +130,26 @@ HOME → MIXER: 4 track levels on the knobs, white keys 1–4 mute, 5–8 solo. 
 - **SCENES**: 8 snapshots of all device params on white keys 9–16 while holding ENV; knob 1 morphs current → target over a time knob (up to a minute).
 - **CLEAR**: hold REC + OCT− on a track clears its TAPE and GRANULAR buffers (confirm first).
 
-## 7. Controls (logical map — confirm against the real panel in Phase 0)
+## 7. Controls (approved in Phase 0)
 
-| Action | Proposed control |
+Panel: knobs MASTER, SELECT, PRESETS, ALGORITHM, KNOB 1–4; buttons FX SCL ENV LFO EDIT GLO / HOME SAVE ARP SEQ
+PLAY REC; OCT− OCT+; 27 keys (16 white). Reference: `docs/controls.jpg`.
+
+| Action | Control |
 | --- | --- |
 | Open SOURCE / GRANULAR / FILTER / DRIVE / SPACE | EDIT / ARP / SCL / FX / GLO (tap = open, again = next page) |
+| Select track 1–4 | ALGORITHM knob, on every page |
+| Change device type | PRESETS knob on a device page (SOURCE SYNTH: engine, then preset) |
 | Bypass a device | hold its button + OCT− |
-| Change device type | hold its button + turn knob 1 |
-| Select track 1–4 | hold HOME + black keys 1–4 |
-| MIXER | HOME (tap round to it) |
+| MIXER | HOME (tap round to it); hold HOME = MENU |
 | MODS / TEMP | LFO (pages); hold LFO + knob |
-| MACROS & SCENES | ENV |
-| Sequencer, record, save | SEQ, REC, SAVE |
+| MACROS & SCENES | ENV; hold ENV + white keys 9–16 = SCENES |
+| Scale root | hold SCL + key (also tunes FILTER RESONATOR) |
+| CLEAR | hold REC + OCT− (confirm first) |
+| Tempo, volume | SELECT, MASTER |
+| Transport, sequencer, record, save | PLAY, SEQ, REC, SAVE |
 
-ARP and scale settings move into SOURCE P3 / the menu; the base tree's FX layer becomes DRIVE + SPACE. Claude Code checks the base tree's controls photo and proposes a final map before Phase 1.
+ARP and scale settings move into SOURCE P3 / the menu; the base tree's FX layer becomes DRIVE + SPACE.
 
 ## 8. Screen & look (240×240)
 
@@ -218,6 +227,7 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 ## 11. Saved data
 PROJECT format (`UMBRA_PROJ v1`): per track — source type + params, device bypass/types/params, mods, sends; per project — macros, scenes, mixer, sequences. TAPE audio is **not** saved in v1 (RAM only); flash-saved TAPE is a v2 feature with its own version bump.
 
-## 12. Open questions for Shane
-1. Keep the base tree's sequencer as-is, or go "tape-first"?
-2. Stay on the current base tree, or evaluate M-VAVE's official FM1 Open first (check its licence)?
+## 12. Decisions and open questions
+- **Decided (Phase 0):** stay on the current base tree. FM1 Open's engine is a closed, FM-1-only binary SDK
+  (`docs/HARDWARE.md`). The metronome click stays (a music tool, off by default; not a UI sound).
+- **Open:** keep the base tree's sequencer as-is, or go "tape-first"?
