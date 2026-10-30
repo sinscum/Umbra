@@ -22,10 +22,13 @@ Also ships: browser emulator page, web editor, cheat sheet — GitHub Pages.
 
 ## Lineage (internal — never user-facing)
 The code tree is a fork of **Felucca** (hugelton/Felucca, GPL-3.0-only); its `BUILDING.md` is the
-source of truth for toolchain, tests and emulator until UMBRA's own replaces it. Phase 0 rebrands it:
-- outputs `umbra.bin` / `umbra.fwsc` → `umbra.bin` / `umbra.fwsc`; package identity and version strings;
-- `UMBRA_*` build flags → `UMBRA_*` (same defaults; build green with each at 0 and 1);
-- every user-facing string, the boot screen, web pages, README.
+source of truth for toolchain, tests and emulator until UMBRA's own replaces it. Phase 0 rebranded it:
+- outputs `umbra.bin` / `umbra.fwsc` / `umbra.wasm` (were felucca.*); identity `FM-1_800` (releases `FM-1_8XY`), version `v0.1.0`;
+- build flags `UMBRA_*` (were FELUCCA_*, same defaults); `firmware/src/umbra_bsp.h` hands them to the names the BSP submodule reads;
+- user-facing strings, the boot screen, ABOUT, USB name, web pages, README.
+Kept on purpose (contracts, not branding): the loader marker `FELUCCA-LOADER-1`, the submodules' names, the editor's
+saved-file formats `felucca-patch` / `felucca-library`, the settings magic "FELU" (until UMBRA_PROJ v1), and Felucca
+named in code comments that describe its history.
 Felucca's name stays **only** in `LICENSE`, `LICENSING.md`, `CREDITS.md`, copyright headers of files
 derived from it, and git history — the GPL requires that attribution.
 No other firmware names, earlier working names, themes or projects appear anywhere in this repo.
