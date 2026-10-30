@@ -1642,7 +1642,7 @@ static void draw(int s)
     }
     if (s == S_SPLASH) {                          /* the power-on splash (main.c, before the UI): its lines, the version
                                                    * shown UMBRA_VERSION (run_tests.sh: src/umbra.c's) */
-        static const char WANT[] = "Felucca|" UMBRA_VERSION "|H\xFCgelton Instruments|with community";
+        static const char WANT[] = "UMBRA|" UMBRA_VERSION "|dark ambient|for the FM-1";
         splash_seen[0] = 0;
         in_splash = 1;
         draw_splash();
