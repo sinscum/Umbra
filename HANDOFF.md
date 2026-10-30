@@ -38,7 +38,7 @@ git push
 - `tools/get_toolchain.sh` → `~/.jieli/toolchain`
 - `git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK`
 - Node.js and Emscripten (the browser emulator — UMBRA's test target). Or skip local builds: CI builds the emulator on every push and publishes it to GitHub Pages (repo Settings → Pages → Source: **GitHub Actions**).
-- The toolchain and SDK above are only needed later, for device firmware.
+- The toolchain and SDK above are only needed later, for device firmware (CI already builds it to measure and test: `.github/workflows/device-check.yml`, no package kept; `sdk/ac79` holds the three SDK files, so `AC79_SDK=sdk/ac79` works).
 - Keep M-VAVE's stock V15 `FM-1.fwsc` downloaded before any hardware test
 
 ## 4. Start Claude Code in the repo and paste this

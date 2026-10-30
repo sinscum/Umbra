@@ -1,0 +1,57 @@
+# UMBRA: the device build as a measurement and a test run, never a release. On every push and pull request:
+# the firmware built with JieLi's toolchain (tools/get_toolchain.sh) and the three SDK files in sdk/ac79, its
+# sizes printed (RAM, pool, image: docs/HARDWARE.md), then the whole host test suite (tests/run_tests.sh: the
+# golden renders, CPU budgets, UI renders, storage, MIDI). Only the log is kept: no package is uploaded or
+# published. Device packages wait until a change has been tested in the browser and Shane asks (CLAUDE.md).
+name: device-check
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: device-check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      AC79_SDK: ${{ github.workspace }}/sdk/ac79
+      JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # pinned: the generated tables, fonts and samples (and so the golden renders) follow Python's float
+      # summation and Pillow's rasteriser
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Python packages (Pillow with libraqm for the UI fonts, fontTools)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libraqm0
+          python3 -m pip install pillow==12.3.0 fonttools==4.67.0 numpy==2.5.3
+          python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+      - name: JieLi toolchain
+        run: sh tools/get_toolchain.sh /home/runner/.jieli
+      - name: Device build (sizes only)
+        run: mkdir -p build && ./build.sh | tee build/build.log
+      - name: Host tests
+        run: |
+          sh tests/run_tests.sh > build/tests.log 2>&1 && { tail -3 build/tests.log; exit 0; }
+          echo "::group::the failing lines"
+          grep -niE "fail|error|sanitizer|abort|segmentation|timeout|not ok|^== " build/tests.log | grep -viE " ok$|fails? (at once|the capture)|failure keeps|save error|failed-save|_fail" | head -150
+          echo "::endgroup::"; tail -40 build/tests.log; exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: device-check-logs
+          path: |
+            build/build.log
+            build/tests.log
+          if-no-files-found: ignore
