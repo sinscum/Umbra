@@ -409,6 +409,11 @@ if [ -f build/gen/umbra_tables.h ]; then
     $CC -O2 -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/regress_cpu2_0" tests/regress.c -lm
     run "regression, a UMBRA_CPU2=0 build (none of the second core): the same golden renders and CPU budget" \
         "$OUT/regress_cpu2_0" tests/golden.txt tests/cpu_baseline.txt
+    $CC -O2 -w -DUMBRA_CHAIN=0 -Ibuild/gen -Ifirmware/src -o "$OUT/regress_chain_0" tests/regress.c -lm
+    run "regression, a UMBRA_CHAIN=0 build (no chain): the same golden renders and CPU budget" \
+        "$OUT/regress_chain_0" tests/golden.txt tests/cpu_baseline.txt
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/chain_test" tests/chain_test.c -lm
+    run "UMBRA chain: nothing bypassed = bit for bit, SOURCE / DRIVE / SPACE bypass, types, the descriptors" "$OUT/chain_test"
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for
     # bit
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -DC1_HOST -pthread -o "$OUT/regress_c1" tests/regress.c -lm

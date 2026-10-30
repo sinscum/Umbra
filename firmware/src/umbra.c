@@ -94,6 +94,7 @@ static __attribute__((noinline)) int c1_wait(void) { return fm1_cpu1_wait(); }  
 #include "mod.c"               /* the modulation matrix, used by voice.c and fx.c */
 #include "voice.c"
 #include "slicer.c"              /* per-track SLICER insert, used by fx.c */
+#include "umbra_chain.c"        /* UMBRA: the chain's slots, read by fx.c mix_part */
 #include "fx.c"
 
 /* ------------------------------------------------- MIDI, sequencer --- */

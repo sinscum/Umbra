@@ -205,7 +205,7 @@ def build_app():
     flags = [*CFLAGS, *HAL_INC, "-Ifirmware/src", "-Ibuild/gen"]
     for flag in ("UMBRA_FLASH", "UMBRA_OTA", "UMBRA_OTA_DRYRUN", "UMBRA_OTA_RAMONLY", "UMBRA_CDC",
                  "UMBRA_UART", "UMBRA_UAC", "UMBRA_UAC_TONE", "UMBRA_UAC_48K", "UMBRA_ICONS", "UMBRA_SLICE", "UMBRA_FM4",
-                 "UMBRA_CDC_DEFAULT", "UMBRA_UAC_AS_FIRST", "UMBRA_CPU2", "UMBRA_ADPCM"):
+                 "UMBRA_CDC_DEFAULT", "UMBRA_UAC_AS_FIRST", "UMBRA_CPU2", "UMBRA_ADPCM", "UMBRA_CHAIN"):
         v = os.environ.get(flag)    # unset: the default in firmware/src/umbra.c
         if v in ("0", "1"):
             flags.append(f"-D{flag}={v}")

@@ -832,14 +832,21 @@ static __attribute__((noinline)) void mix_spread(track_t *t, int32_t *b, uint32_
     int32_t glb = 4096 - (pb > 0 ? pb * 64 : 0), grb = 4096 + (pb < 0 ? pb * 64 : 0);
     int32_t glm = (gla + glb) >> 1, grm = (gra + grb) >> 1, gld = (gla - glb) >> 1, grd = (gra - grb) >> 1;
     int32_t c = t->p[P_CHOR] * 258, dl = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
-    int32_t xmax = c > dl ? c : dl;
+    int32_t xmax;
+    if (chain_off(t, DEV_SPACE))
+        c = dl = r = 0;                                 /* UMBRA: SPACE bypassed: no sends */
+    xmax = c > dl ? c : dl;
     xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);
     for (i = 0; i < n; i++)
         d[i] = (d[i] << 1) - b[i];                      /* left - right */
-    track_dist(t, b, n);
-    if (t->p[P_ITYPE] | t->ins_run)
-        track_insert(t, b, n);                          /* (the mono sum, as DIST) */
-    slicer_track_sd(t, b, d, n);
+    if (chain_off(t, DEV_DRIVE))
+        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed (umbra_chain.c) */
+    else {
+        track_dist(t, b, n);
+        if (t->p[P_ITYPE] | t->ins_run)
+            track_insert(t, b, n);                      /* (the mono sum, as DIST) */
+        slicer_track_sd(t, b, d, n);
+    }
     if ((pf.mute >> (t - trk)) & 1u)
         perf_mute_sd((uint32_t)(t - trk), b, d, n);
     for (i = 0; i < n; i++) {
@@ -904,8 +911,11 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
             mod_end(t);
         return;
     }
+    chain_pre(t, b, n);                                 /* UMBRA: SOURCE's bypass, GRANULAR, FILTER (umbra_chain.c) */
     if (T_SPREAD(t))
         mix_spread(t, b, n SM_ARG(sm));
+    else if (chain_off(t, DEV_DRIVE))
+        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed: no DIST, INSERT or SLICER gate */
     else {
         track_dist(t, b, n);
         if (t->p[P_ITYPE] | t->ins_run)
@@ -919,7 +929,10 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
         int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127], pan = t->p[P_PAN];
         int32_t gl = 4096 - (pan > 0 ? pan * 64 : 0), gr = 4096 + (pan < 0 ? pan * 64 : 0);
         int32_t c = t->p[P_CHOR] * 258, d = t->p[P_DLY] * 258, r = t->p[P_REV] * 258, pk = t->peak;
-        int32_t xmax = c > d ? c : d;
+        int32_t xmax;
+        if (chain_off(t, DEV_SPACE))
+            c = d = r = 0;                              /* UMBRA: SPACE bypassed: no sends */
+        xmax = c > d ? c : d;
         xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
         for (i = 0; i < n; i++) {
             int32_t x = ((b[i] >> 2) * lvl) >> 10, a = x < 0 ? -x : x;   /* pre-shift: 8 loud voices */
