@@ -1,5 +1,7 @@
 # Credits
 
+UMBRA is built on Felucca, below; everything listed here is in UMBRA too.
+
 Felucca is Leo Kuroshita's ([@kurogedelic](https://github.com/kurogedelic), [Hügelton Instruments](https://hugelton.com)). It uses and
 thanks the work below; each keeps its own licence (see [LICENSE](LICENSE), [LICENSING.md](LICENSING.md) and [LICENSES/](LICENSES/)).
 
@@ -14,7 +16,7 @@ thanks the work below; each keeps its own licence (see [LICENSE](LICENSE), [LICE
 - VOICE engine: after [klattsch](https://github.com/tgies/klattsch) by Tony Gies (MIT); formant data from Klatt (1980) and Hillenbrand et al. (1995)
 - PHYS engine: models ported from [DaisySP](https://github.com/electro-smith/DaisySP) by Electrosmith and Emilie Gillet ([MIT](LICENSES/MIT-DaisySP.txt)) and from Emilie Gillet's [eurorack](https://github.com/pichenettes/eurorack) code ([MIT](LICENSES/MIT-Rings.txt))
 - FM6 engine: msfa from [Dexed](https://github.com/asb2m10/dexed) by Google Inc. and Pascal Gauthier ([Apache-2.0](LICENSES/Apache-2.0-msfa.txt))
-- ADPCM engine (kept in the tree, off by default: `FELUCCA_ADPCM=1`): its DSP from snes_spc by Shay Green ([LGPL-2.1-or-later](LICENSES/LGPL-2.1-snes_spc.txt)), ported by [ugotworms](https://github.com/ugotworms) (#172)
+- ADPCM engine (kept in the tree, off by default: `UMBRA_ADPCM=1`): its DSP from snes_spc by Shay Green ([LGPL-2.1-or-later](LICENSES/LGPL-2.1-snes_spc.txt)), ported by [ugotworms](https://github.com/ugotworms) (#172)
 - Hardware layer: [felucca-bsp](https://github.com/hugelton/felucca-bsp) ([MPL-2.0](LICENSES/MPL-2.0-felucca-bsp.txt)), maintained by
   [charlesvestal](https://github.com/charlesvestal) and [keremimo](https://github.com/keremimo); its authors in `firmware/bsp/NOTICE`
 - Second core: [Melodee](https://github.com/keremimo/melodee)'s by [keremimo](https://github.com/keremimo), with the start and API of

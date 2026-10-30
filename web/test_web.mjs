@@ -26,7 +26,7 @@ const HERE = new URL(".", import.meta.url).pathname;
 /* what lives outside web/, each overridable (a web-only checkout passes them, or the checks skip):
    UMBRA_DESC  the firmware's parameter / protocol table (tests/descdump.c -> build/host/desc.json)
    UMBRA_TOOLS the firmware's tools (tools/fm1_sample_upload.py, the sample format's reference)
-   UMBRA_ROOT  the Felucca tree with a ./build.sh build (the package check) */
+   UMBRA_ROOT  the UMBRA tree with a ./build.sh build (the package check) */
 const DESC = process.env.UMBRA_DESC || join(HERE, "../build/host/desc.json");
 const TOOLS = process.env.UMBRA_TOOLS || join(HERE, "../tools");
 const FW_ROOT = process.env.UMBRA_ROOT || join(HERE, "..");
@@ -1677,8 +1677,8 @@ class FakeFM1 {
       this.waiting = null;
       this.served++;
       if (this.served >= this.unplugAfter) { this.input.state = this.output.state = "disconnected"; return; }
-      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "Felucca Update"), 300);
-      else if (addr === 0xF0000000) setTimeout(() => this.boot("FM-1_900", "Felucca"), 300);
+      if (addr === 0xE0000000) setTimeout(() => this.boot("ota-FM-1_900", "UMBRA Update"), 300);
+      else if (addr === 0xF0000000) setTimeout(() => this.boot("FM-1_900", "UMBRA"), 300);
       else this.next();
     }
   }
@@ -1701,10 +1701,10 @@ async function updater() {
   const steps = [];
   const got = await new Updater(dev.access).install(image, "FM-1_900", (k) => steps.push(k));
   ok(got === "FM-1_900" && dev.bad === 0 && steps.includes("write") && steps.at(-1) === "done",
-    `fm1ota.js: install: running firmware -> loader -> Felucca (${dev.served} reads)`);
+    `fm1ota.js: install: running firmware -> loader -> UMBRA (${dev.served} reads)`);
 
   const dev2 = new FakeFM1(image, { unplugAfter: 3 });
-  dev2.boot("ota-FM-1_900", "Felucca Update");
+  dev2.boot("ota-FM-1_900", "UMBRA Update");
   const t0 = Date.now();
   const done = await new Updater(dev2.access).resume(image);
   ok(done === false && Date.now() - t0 < 6000, "fm1ota.js: unplugged during the write -> stops at once");
