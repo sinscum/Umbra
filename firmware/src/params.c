@@ -524,6 +524,9 @@ static const page_t PAGES[] = {
     {"ARP", FAM_EDIT, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},
     {"ARP 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_ASWING, P_APROB, P_AHOLD, P_AORDER}},
     {"THRU", FAM_ARP, SC_TRACK, GR_THRU, {0xFF, 0xFF, 0xFF, 0xFF}},
+    {"GRAINS", FAM_ARP, SC_DEV, GR_NONE, {0, 1, 2, 3}},     /* UMBRA GRANULAR: SIZE DENSITY PITCH SPRAY (umbra_granular.c) */
+    {"GRAINS 2", FAM_ARP, SC_DEV, GR_NONE, {4, 5, 6, 7}},   /* SCAN SPEED CONTOUR MIX */
+    {"GRAINS 3", FAM_ARP, SC_DEV, GR_NONE, {8, 9, 10, 11}}, /* REVERSE PITCH-RAND SCALE DETUNE */
     {"STEP", FAM_SEQ, SC_STEP, GR_ROLL, {0, 1, 2, 3}},
     {"DETAIL", FAM_SEQ, SC_STEP, GR_ROLL, {0, 1, 2, 3}},   /* 1.5.1 (#199): the cursor step's CHANCE RATCH NUDGE VEL
                                                              * (ui.c detail_on, ui_input.c sd_turn) */

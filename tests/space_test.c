@@ -341,26 +341,29 @@ int main(void)
         ck("SHIMMER 127: bounded (no runaway: the tail's rms below 20000)", r < 20000);
     }
 #endif
-    /* 6 */
+    /* 6 (each the best of three: a busy machine's spikes out) */
     {
         struct timespec a, c;
-        double ns_base, ns_all, ns_master, ns_voice;
-        uint32_t r;
+        double ns_base = 1e9, ns_all = 1e9, ns_master = 1e9, ns_voice = 1e9, v;
+        uint32_t r, rep;
         track_t *t;
         static int32_t vb[CTL];
+        for (rep = 0; rep < 3u; rep++) {
         fresh(2);
         clock_gettime(CLOCK_MONOTONIC, &a);
         for (r = 0; r < 10u * BPS; r++)
             bus_block(dark_noise, dark_noise);
         clock_gettime(CLOCK_MONOTONIC, &c);
-        ns_base = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        v = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        ns_base = v < ns_base ? v : ns_base;
         fresh(2);
         usong[US_WOW] = 100; usong[US_PRE] = 60; usong[US_SHIM] = UMBRA_SHIMMER ? 80 : 0;
         clock_gettime(CLOCK_MONOTONIC, &a);
         for (r = 0; r < 10u * BPS; r++)
             bus_block(dark_noise, dark_noise);
         clock_gettime(CLOCK_MONOTONIC, &c);
-        ns_all = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        v = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        ns_all = v < ns_all ? v : ns_all;
         fresh(0);
         usong[US_DJ] = -30; usong[US_GLUE] = 100;
         clock_gettime(CLOCK_MONOTONIC, &a);
@@ -369,7 +372,8 @@ int main(void)
             for (i = 0; i < CTL; i++) { int32_t l = noise(), rr = l; umaster(&l, &rr); vb[i] = l; }
         }
         clock_gettime(CLOCK_MONOTONIC, &c);
-        ns_master = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        v = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        ns_master = v < ns_master ? v : ns_master;
         ui_power_on();
         t = &trk[0];
         set_engine_of(t, 0);
@@ -381,7 +385,9 @@ int main(void)
             track_render(t, vb, CTL);
         }
         clock_gettime(CLOCK_MONOTONIC, &c);
-        ns_voice = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        v = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (10.0 * BPS * CTL);
+        ns_voice = v < ns_voice ? v : ns_voice;
+        }
         printf("space: cost: buses (HALL) %.1f ns, + WOW PRE%s %.1f ns (+%.2f voices); MASTER DJ + GLUE %.1f ns (%.2f voices); "
                "one ANALOG voice %.1f ns\n", ns_base, UMBRA_SHIMMER ? " SHIMMER" : "", ns_all, (ns_all - ns_base) / ns_voice,
                ns_master, ns_master / ns_voice, ns_voice);

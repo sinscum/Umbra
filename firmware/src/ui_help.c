@@ -25,6 +25,9 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"INSERT", "[K1]TYPE[FX]DRY / WET"},
     {"INSERT 2", "[K1]DRY / WET[FX]FX"},
     {"SPACE", "[K1-4]REV DLY PAN WIDTH[GLO]BUS"},   /* UMBRA: SPACE (GLO) */
+    {"GRAINS", "[PRESETS]TYPE[ARP]GRAINS 2"},          /* UMBRA: GRANULAR (ARP) */
+    {"GRAINS 2", "[K2]SPEED 0: HOLD[ARP]MORE"},
+    {"GRAINS 3", "[K3]SCALE LOCK[ARP]GRAINS"},
     {"SPACE 2", "[K1-4]DECAY DAMP TIME[GLO]MORE"},
     {"SPACE 3", "[K4]FREEZE[GLO]SENDS"},
     {"SENDS", "[K1-4]SENDS[GLO]DLY"},

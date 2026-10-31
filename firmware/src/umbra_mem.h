@@ -31,6 +31,10 @@
 #endif
 #define UMBRA_MEM_SHIM (UMBRA_SHIMMER ? 1024u * 2u : 0u)   /* SPACE SHIMMER's line (UMBRA_SHIMMER only) */
 
-#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB + UMBRA_MEM_PRE + UMBRA_MEM_SHIM)   /* the sum of every UMBRA_MEM_<NAME> above */
+#define UMBRA_GRN_RING 11264u                   /* GRANULAR's ring a track: 0.51 s at 22.05 kHz, mu-law (umbra_granular.c) */
+#define UMBRA_MEM_GRN (4u * UMBRA_GRN_RING)     /* 44 KiB (Phase 4: the delay's freed half, fx.c UMBRA_DLY_HALF) */
+
+#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB + UMBRA_MEM_PRE + UMBRA_MEM_SHIM + UMBRA_MEM_GRN)   /* the sum of every
+                                                                                      * UMBRA_MEM_<NAME> above */
 
 #endif

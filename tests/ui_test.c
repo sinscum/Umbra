@@ -10078,6 +10078,32 @@ static int test_umbra_space(void)
         ok &= scale_leds(&root) == wk;
         bad += check("UMBRA lights: SOURCE's pages show the track's scale (not CHR, not elsewhere)", ok);
     }
+    {   /* GRANULAR: PRESETS on ARP picks GRAINS (its three pages), SCALE lights the scale's keys there */
+        uint32_t root, wk = 0, k;
+        for (k = 0; k < 27u; k++)
+            wk |= (uint32_t)!key_black(k) << k;
+        ui_power_on();
+        go_home(); frames(320);
+        press(B_ARP); frames(320);
+        ok = str_eq(cur_page()->title, "THRU") && cur_page()->fam == FAM_ARP;
+        turn(EN_PRESET, 1); frame();
+        ok &= uchain[0].type[DEV_GRANULAR] == GRAN_GRAINS && msg_is("GRANULAR GRAINS") && str_eq(cur_page()->title, "GRAINS");
+        turn(EN_K1, -5); frame();
+        ok &= uchain[0].p[DEV_GRANULAR][GRN_SIZE] == GRN_PD[GRN_SIZE].def - 5;
+        press(B_ARP); frames(320);
+        ok &= str_eq(cur_page()->title, "GRAINS 2");
+        press(B_ARP); frames(320);
+        ok &= str_eq(cur_page()->title, "GRAINS 3");
+        TSEL->p[P_SCALE] = 1;
+        TSEL->p[P_ROOT] = 0;
+        ok &= !scale_leds(&root);                       /* (SCALE off: none) */
+        turn(EN_K3, 1); frame();
+        ok &= uchain[0].p[DEV_GRANULAR][GRN_SCALE] == 1 && scale_leds(&root) == wk;
+        press(B_ARP); frames(320);
+        ok &= str_eq(cur_page()->title, "GRAINS");      /* (THRU's page hidden: GRAINS' three go round) */
+        bad += check("UMBRA GRANULAR: PRESETS on ARP: GRAINS, its three pages; SCALE on: the scale's keys light", ok);
+        chain_reset();
+    }
     {   /* FREEZE on GLO held + G5 (white key 16), lit while frozen; again: off */
         uint32_t g5 = white(15), br, lit;
         ui_power_on();

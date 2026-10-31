@@ -422,6 +422,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UMBRA DRIVE DAMAGE: defaults bit for bit, each stage bounded and DC-free, no click on a jump, TILT, cost" "$OUT/drive_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/filter_test" tests/filter_test.c -lm
     run "UMBRA FILTER: SVF's responses, stability at full RES, its ring ending, KEYTRK, WANDER, cost" "$OUT/filter_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/granular_test" tests/granular_test.c -lm
+    run "UMBRA GRANULAR GRAINS: mu-law, the ring, pitch, the pool's caps and steals (no click), SPEED 0, SCALE, cost" "$OUT/granular_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/space_test" tests/space_test.c -lm
     run "UMBRA SPACE / MASTER: FREEZE holds and releases clean (HALL ROOM delay), PRE-DLY, WOW, DJ FILTER, GLUE, cost" "$OUT/space_test"
     $CC -O2 -w -DUMBRA_SHIMMER=1 -Ibuild/gen -Ifirmware/src -o "$OUT/space_test_shim" tests/space_test.c -lm

@@ -5,7 +5,7 @@
  *
  * The types (index 0 the default, the base tree's behaviour):
  *   SOURCE   SYNTH: the track's engine (voice.c track_render)
- *   GRANULAR THRU: nothing yet (Phase 4)
+ *   GRANULAR THRU: nothing (GRAINS: umbra_granular.c)
  *   FILTER   THRU: nothing
  *   DRIVE    BASIC: the base tree's DIST, INSERT and SLICER (fx.c track_dist / track_insert, slicer.c)
  *   SPACE    SENDS: the base tree's sends to its chorus, delay and reverb (fx.c mix_part)
@@ -41,11 +41,12 @@ typedef struct {
 #include "umbra_mem.h"
 #include "umbra_drive.c"
 #include "umbra_filter.c"
+#include "umbra_granular.c"
 #include "umbra_space.c"
 #include "umbra_master.c"
 
 static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}};   /* the engine's cost is its own (ENG_VCOST) */
-static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}};
+static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}, GRN_T_GRAINS};
 static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}, FLT_T_SVF, FLT_T_COMB, FLT_T_RES, FLT_T_FORMANT};
 static const dev_type_t DEV_T_DRIVE[] = {{"BASIC", 0, 0}, DRV_T_DAMAGE};   /* BASIC: the base tree's, in its budget */
 static const dev_type_t DEV_T_SPACE[] = {{"SENDS", 0, 0}};
@@ -58,6 +59,7 @@ static const dev_desc_t UCH_DESC[DEV_COUNT] = {
     {"SPACE", "SPC", NELEM_T(DEV_T_SPACE), DEV_T_SPACE},
 };
 enum { DRIVE_BASIC, DRIVE_DAMAGE };                     /* (DEV_T_DRIVE's order: stored) */
+enum { GRAN_THRU, GRAN_GRAINS };                        /* (DEV_T_GRANULAR's order: stored) */
 
 typedef struct {
     uint8_t type[DEV_COUNT];    /* index into UCH_DESC[d].types */
@@ -92,6 +94,11 @@ static inline uint32_t chain_type(const track_t *t, uint32_t d)   /* the slot's 
 #endif
 }
 
+/* GRANULAR runs on this track now (GRAINS, not bypassed) */
+static inline int chain_granular_on(const track_t *t)
+{
+    return UMBRA_GRN && chain_type(t, DEV_GRANULAR) == GRAN_GRAINS && !chain_off(t, DEV_GRANULAR);
+}
 /* FILTER runs on this track now (its type, not bypassed) */
 static inline int chain_filter_on(const track_t *t)
 {
@@ -105,6 +112,12 @@ static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
     if (chain_off(t, DEV_SOURCE))
         for (i = 0; i < n; i++)
             b[i] = 0;
+    if (chain_granular_on(t)) {                         /* GRANULAR GRAINS (umbra_granular.c) */
+        grn_cap = song.cpu_q8 > 205u ? GRN_MAX_LOAD : song.cpu_q8 < 170u ? GRN_MAX : grn_cap;   /* (fewer under load) */
+        grn_run(tr, t, (const int16_t *)uchain[tr].p[DEV_GRANULAR], b, n);
+    } else if (grs[tr].on) {
+        grn_stop(tr);
+    }
     if (chain_filter_on(t)) {
         const int16_t *p = (const int16_t *)uchain[tr].p[DEV_FILTER];
         flt_state_t *s = &flt_st[tr];
@@ -132,7 +145,8 @@ static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
 /* a device still sounding after the track's voices (fx.c mix_part runs the track on: its tail) */
 static inline int chain_ringing(const track_t *t)
 {
-    return chain_filter_on(t) && flt_ringing(&flt_st[(uint32_t)(t - trk) % NTRK]);
+    uint32_t tr = (uint32_t)(t - trk) % NTRK;
+    return (chain_filter_on(t) && flt_ringing(&flt_st[tr])) || (chain_granular_on(t) && grn_ringing(tr));
 }
 
 /* DRIVE's own types (not BASIC, not bypassed): 1 = it ran on b (fx.c mix_part: then no DIST, INSERT or SLICER gate) */
@@ -205,6 +219,8 @@ static const struct { const char *title; uint8_t dev, type; } DEV_PAGES[] = {
     {"COMB", DEV_FILTER, FILTER_COMB}, {"COMB 2", DEV_FILTER, FILTER_COMB},
     {"RESONATOR", DEV_FILTER, FILTER_RES}, {"RESONATOR 2", DEV_FILTER, FILTER_RES},
     {"FORMANT", DEV_FILTER, FILTER_FORMANT}, {"FORMANT 2", DEV_FILTER, FILTER_FORMANT},
+    {"THRU", DEV_GRANULAR, GRAN_THRU}, {"GRAINS", DEV_GRANULAR, GRAN_GRAINS}, {"GRAINS 2", DEV_GRANULAR, GRAN_GRAINS},
+    {"GRAINS 3", DEV_GRANULAR, GRAN_GRAINS},
 };
 static int dev_page_visible(const page_t *pg)
 {

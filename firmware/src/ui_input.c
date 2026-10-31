@@ -319,7 +319,14 @@ static int keys_own(void)
  * the scale); QNT WHITE every white key (they walk the scale; the black ones are silent). *root: the keys of the
  * scale's root. None where the engine maps the keys itself (DRUM's GM map, the slices): 0 there, and OFF */
 /* UMBRA (Phase 3 lights): the pages of the SOURCE device (EDIT's family): the scale's keys light (scale_leds) */
-static int src_page_on(void) { return UMBRA_CHAIN && !ui.home && !ui.menu && !ui.layer && cur_page()->fam == FAM_EDIT; }
+static int src_page_on(void)
+{
+    const page_t *pg = cur_page();
+    if (!UMBRA_CHAIN || ui.home || ui.menu || ui.layer)
+        return 0;
+    return pg->fam == FAM_EDIT || (pg->fam == FAM_ARP && pg->scope == SC_DEV &&   /* (GRAINS with SCALE on: its keys */
+                                   uchain[song.sel % NTRK].p[DEV_GRANULAR][GRN_SCALE]);   /* too) */
+}
 /* UMBRA: the pitch class (0 = C) key k plays on track t (as scale_leds reads it) */
 static uint32_t key_pc(const track_t *t, uint32_t k)
 {

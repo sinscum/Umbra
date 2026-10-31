@@ -969,7 +969,8 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
 #endif
     mod_begin(t);                                       /* the matrix's per-block values into t->p (mod.c) */
     T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON) &&   /* (SPREAD, mix_spread) */
-                  !chain_filter_on(t);                  /* UMBRA: a FILTER: mono through it (the side would pass it by) */
+                  !chain_filter_on(t) && !chain_granular_on(t);   /* UMBRA: a FILTER, GRAINS: mono through them (the
+                                                                  * side would pass them by) */
 #if UMBRA_CPU2
     nr = track_render(t, b, n);
     part_cost[(uint32_t)(t - trk) % NTRK] = (uint16_t)(nr * ENG_VCOST[t->engine % NENGINES] + (nr || t->tail ? 60u : 0u));
