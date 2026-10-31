@@ -44,6 +44,7 @@ static const param_desc_t SRC_PD_TAPE[DEV_NP] = {
 
 #define TAPE_VOICES 4u
 #define TAPE_FADE 64u                                   /* the loop's ends: values faded (2.9 ms) */
+typedef char tape_fade_is_64[TAPE_FADE == 64u ? 1 : -1];   /* (tape_run fades the loop's ends with >> 6) */
 #define TAPE_CLR_CHUNK 2048u                            /* CLEAR: bytes a block */
 static uint8_t tape_mem[UMBRA_TAPE_BYTES] __attribute__((section(".pool")));
 typedef struct {
@@ -81,6 +82,12 @@ static inline void tape_put(const tape_t *s, uint32_t k, int32_t x)
         ((int16_t *)(void *)(tape_mem + s->base))[k] = (int16_t)x;
     else
         tape_mem[s->base + k] = ulaw_enc(x);
+}
+
+/* a KEYS voice's step: semitones from the take's pitch (out of line: its divides stay out of tape_run's loops) */
+static __attribute__((noinline)) int32_t tape_ratio(int32_t semi)
+{
+    return grn_ratio_q16(clamp(semi, -36, 36)) >> 1;
 }
 
 /* the start of a block (fx.c mix_block): the parts for the tracks set to TAPE now, CLEAR's chunks */
@@ -203,7 +210,7 @@ static __attribute__((noinline)) void tape_run(uint32_t tr, const int16_t *p, in
     for (i = 0; i < n; i++)
         out[i] = 0;
     s0 = s->len * (uint32_t)p[TP_START] / 128u;
-    seg = s->len > s0 ? (s->len - s0) * (uint32_t)p[TP_LEN] / 127u : 0u;
+    seg = s->len > s0 ? (uint32_t)(((uint64_t)(s->len - s0) * ((uint32_t)p[TP_LEN] * 258u)) >> 15) : 0u;   /* (/ 127) */
     if (seg >= TAPE_FADE * 2u && !(rec && !s->od && !s->full)) {   /* (not while a new take is going; full: it plays) */
         int32_t ratio = grn_ratio_q16(p[TP_PITCH]) >> 1;   /* (values a sample: the take a value a pair) */
         uint32_t end = s0 + seg;
@@ -216,10 +223,10 @@ static __attribute__((noinline)) void tape_run(uint32_t tr, const int16_t *p, in
                 int32_t a = tape_get(s, ri), c = tape_get(s, rj), x = a + (((c - a) * (int32_t)((s->pos >> 8) & 255u)) >> 8);
                 uint32_t edge = e0 < e1 ? e0 : e1;
                 if (edge < TAPE_FADE)                   /* (the loop's ends faded) */
-                    x = x * (int32_t)edge / (int32_t)TAPE_FADE;
+                    x = (x * (int32_t)edge) >> 6;           /* (/ TAPE_FADE, 64: a shift, no divide) */
                 out[i] = x;
                 if (s->od && rec) {                     /* SELF overdub: in + what was there x FDBK, here */
-                    int32_t o = (tape_get(s, ri) * p[TP_FDBK]) / 127;
+                    int32_t o = (tape_get(s, ri) * (p[TP_FDBK] * 258)) >> 15;   /* (x FDBK / 127) */
                     tape_put(s, ri, o + (clamp(in[i], -65535, 65535) >> 1));
                 }
                 s->pos = (uint32_t)((int32_t)s->pos + inc);
@@ -236,7 +243,7 @@ static __attribute__((noinline)) void tape_run(uint32_t tr, const int16_t *p, in
                     v->on = 1;
                     v->pos = s0 << 16;
                     v->env = 0;
-                    v->inc = grn_ratio_q16(clamp((int32_t)v->note - 60 + p[TP_PITCH], -36, 36)) >> 1;
+                    v->inc = tape_ratio((int32_t)v->note - 60 + p[TP_PITCH]);
                 }
                 for (i = 0; i < n; i++) {
                     uint32_t ri = v->pos >> 16;
