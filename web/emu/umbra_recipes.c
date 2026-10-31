@@ -10,10 +10,14 @@
  *   3 FROZEN HALL     the choir and the pad into the longest HALL, 40 ms before it, echoes with WOW: turn SPACE 3's
  *                     FREEZE (KNOB 4) on, stop, and the hall hangs (tests/umbra_golden.c freezes it at 4 s)
  *   4 DEAD BELLS      an FM6 bell into a slow cloud of long grains (GRANULAR GRAINS), a RESONATOR in A minor, a
- *                     long HALL (GLO + G5 freezes it) */
-#define UMBRA_NRECIPES 5u
+ *                     long HALL (GLO + G5 freezes it)
+ *   5 WORN CATHEDRAL  an FM6 pad; track 2's TAPE records the mix (LO) until full, then its take hangs as a suspended
+ *                     cloud of grains, pitches at random on the scale (C minor), in a long HALL
+ *   6 SHADOW          an ANALOG pluck on track 1; track 4 a RETURN of it: grains 60 % backwards through a COMB, a ghost
+ *                     behind it */
+#define UMBRA_NRECIPES 7u
 static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR", "FROZEN HALL",
-                                                        "DEAD BELLS"};
+                                                        "DEAD BELLS", "WORN CATHEDRAL", "SHADOW"};
 
 static uint32_t recipe_engine(const char *name)      /* an engine by its name (ENGINES[]), 0 if none */
 {
@@ -118,6 +122,38 @@ static void umbra_recipe(uint32_t n)
         trk[0].p[P_DLY] = 30;
         recipe_dev(0, DEV_GRANULAR, GRAN_GRAINS, GRN);
         recipe_dev(0, DEV_FILTER, FILTER_RES, RSN);
+        break;
+    }
+    case 5: {   /* WORN CATHEDRAL */
+        static const int8_t TAP[DEV_NP] = {127, 0, 0, 127, K_, K_, TMODE_LOOP, TDIR_FWD, TFROM_MIX, TQ_LO, TREC_ON, K_};
+        static const int8_t GRN[DEV_NP] = {100, 70, 0, 60, 40, 0, CONT_HANN, 127, 20, 7, 1, 20};   /* SPEED 0: hangs */
+        song.g[G_BPM] = 52;
+        song.g[G_RTYPE] = 2;
+        song.g[G_RSIZE] = 120;
+        recipe_track(0, "FM6", "PAD", 5);                          /* PAD: long notes */
+        trk[0].p[P_LEVEL] = 127;                                    /* (a soft pad: the take is the mix, as loud) */
+        trk[0].p[P_REV] = 70;
+        trk[0].p[P_SCALE] = 2;                                      /* (C minor: the grains' scale) */
+        trk[1].p[P_SCALE] = 2;
+        trk[1].p[P_ROOT] = 0;
+        trk[1].p[P_LEVEL] = 127;
+        trk[1].p[P_REV] = 100;
+        recipe_dev(1, DEV_SOURCE, SRC_TAPE, TAP);
+        recipe_dev(1, DEV_GRANULAR, GRAN_GRAINS, GRN);
+        break;
+    }
+    case 6: {   /* SHADOW */
+        static const int8_t RET[DEV_NP] = {1, 112, K_, K_, K_, K_, K_, K_};
+        static const int8_t GRN[DEV_NP] = {70, 70, 0, 40, 30, 64, CONT_HANN, 127, 76, 0, 0, 20};   /* REVERSE 60 % */
+        static const int8_t CMB[DEV_NP] = {57, 85, 50, 90, K_, 40, K_, K_};
+        song.g[G_BPM] = 84;
+        recipe_track(0, "ANALOG", "PLUCK", 3);                     /* MELODY */
+        trk[0].p[P_REV] = 30;
+        recipe_dev(3, DEV_SOURCE, SRC_RETURN, RET);
+        recipe_dev(3, DEV_GRANULAR, GRAN_GRAINS, GRN);
+        recipe_dev(3, DEV_FILTER, FILTER_COMB, CMB);
+        trk[3].p[P_REV] = 90;
+        trk[3].p[P_PAN] = 40;
         break;
     }
     default:    /* FOUR ENGINES */

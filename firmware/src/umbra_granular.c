@@ -64,6 +64,8 @@ static struct {
     int32_t drift;              /* SPEED's wander from SCAN's distance (values, Q8) */
     int32_t rng;
     uint32_t filled;            /* values written since the start (the ring's valid part) */
+    const uint8_t *src;         /* this block's source: the ring, or (a TAPE track in LO) the take */
+    uint32_t rl, wr, fill;      /* .. its values, the read's reference (the write; the take's end), its valid part */
 } grs[NTRK];
 static volatile uint8_t grn_cap = GRN_MAX;      /* GRN_MAX_LOAD under load (chain_pre) */
 
@@ -142,6 +144,7 @@ static __attribute__((noinline)) void grn_spawn(uint32_t tr, const track_t *t, c
     uint32_t g, r = noise32(&grs[tr].rng), span, back, need, limit;
     int32_t semi = p[GRN_PITCH], inc;
     grain_t *q;
+    const uint32_t RL = grs[tr].rl;
     for (g = 0; g < GRN_MAX && grn[g].on; g++)
         ;
     if (g >= GRN_MAX)
@@ -163,25 +166,28 @@ static __attribute__((noinline)) void grn_spawn(uint32_t tr, const track_t *t, c
         inc += (int32_t)(((int64_t)inc * ((int32_t)((r >> 16) & 255u) - 128) * p[GRN_DTUN]) >> 22);
     need = (uint32_t)(((uint64_t)(uint32_t)inc * len) >> 16) + len / 2u + 64u;   /* values a forward grain covers, and
                                                                                   * the write moving on meanwhile */
-    limit = grs[tr].filled > need + 64u ? grs[tr].filled - need - 64u : 0u;   /* (the valid part, behind the write) */
+    if (grs[tr].src == grn_ring[tr] && grs[tr].fill < GRN_RL && grs[tr].fill < need + 64u)
+        return;                                         /* (not enough recorded yet: the ring's empty bytes are mu-law
+                                                         * 0x00, full scale negative; a take is valid all through) */
+    limit = grs[tr].fill > need + 64u ? grs[tr].fill - need - 64u : 0u;   /* (the valid part, behind the write) */
     span = limit * (uint32_t)p[GRN_SCAN] / 127u;
     back = span + (uint32_t)(grs[tr].drift >> 8) % (limit + 1u);
     if (p[GRN_SPRAY])
         back += (r >> 4) % (limit * (uint32_t)p[GRN_SPRAY] / 127u + 1u);
     back = back > limit ? limit : back;
     back += need;
-    if (back >= GRN_RL)
-        back = GRN_RL - 1u;
+    if (back >= RL)
+        back = RL - 1u;
     q->on = 1;
     q->tr = (uint8_t)tr;
     q->cont = (uint8_t)(p[GRN_CONT] % CONT_N);
     q->fading = 0;
-    q->pos = (uint32_t)((grs[tr].w + GRN_RL - back) % GRN_RL) << 16;
+    q->pos = (uint32_t)((grs[tr].wr + RL - back) % RL) << 16;
     if ((uint32_t)(r & 127u) < (uint32_t)p[GRN_REV]) {  /* REVERSE: this grain backwards, from its end */
         inc = -inc;
-        q->pos = (uint32_t)((grs[tr].w + GRN_RL - 64u) % GRN_RL) << 16;
+        q->pos = (uint32_t)((grs[tr].wr + RL - 64u) % RL) << 16;
         if (back > 64u + need)
-            q->pos = (uint32_t)((grs[tr].w + GRN_RL - back + need) % GRN_RL) << 16;
+            q->pos = (uint32_t)((grs[tr].wr + RL - back + need) % RL) << 16;
     }
     q->inc = inc;
     q->t = 0;
@@ -192,7 +198,8 @@ static __attribute__((noinline)) void grn_spawn(uint32_t tr, const track_t *t, c
 }
 
 /* track tr's block b (n samples, its SOURCE): recorded, then the cloud over it, MIX of it */
-static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, const int16_t *p, int32_t *b, uint32_t n)
+static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, const int16_t *p, int32_t *b, uint32_t n,
+                                               const uint8_t *take, uint32_t take_len)   /* (take: a TAPE's in LO, else 0) */
 {
     static int32_t wet[CTL];
     uint32_t i, g, len = 882u + (uint32_t)(p[GRN_SIZE] * p[GRN_SIZE]), all, mine;
@@ -204,8 +211,18 @@ static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, con
         grs[tr].on = 1;
         grs[tr].rng = seed;
     }
-    if (p[GRN_SPEED])                                   /* SPEED 0: suspended (no recording, the cloud hangs) */
-        grn_record(tr, b, n);
+    if (take && take_len >= 2048u) {                    /* a TAPE track in LO: the take itself (no ring recorded) */
+        grs[tr].src = take;
+        grs[tr].rl = grs[tr].wr = grs[tr].fill = take_len;
+        grs[tr].wr = 0;                                 /* (the take's end is its start round: read behind it) */
+    } else {
+        if (p[GRN_SPEED])                               /* SPEED 0: suspended (no recording, the cloud hangs) */
+            grn_record(tr, b, n);
+        grs[tr].src = grn_ring[tr];
+        grs[tr].rl = GRN_RL;
+        grs[tr].wr = grs[tr].w;
+        grs[tr].fill = grs[tr].filled;
+    }
     if (p[GRN_SPEED] && p[GRN_SPEED] != 64) {           /* the read point's wander: (64 - SPEED) / 64 of real time */
         grs[tr].drift += (64 - p[GRN_SPEED]) * (int32_t)n * 2;   /* (Q8 values: n / 2 values a block x 4 x 64 / 64) */
         if (grs[tr].drift < 0)
@@ -233,19 +250,22 @@ static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, con
     for (g = 0; g < GRN_MAX; g++) {
         grain_t *q = &grn[g];
         const int16_t *wt;
-        const uint8_t *ring = grn_ring[tr];
+        const uint8_t *ring = grs[tr].src;
+        const uint32_t RL = grs[tr].rl;
         uint32_t pos, xq, m, k;
         int32_t inc, fade;
         if (!q->on || q->tr != tr)
             continue;
         wt = GRN_WIN[q->cont % CONT_N];
         pos = q->pos, xq = q->xq, inc = q->inc;
+        if ((pos >> 16) >= RL)                          /* (the source changed under it: back inside) */
+            pos = ((pos >> 16) % RL) << 16;
         m = q->len - q->t < n ? q->len - q->t : n;      /* the samples it has left in this block */
         if (q->fading && q->fade < m)
             m = q->fade;
         fade = q->fading ? (int32_t)q->fade : -1;
         for (k = 0; k < m; k++) {                       /* (locals, 32 bits: a sample 2 reads, 3 table looks) */
-            uint32_t ri = pos >> 16, rj = ri + 1u >= GRN_RL ? 0u : ri + 1u;
+            uint32_t ri = pos >> 16, rj = ri + 1u >= RL ? 0u : ri + 1u;
             int32_t a = GRN_ULAW[ring[ri]], c = GRN_ULAW[ring[rj]];
             int32_t x = a + (((c - a) * (int32_t)((pos >> 8) & 255u)) >> 8), w = wt[xq >> 15];
             if (fade >= 0)
@@ -253,9 +273,9 @@ static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, con
             wet[k] += (x * w) >> 15;
             pos = (uint32_t)((int32_t)pos + inc);
             if ((int32_t)pos < 0)
-                pos += GRN_RL << 16;
-            else if (pos >= (GRN_RL << 16))
-                pos -= GRN_RL << 16;
+                pos += RL << 16;
+            else if (pos >= (RL << 16))
+                pos -= RL << 16;
             xq += q->xstep;
         }
         q->pos = pos, q->xq = xq, q->t += m;

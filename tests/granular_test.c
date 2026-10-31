@@ -46,7 +46,7 @@ static int32_t run_sine(uint32_t tr, double hz, int32_t amp, uint32_t n, uint32_
         else
             for (i = 0; i < CTL; i++, (*ph)++)
                 blkbuf[i] = amp ? (int32_t)(amp * sin(2 * M_PI * hz * *ph / FS)) : 0;
-        grn_run(tr, &trk[tr], (const int16_t *)uchain[tr].p[DEV_GRANULAR], blkbuf, CTL);
+        grn_run(tr, &trk[tr], (const int16_t *)uchain[tr].p[DEV_GRANULAR], blkbuf, CTL, 0, 0u);
         for (i = 0; i < CTL; i++) {
             int32_t d = blkbuf[i] - *last;
             d = d < 0 ? -d : d;
@@ -248,6 +248,24 @@ int main(void)
         printf("granular: cost: a track's 6 grains %.1f ns / sample (%.2f voices), the full pool (4 tracks) %.1f ns "
                "(%.2f voices); one ANALOG voice %.1f ns\n", ns6, ns6 / nsv, ns12, ns12 / nsv, nsv);
         ck("cost: the full pool within 5 ANALOG voices", ns12 < 5.0 * nsv);
+    }
+    /* an empty ring: its bytes are mu-law 0x00 (full scale negative): no grain reads them (4b: Dead Bells' start, a
+     * SPEED 0 cloud over nothing recorded thumped at -20000) */
+    {
+        int32_t pk0 = 0, pk1 = 0;
+        fresh();
+        setp(0, GRN_DENS, 127), setp(0, GRN_SIZE, 110), setp(0, GRN_MIX, 127), setp(0, GRN_SPEED, 0);
+        run_sine(0, 0, 0, SECS(0.5), &ph, out, &last);
+        for (i = 0; i < SECS(0.5); i++)
+            pk0 = abs(out[i]) > pk0 ? abs(out[i]) : pk0;
+        fresh();
+        setp(0, GRN_DENS, 127), setp(0, GRN_SIZE, 40), setp(0, GRN_MIX, 127);
+        run_sine(0, 220, 1000, SECS(0.5), &ph, out, &last);
+        for (i = 0; i < SECS(0.5); i++)
+            pk1 = abs(out[i]) > pk1 ? abs(out[i]) : pk1;
+        printf("granular: empty ring: SPEED 0 over nothing peak %d; a 1000 sine from the start peak %d\n", pk0, pk1);
+        ck("an empty ring: SPEED 0 over nothing is silent, a quiet start stays quiet (no grain reads unwritten bytes)",
+           pk0 == 0 && pk1 > 200 && pk1 < 2500);
     }
     chain_reset();
     printf(bad ? "granular: %d FAILED\n" : "granular: all ok\n", bad);

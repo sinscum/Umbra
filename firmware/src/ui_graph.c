@@ -2464,8 +2464,12 @@ static void draw_graph(void)
         case GR_THRU: {                               /* UMBRA: a pass-through device (umbra_chain.c) */
             uint32_t d = fam_device(pg->fam) % DEV_COUNT;
             cv_oy = 0;
-            panel_note(UCH_DESC[d].name, (uchain[song.sel % NTRK].bypass >> d) & 1u ? "BYPASSED" : "PASS-THROUGH FOR NOW",
-                       "HOLD ITS BUTTON + OCT+: BYPASS");
+            if (d == DEV_SOURCE)                        /* the SOURCE page: its type */
+                panel_note("SOURCE", (uchain[song.sel % NTRK].bypass >> d) & 1u ? "BYPASSED" : dev_type(song.sel % NTRK, d)->name,
+                           "PRESETS PICKS THE TYPE");
+            else
+                panel_note(UCH_DESC[d].name, (uchain[song.sel % NTRK].bypass >> d) & 1u ? "BYPASSED" : "PASS-THROUGH FOR NOW",
+                           "HOLD ITS BUTTON + OCT+: BYPASS");
             break;
         }
         default:

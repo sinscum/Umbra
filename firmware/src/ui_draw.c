@@ -1476,6 +1476,10 @@ static void confirm_text(char *a, char *b)
         str_cpy(a, "CLEAR TRACK 1?", 24);
         a[12] = (char)('1' + k % NTRK);
         break;
+    case CF_CLEAR_TAPE:                                 /* UMBRA */
+        str_cpy(a, "CLEAR TAPE 1?", 24);
+        a[11] = (char)('1' + k % NTRK);
+        break;
     case CF_OVR_PROJ:
         str_cpy(a, "OVERWRITE PROJECT A?", 24);
         a[18] = (char)('A' + (k & 3u));

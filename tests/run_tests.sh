@@ -337,6 +337,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UI: sounds keep steps, undo, recording, MIDI overflow, pending saves, panel recovery, drum grid, song chain, GREY gray, MONO neutral" "$OUT/ui_test"
     $CC -w -DUMBRA_CHAIN=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_ch0" tests/ui_test.c -lm
     run "UI, a UMBRA_CHAIN=0 build: no bypass, no chain strip; the pages as UMBRA's" "$OUT/ui_test_ch0"
+    $CC -w -DUMBRA_TAPE=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_tape0" tests/ui_test.c -lm
+    run "UI, a UMBRA_TAPE=0 build: TAPE a silent type, the rest as ever" "$OUT/ui_test_tape0"
     $CC -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_c1" tests/ui_test.c -lm
     run "UI, a UMBRA_CPU2=0 build: MENU > SYSTEM without 2ND CORE, the rest as the default build" "$OUT/ui_test_c1"
     $CC -DPREEMPT -g -fwrapv -fsanitize=address,undefined -fno-sanitize=shift -fno-sanitize-recover=all -w \
@@ -422,6 +424,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UMBRA DRIVE DAMAGE: defaults bit for bit, each stage bounded and DC-free, no click on a jump, TILT, cost" "$OUT/drive_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/filter_test" tests/filter_test.c -lm
     run "UMBRA FILTER: SVF's responses, stability at full RES, its ring ending, KEYTRK, WANDER, cost" "$OUT/filter_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/tape_test" tests/tape_test.c -lm
+    run "UMBRA SOURCE RETURN / TAPE: parts, a take's loop and pitch, HI / LO, full, KEYS, overdub, CLEAR, FROM MIX, GRAINS on it, cost" "$OUT/tape_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/granular_test" tests/granular_test.c -lm
     run "UMBRA GRANULAR GRAINS: mu-law, the ring, pitch, the pool's caps and steals (no click), SPEED 0, SCALE, cost" "$OUT/granular_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/space_test" tests/space_test.c -lm
@@ -429,7 +433,7 @@ if [ -f build/gen/umbra_tables.h ]; then
     $CC -O2 -w -DUMBRA_SHIMMER=1 -Ibuild/gen -Ifirmware/src -o "$OUT/space_test_shim" tests/space_test.c -lm
     run "UMBRA SPACE built with UMBRA_SHIMMER=1: SHIMMER bounded, its cost" "$OUT/space_test_shim"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/umbra_golden" tests/umbra_golden.c -lm
-    run "UMBRA golden renders: each emulator recipe (FOUR ENGINES, SUNKEN PULSE, DISTANT CHOIR), 8 s against tests/umbra_golden.txt" "$OUT/umbra_golden"
+    run "UMBRA golden renders: each emulator recipe (FOUR ENGINES .. SHADOW), 8 s against tests/umbra_golden.txt" "$OUT/umbra_golden"
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for
     # bit
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -DC1_HOST -pthread -o "$OUT/regress_c1" tests/regress.c -lm

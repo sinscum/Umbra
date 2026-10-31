@@ -969,8 +969,8 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
 #endif
     mod_begin(t);                                       /* the matrix's per-block values into t->p (mod.c) */
     T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON) &&   /* (SPREAD, mix_spread) */
-                  !chain_filter_on(t) && !chain_granular_on(t);   /* UMBRA: a FILTER, GRAINS: mono through them (the
-                                                                  * side would pass them by) */
+                  !chain_filter_on(t) && !chain_granular_on(t) && chain_src_engine(t);   /* UMBRA: a FILTER, GRAINS:
+                                                     * mono through them (the side would pass them by); a TAPE, RETURN: mono */
 #if UMBRA_CPU2
     nr = track_render(t, b, n);
     part_cost[(uint32_t)(t - trk) % NTRK] = (uint16_t)(nr * ENG_VCOST[t->engine % NENGINES] + (nr || t->tail ? 60u : 0u));
@@ -1003,6 +1003,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
         if ((pf.mute >> (t - trk)) & 1u)
             perf_mute((uint32_t)(t - trk), b, n);       /* perform.c: a black key in the FX layer */
     }
+#if UMBRA_CHAIN
+    src_post((uint32_t)(t - trk) % NTRK, b, n);         /* UMBRA: its block after the chain, for RETURN / TAPE FROM */
+#endif
     if (!T_SPREAD(t)) {                                /* (the mix's values read after the calls: none is held over
                                                          * them, no spill in the loop: the ISR's cost as before 1.5) */
         int32_t lvl = LEVEL_Q12[t->p[P_LEVEL] & 127], pan = t->p[P_PAN];
@@ -1138,6 +1141,10 @@ static void mix_block(int32_t *out, uint32_t n)
     for (i = 0; i < n; i++)
         send_c[i] = send_d[i] = send_r[i] = mix_l[i] = mix_r[i] = 0;
     events_block(n);
+#if UMBRA_CHAIN
+    src_swap();                                         /* UMBRA: last block's track outputs (umbra_source.c), */
+    tape_block(chain_tape_mask());                      /* TAPE's parts and CLEAR (umbra_tape.c) */
+#endif
     perf = perf_begin(n);                               /* the FX hold layer at work (perform.c) */
 #if UMBRA_CPU2
     uint32_t m = C1_ON() ? C1_SPLIT() & ((1u << NPART) - 1u) : 0u;
@@ -1171,6 +1178,9 @@ static void mix_block(int32_t *out, uint32_t n)
     space_pre(send_d, send_r, n);                       /* UMBRA: PRE-DLY, FREEZE's closed sends (umbra_space.c) */
 #endif
     fx_buses(send_c, send_d, send_r, wet, n);
+#if UMBRA_CHAIN
+    tape_take_mix(mix_l, mix_r, wet, n);                /* UMBRA: TAPE FROM MIX (umbra_tape.c) */
+#endif
     if (hl.side)
         rev_side_mix(mix_l, mix_r, n);                  /* HALL: stereo */
     if (scope_mix)

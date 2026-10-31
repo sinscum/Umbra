@@ -26,6 +26,11 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"INSERT 2", "[K1]DRY / WET[FX]FX"},
     {"SPACE", "[K1-4]REV DLY PAN WIDTH[GLO]BUS"},   /* UMBRA: SPACE (GLO) */
     {"GRAINS", "[PRESETS]TYPE[ARP]GRAINS 2"},          /* UMBRA: GRANULAR (ARP) */
+    {"SOURCE", "[PRESETS]TYPE[EDIT]SOUND"},            /* UMBRA: SOURCE (EDIT) */
+    {"TAPE", "[K1-4]LVL PTCH STRT LEN[EDIT]MORE"},
+    {"TAPE 2", "[K3]LOOP / KEYS[EDIT]MORE"},
+    {"TAPE 3", "[K3]REC / CLEAR[EDIT]MORE"},
+    {"RETURN", "[K1]FROM TRACK[K2]LEVEL"},
     {"GRAINS 2", "[K2]SPEED 0: HOLD[ARP]MORE"},
     {"GRAINS 3", "[K3]SCALE LOCK[ARP]GRAINS"},
     {"SPACE 2", "[K1-4]DECAY DAMP TIME[GLO]MORE"},

@@ -4,7 +4,7 @@
  * declares a name, a CPU cost and its pages.
  *
  * The types (index 0 the default, the base tree's behaviour):
- *   SOURCE   SYNTH: the track's engine (voice.c track_render)
+ *   SOURCE   SYNTH: the track's engine (voice.c track_render); TAPE SAMPLE RETURN OFF: umbra_source.c, umbra_tape.c
  *   GRANULAR THRU: nothing (GRAINS: umbra_granular.c)
  *   FILTER   THRU: nothing
  *   DRIVE    BASIC: the base tree's DIST, INSERT and SLICER (fx.c track_dist / track_insert, slicer.c)
@@ -42,10 +42,14 @@ typedef struct {
 #include "umbra_drive.c"
 #include "umbra_filter.c"
 #include "umbra_granular.c"
+#include "umbra_source.c"
+#include "umbra_tape.c"
 #include "umbra_space.c"
 #include "umbra_master.c"
 
-static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}};   /* the engine's cost is its own (ENG_VCOST) */
+static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}, {"TAPE", 200, SRC_PD_TAPE}, {"SAMPLE", 0, 0},
+                                          {"RETURN", 20, SRC_PD_RETURN}, {"OFF", 0, 0}};   /* (SYNTH, SAMPLE: the
+                                                                                         * engine's cost, ENG_VCOST) */
 static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}, GRN_T_GRAINS};
 static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}, FLT_T_SVF, FLT_T_COMB, FLT_T_RES, FLT_T_FORMANT};
 static const dev_type_t DEV_T_DRIVE[] = {{"BASIC", 0, 0}, DRV_T_DAMAGE};   /* BASIC: the base tree's, in its budget */
@@ -69,6 +73,14 @@ typedef struct {
 } umbra_chain_t;
 
 static volatile umbra_chain_t uchain[NTRK];             /* chain_reset at power-on: defaults, nothing bypassed */
+
+/* a note on or off on track tr (voice.c trk_note_on / off): SOURCE TAPE's KEYS take it (umbra_tape.c) */
+static void tape_note(uint32_t tr, uint32_t note, int on)
+{
+    tr %= NTRK;
+    if (UMBRA_CHAIN && UMBRA_TAPE && uchain[tr].type[DEV_SOURCE] == SRC_TAPE && uchain[tr].p[DEV_SOURCE][TP_MODE] == TMODE_KEYS)
+        tape_keys(tr, note, on);
+}
 
 static inline const dev_type_t *dev_type(uint32_t tr, uint32_t d)
 {
@@ -94,10 +106,26 @@ static inline uint32_t chain_type(const track_t *t, uint32_t d)   /* the slot's 
 #endif
 }
 
+/* the tracks whose SOURCE is TAPE (not bypassed): bit t (umbra_tape.c tape_block: their parts) */
+static inline uint8_t chain_tape_mask(void)
+{
+    uint32_t tr;
+    uint8_t m = 0;
+    for (tr = 0; tr < NTRK && UMBRA_TAPE; tr++)
+        if (chain_type(&trk[tr], DEV_SOURCE) == SRC_TAPE && !chain_off(&trk[tr], DEV_SOURCE))
+            m |= (uint8_t)(1u << tr);
+    return m;
+}
 /* GRANULAR runs on this track now (GRAINS, not bypassed) */
 static inline int chain_granular_on(const track_t *t)
 {
     return UMBRA_GRN && chain_type(t, DEV_GRANULAR) == GRAN_GRAINS && !chain_off(t, DEV_GRANULAR);
+}
+/* the track's sound is its engine's (SOURCE SYNTH or SAMPLE, not bypassed): else no SPREAD (fx.c mix_part) */
+static inline int chain_src_engine(const track_t *t)
+{
+    uint32_t st = chain_type(t, DEV_SOURCE);
+    return (st == SRC_SYNTH || st == SRC_SAMPLE) && !chain_off(t, DEV_SOURCE);
 }
 /* FILTER runs on this track now (its type, not bypassed) */
 static inline int chain_filter_on(const track_t *t)
@@ -109,12 +137,20 @@ static inline int chain_filter_on(const track_t *t)
 static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
 {
     uint32_t i, tr = (uint32_t)(t - trk) % NTRK;
-    if (chain_off(t, DEV_SOURCE))
+    uint32_t st = chain_type(t, DEV_SOURCE);
+    if (chain_off(t, DEV_SOURCE) || st == SRC_OFF || (st == SRC_TAPE && !UMBRA_TAPE)) {
         for (i = 0; i < n; i++)
             b[i] = 0;
-    if (chain_granular_on(t)) {                         /* GRANULAR GRAINS (umbra_granular.c) */
+    } else if (st == SRC_TAPE) {                        /* SOURCE TAPE (umbra_tape.c) */
+        tape_run(tr, (const int16_t *)uchain[tr].p[DEV_SOURCE], b, n);
+    } else if (st == SRC_RETURN) {                      /* SOURCE RETURN (umbra_source.c) */
+        src_return(tr, (const int16_t *)uchain[tr].p[DEV_SOURCE], b, n);
+    }
+    if (chain_granular_on(t)) {                         /* GRANULAR GRAINS (umbra_granular.c); a TAPE in LO: its take */
+        int lo = st == SRC_TAPE && tps[tr].q == TQ_LO && !(tps[tr].rec && !tps[tr].full);   /* (a take going: the ring) */
         grn_cap = song.cpu_q8 > 205u ? GRN_MAX_LOAD : song.cpu_q8 < 170u ? GRN_MAX : grn_cap;   /* (fewer under load) */
-        grn_run(tr, t, (const int16_t *)uchain[tr].p[DEV_GRANULAR], b, n);
+        grn_run(tr, t, (const int16_t *)uchain[tr].p[DEV_GRANULAR], b, n, lo ? tape_mem + tps[tr].base : 0,
+                lo ? tps[tr].len : 0u);
     } else if (grs[tr].on) {
         grn_stop(tr);
     }
@@ -145,8 +181,9 @@ static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
 /* a device still sounding after the track's voices (fx.c mix_part runs the track on: its tail) */
 static inline int chain_ringing(const track_t *t)
 {
-    uint32_t tr = (uint32_t)(t - trk) % NTRK;
-    return (chain_filter_on(t) && flt_ringing(&flt_st[tr])) || (chain_granular_on(t) && grn_ringing(tr));
+    uint32_t tr = (uint32_t)(t - trk) % NTRK, st = chain_type(t, DEV_SOURCE);
+    return st == SRC_TAPE || st == SRC_RETURN ||        /* (TAPE, RETURN: their sound is not the track's notes) */
+           (chain_filter_on(t) && flt_ringing(&flt_st[tr])) || (chain_granular_on(t) && grn_ringing(tr));
 }
 
 /* DRIVE's own types (not BASIC, not bypassed): 1 = it ran on b (fx.c mix_part: then no DIST, INSERT or SLICER gate) */
@@ -221,6 +258,8 @@ static const struct { const char *title; uint8_t dev, type; } DEV_PAGES[] = {
     {"FORMANT", DEV_FILTER, FILTER_FORMANT}, {"FORMANT 2", DEV_FILTER, FILTER_FORMANT},
     {"THRU", DEV_GRANULAR, GRAN_THRU}, {"GRAINS", DEV_GRANULAR, GRAN_GRAINS}, {"GRAINS 2", DEV_GRANULAR, GRAN_GRAINS},
     {"GRAINS 3", DEV_GRANULAR, GRAN_GRAINS},
+    {"TAPE", DEV_SOURCE, SRC_TAPE}, {"TAPE 2", DEV_SOURCE, SRC_TAPE}, {"TAPE 3", DEV_SOURCE, SRC_TAPE},
+    {"RETURN", DEV_SOURCE, SRC_RETURN},
 };
 static int dev_page_visible(const page_t *pg)
 {
@@ -228,6 +267,10 @@ static int dev_page_visible(const page_t *pg)
     for (k = 0; d < DEV_COUNT && k < sizeof DEV_PAGES / sizeof DEV_PAGES[0]; k++)
         if (DEV_PAGES[k].dev == d && str_eq(DEV_PAGES[k].title, pg->title))
             return uchain[song.sel % NTRK].type[d] == DEV_PAGES[k].type;
+    if (d == DEV_SOURCE && !str_eq(pg->title, "SOURCE") && !str_eq(pg->title, "ARP") && !str_eq(pg->title, "ARP 2")) {
+        uint32_t st = uchain[song.sel % NTRK].type[DEV_SOURCE];   /* the engine's and VOICE's pages: SYNTH, SAMPLE */
+        return !UMBRA_CHAIN || st == SRC_SYNTH || st == SRC_SAMPLE;
+    }
     return 1;
 }
 

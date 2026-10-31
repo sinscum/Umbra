@@ -1155,6 +1155,11 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
+    if (pg->scope == SC_DEV && fam_device(pg->fam) == DEV_SOURCE && vp == (int16_t *)&uchain[song.sel % NTRK].p[DEV_SOURCE][TP_REC] &&
+        *vp == TREC_CLEAR) {                            /* UMBRA TAPE: REC to CLR asks first (ui.c CF_CLEAR_TAPE) */
+        *vp = TREC_OFF;
+        confirm_open(CF_CLEAR_TAPE, song.sel);
+    }
     if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV && pg->scope != SC_USONG) {   /* (UMBRA: a device's values, the
                                                                                      * song's: not P_*, no motion yet) */
         motion_capture(TSEL, (uint32_t)(vp - TSEL->p), *vp);
@@ -1386,6 +1391,8 @@ static void dev_type_turn(uint32_t d, int32_t s)
         return;
     }
     chain_set_type(tr, d, (uint32_t)clamp(t, 0, (int32_t)n - 1));
+    if (d == DEV_SOURCE && uchain[tr].type[d] == SRC_SAMPLE && TSEL->eng_req % NENGINES != ENGI_SAMPLE)
+        set_engine_of(TSEL, ENGI_SAMPLE);               /* (SAMPLE: the SAMPLE engine, its sets and slots) */
     ui_say(UCH_DESC[d].name, " ");
     str_cpy(ui.msg + str_len(ui.msg), dev_type(tr, d)->name, sizeof ui.msg - str_len(ui.msg));
     ui.force = 1;
@@ -1407,7 +1414,8 @@ static void presets_turn(int32_t s)
         nudge_turn(held, s);
         return;
     }
-    if (!ui.home && fam_device(pg->fam) < DEV_COUNT && fam_device(pg->fam) != DEV_SOURCE && g != GR_SONG) {
+    if (!ui.home && fam_device(pg->fam) < DEV_COUNT && g != GR_SONG &&
+        (fam_device(pg->fam) != DEV_SOURCE || str_eq(pg->title, "SOURCE"))) {   /* (SOURCE's: on its SOURCE page) */
         dev_type_turn(fam_device(pg->fam), s);           /* UMBRA: a device's page: its type */
     } else if (ui.home || g == GR_BROWSE) {
         preset_step(s);
@@ -1778,6 +1786,11 @@ static void ui_input(void)
                 if (!chain_busy()) { set_engine(TSEL->eng_req); ui_message("SOUND INIT"); }
             } else if (kind == CF_CLEAN_SOUND) {
                 if (!chain_busy()) { clean_engine(); ui_message("CLEAN INIT"); }
+            } else if (kind == CF_CLEAR_TAPE) {         /* UMBRA: the audio empties it (umbra_tape.c tape_block) */
+                char b[12] = "1 CLEARED";
+                tape_clr_ui[ui.confirm_trk % NTRK]++;
+                b[0] = (char)('1' + ui.confirm_trk % NTRK);
+                ui_say("TAPE ", b);
             } else {
                 track_t *t = &trk[ui.confirm_trk % NTRK];
                 load_begin(t, UNDO_PAT);

@@ -34,7 +34,11 @@
 #define UMBRA_GRN_RING 11264u                   /* GRANULAR's ring a track: 0.51 s at 22.05 kHz, mu-law (umbra_granular.c) */
 #define UMBRA_MEM_GRN (4u * UMBRA_GRN_RING)     /* 44 KiB (Phase 4: the delay's freed half, fx.c UMBRA_DLY_HALF) */
 
-#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB + UMBRA_MEM_PRE + UMBRA_MEM_SHIM + UMBRA_MEM_GRN)   /* the sum of every
-                                                                                      * UMBRA_MEM_<NAME> above */
+#define UMBRA_TAPE_BYTES 40960u                 /* SOURCE TAPE, shared by the tracks set to it: 1.86 s LO / 0.93 s HI at
+                                                 * 22.05 kHz for one (umbra_tape.c) */
+#define UMBRA_MEM_TAPE UMBRA_TAPE_BYTES
+
+#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB + UMBRA_MEM_PRE + UMBRA_MEM_SHIM + UMBRA_MEM_GRN + UMBRA_MEM_TAPE)   /* the
+                                                                                      * sum of every UMBRA_MEM_<NAME> */
 
 #endif

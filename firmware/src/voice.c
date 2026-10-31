@@ -392,11 +392,13 @@ static void mono_remove(track_t *t, uint32_t note)
     t->nmono = (uint8_t)k;
 }
 
+static void tape_note(uint32_t tr, uint32_t note, int on);   /* UMBRA: SOURCE TAPE's KEYS (umbra_tape.c) */
 static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
 {
     uint32_t any = 0, i, mode = trk_vmode(t);
     if (t->p[P_MUTE])
         return;
+    tape_note((uint32_t)(t - trk), note, 1);            /* UMBRA */
     if (t->xf_on || t->eng_req != t->engine) {          /* engine switch under way: after the fade */
         for (i = 0; i < t->xp_n && t->xp_note[i] != note; i++)
             ;
@@ -442,6 +444,7 @@ static void trk_note_on(track_t *t, uint32_t note, uint32_t vel)
 static void trk_note_off(track_t *t, uint32_t note)
 {
     uint32_t i, k = 0, mode = trk_vmode(t);
+    tape_note((uint32_t)(t - trk), note, 0);            /* UMBRA */
     for (i = 0; i < t->xp_n; i++)                       /* not sounding yet (engine switch): forget it */
         if (t->xp_note[i] != note) {
             t->xp_note[k] = t->xp_note[i];

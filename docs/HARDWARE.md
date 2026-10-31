@@ -53,10 +53,11 @@ UMBRA's own buffers so far (`firmware/src/umbra_mem.h`, checked by `tests/ram_bu
 4 × 1,024 × int16 = **8,192 B** of pool (Phase 2); SPACE PRE-DLY's line, 2,208 × int16 = **4,416 B** (Phase 3;
 SHIMMER's 2 KB more only with `UMBRA_SHIMMER=1`); GRANULAR's rings, 4 × 11,264 B (Phase 4). Phase 4 stores the base
 tree's delay at 22.05 kHz (`fx.c` `UMBRA_DLY_HALF`: the same 1.49 s in 64 KiB), which adds 64 KiB to UMBRA's budget:
-57,664 B used of 99,328 B (`tests/ram_budget.txt`); 40 KiB is kept for TAPE (Phase 4b). RESONATOR, FORMANT, SVF and DAMAGE keep only
+then TAPE's shared 40,960 B (Phase 4b): **98,624 B used of 99,328 B** (`tests/ram_budget.txt`; 704 B left). RESONATOR, FORMANT, SVF and DAMAGE keep only
 a few words of state per track (.bss).
 
-DESIGN §2's "4 × TAPE buffers" does not fit as written; Phase 1/4 have to choose (one shared TAPE, or short per-track ones).
+DESIGN §2's "4 × TAPE buffers" does not fit as written: Phase 4b chose one shared 40 KiB TAPE, split equally among the
+tracks set to TAPE (one track: 1.86 s LO / 0.93 s HI at 22.05 kHz). Longer takes need memory freed elsewhere first.
 
 ## Flash (1 MiB NOR, offsets from flash 0)
 | Range | Size | Use |

@@ -482,6 +482,10 @@ static const page_t PAGES[] = {
     {"FORMANT 2", FAM_SCL, SC_DEV, GR_BANDS, {4, 5, 0xFF, 0xFF}},   /* KEYTRK WANDER */
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},
     {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},   /* SCL again: the chord keys (chord.c) */
+    {"TAPE", FAM_EDIT, SC_DEV, GR_NONE, {0, 1, 2, 3}},       /* UMBRA SOURCE TAPE: LEVEL PITCH START LENGTH (umbra_tape.c) */
+    {"TAPE 2", FAM_EDIT, SC_DEV, GR_NONE, {4, 5, 6, 7}},     /* ATK REL MODE DIR */
+    {"TAPE 3", FAM_EDIT, SC_DEV, GR_NONE, {8, 9, 10, 11}},   /* FROM QUALITY REC FDBK */
+    {"RETURN", FAM_EDIT, SC_DEV, GR_NONE, {0, 1, 0xFF, 0xFF}},   /* UMBRA SOURCE RETURN: FROM LEVEL (umbra_source.c) */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},
     {"EDIT 2", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E4, P_E5, P_E6, P_E7}},
     {"FILTER", FAM_EDIT, SC_TRACK, GR_NONE, {P_FTYPE, P_E4, P_E5, P_E7}},   /* ANALOG only (1.5, #104): TYPE CUT RES KTR */
@@ -523,6 +527,8 @@ static const page_t PAGES[] = {
     /* UMBRA: ARP's pages are SOURCE's (EDIT's), last; ARP is GRANULAR's button: its pass-through page */
     {"ARP", FAM_EDIT, SC_TRACK, GR_ARP, {P_AMODE, P_ARATE, P_AOCT, P_AGATE}},
     {"ARP 2", FAM_EDIT, SC_TRACK, GR_NONE, {P_ASWING, P_APROB, P_AHOLD, P_AORDER}},
+    {"SOURCE", FAM_EDIT, SC_TRACK, GR_THRU, {0xFF, 0xFF, 0xFF, 0xFF}},   /* UMBRA: SOURCE's type (PRESETS: SYNTH TAPE
+                                                                        * SAMPLE RETURN OFF) */
     {"THRU", FAM_ARP, SC_TRACK, GR_THRU, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"GRAINS", FAM_ARP, SC_DEV, GR_NONE, {0, 1, 2, 3}},     /* UMBRA GRANULAR: SIZE DENSITY PITCH SPRAY (umbra_granular.c) */
     {"GRAINS 2", FAM_ARP, SC_DEV, GR_NONE, {4, 5, 6, 7}},   /* SCAN SPEED CONTOUR MIX */

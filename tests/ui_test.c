@@ -2646,7 +2646,8 @@ static int test_presets_knob(void)
                 sel_ok &= same_snd && same_steps && ui.page == i && ui.ev_row == 1u;
             } else if (g == GR_TOOLS) {
                 tools_ok &= same_snd && same_steps && !ui.confirm;
-            } else if (fam_device(PAGES[i].fam) < DEV_COUNT && fam_device(PAGES[i].fam) != DEV_SOURCE) {
+            } else if (fam_device(PAGES[i].fam) < DEV_COUNT &&
+                       (fam_device(PAGES[i].fam) != DEV_SOURCE || str_eq(PAGES[i].title, "SOURCE"))) {   /* (SOURCE's: its page) */
                 uint32_t d = fam_device(PAGES[i].fam);   /* UMBRA: a device's page: its type (umbra_chain.c) */
                 char one[32];
                 snprintf(one, sizeof one, "%s: ONE TYPE", UCH_DESC[d].name);
@@ -3619,9 +3620,9 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "FILTER", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};   /* (1.5: FILTER) */
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "FILTER", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};   /* (1.5: FILTER) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
-                                        "OP LEVEL", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
+                                        "OP LEVEL", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};
     int bad = 0, ok;
     uint32_t i;
     ui_power_on();
@@ -3633,24 +3634,24 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 FILTER VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 FILTER VOICE VOICE 2 VOICE 3 ARP ARP 2 SOURCE EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
 #if UMBRA_FM4
     set_engine_of(TSEL, 1);
-    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1",
+    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 VOICE 3 ARP ARP 2 SOURCE EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
     {
-        static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
+        static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};
         bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE .. VOICE 3",
                      TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     }
     (void)CYC_D;
 #endif
     {   /* #97: a DRUM track's lane levels on EDIT > LANES (KICK SNARE CLAP HATCL) and LANES 2 (HATOP TOM RIM BELL) */
-        static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "LANES", "LANES 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
+        static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "LANES", "LANES 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};
         set_engine_of(TSEL, ENGI_DRUM);
-        bad += check("EDIT cycle (DRUM): EDIT 1 EDIT 2 LANES LANES 2 VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_K, NELEM(CYC_K)));
+        bad += check("EDIT cycle (DRUM): EDIT 1 EDIT 2 LANES LANES 2 VOICE VOICE 2 VOICE 3 ARP ARP 2 SOURCE EDIT 1", engine_cycle(CYC_K, NELEM(CYC_K)));
         go_title("LANES 2"); frame();
         ok = TSEL->p[P_LN5] == 127;
         turn(EN_K2, -3);
@@ -3774,13 +3775,13 @@ static void host_slot_make(uint32_t k)                /* USR k + 1: 2 s at 22.05
 }
 static int test_slices(void)
 {
-    static const char *const CYC_S[] = {"EDIT 1", "EDIT 2", "SLICES", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
+    static const char *const CYC_S[] = {"EDIT 1", "EDIT 2", "SLICES", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};
     int bad = 0, ok;
     uint32_t n, j, p0, k, note;
     ui_power_on();
     sp.sel = 0;                                      /* (UMBRA: the boot state; earlier tests leave the page's marker) */
     set_engine_of(TSEL, 13u);                        /* SLICE CHOP: BREAK, 16 */
-    bad += check("SLICES: SLICE's EDIT cycle EDIT 1 EDIT 2 SLICES VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_S, NELEM(CYC_S)));
+    bad += check("SLICES: SLICE's EDIT cycle EDIT 1 EDIT 2 SLICES VOICE VOICE 2 VOICE 3 ARP ARP 2 SOURCE EDIT 1", engine_cycle(CYC_S, NELEM(CYC_S)));
     go_page(GR_SLICES); frame();
     n = slice_count();
     p0 = TSEL->p[P_E1];
@@ -9122,7 +9123,7 @@ static void fop_pick(uint32_t opn)                   /* KNOB 1: OP opn (1..6) */
 static int slot_own(void) { return TSEL->p[P_E7] == FM6_OWN && fm6_slot[song.sel] == FM6_OWN; }
 static int test_fm6_ops(void)
 {
-    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
+    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "SOURCE", "EDIT 1"};
     static const struct { const char *page; uint32_t k, off; } F[] = {
         {"OPERATOR", EN_K2, FP_FC}, {"OPERATOR", EN_K3, FP_FF}, {"OPERATOR", EN_K4, FP_OL},
         {"OPERATOR 2", EN_K2, FP_MODE}, {"OPERATOR 2", EN_K3, FP_DET}, {"OPERATOR 2", EN_K4, FP_KVS},
@@ -9134,7 +9135,7 @@ static int test_fm6_ops(void)
     ui_power_on();
     song.sel = 1;                                    /* T2: FM6 PAD (SLOT F5) */
     tr = song.sel;
-    bad += check("FM6 ops: FM6's EDIT cycle EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE .. ARP 2 EDIT 1",
+    bad += check("FM6 ops: FM6's EDIT cycle EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE .. ARP 2 SOURCE EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     ok = TSEL->p[P_E7] == 4 && fm6_slot[tr] == 4u;
     go_title("OPERATOR"); frame();
@@ -10102,6 +10103,43 @@ static int test_umbra_space(void)
         press(B_ARP); frames(320);
         ok &= str_eq(cur_page()->title, "GRAINS");      /* (THRU's page hidden: GRAINS' three go round) */
         bad += check("UMBRA GRANULAR: PRESETS on ARP: GRAINS, its three pages; SCALE on: the scale's keys light", ok);
+        chain_reset();
+    }
+    {   /* SOURCE: PRESETS on its SOURCE page: SYNTH TAPE SAMPLE RETURN OFF; TAPE's pages for the engine's; SAMPLE loads the
+         * SAMPLE engine; REC to CLR asks, then the audio empties the take */
+        uint32_t k, seen;
+        ui_power_on();
+        go_title("SOURCE"); frame();
+        ok = cur_page()->fam == FAM_EDIT && uchain[0].type[DEV_SOURCE] == SRC_SYNTH;
+        turn(EN_PRESET, 1); frame();
+        ok &= uchain[0].type[DEV_SOURCE] == SRC_TAPE && msg_is("SOURCE TAPE");
+        go_home(); frames(320);
+        press(B_EDIT); frames(320);
+        ok &= str_eq(cur_page()->title, "TAPE");        /* (the engine's pages hidden: TAPE's first) */
+        for (k = 0; k < NPAGES; k++)
+            if (PAGES[k].fam == FAM_EDIT && PAGES[k].scope == SC_ENGINE)
+                ok &= !page_visible(k);
+        go_title("TAPE 3"); frame();
+        seen = tape_clr_ui[0];
+        turn(EN_K3, 2); frame();                        /* REC: OFF -> REC -> CLR */
+        ok &= ui.confirm == CF_CLEAR_TAPE && uchain[0].p[DEV_SOURCE][TP_REC] == TREC_OFF;
+        press(B_OCTUP); frame();
+        ok &= !ui.confirm && tape_clr_ui[0] == (uint8_t)(seen + 1u) && msg_is("TAPE 1 CLEARED");
+        bad += check("UMBRA SOURCE: PRESETS on SOURCE: TAPE (its pages, not the engine's); REC to CLR asks, then clears", ok);
+        go_title("SOURCE"); frame();
+        turn(EN_PRESET, 1); frame();
+        ok = uchain[0].type[DEV_SOURCE] == SRC_SAMPLE && TSEL->eng_req == ENGI_SAMPLE && page_visible(page_first(FAM_EDIT));
+        turn(EN_PRESET, 1); frame();
+        ok &= uchain[0].type[DEV_SOURCE] == SRC_RETURN;
+        go_home(); frames(320);
+        press(B_EDIT); frames(320);
+        ok &= str_eq(cur_page()->title, "RETURN");
+        turn(EN_K1, 1); frame();
+        ok &= uchain[0].p[DEV_SOURCE][RET_FROM] == 2;
+        go_title("SOURCE"); frame();
+        turn(EN_PRESET, 1); frame();
+        ok &= uchain[0].type[DEV_SOURCE] == SRC_OFF;
+        bad += check("UMBRA SOURCE: SAMPLE loads the SAMPLE engine; RETURN its page (FROM); OFF", ok);
         chain_reset();
     }
     {   /* FREEZE on GLO held + G5 (white key 16), lit while frozen; again: off */

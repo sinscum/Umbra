@@ -88,6 +88,23 @@ Types:
 
 Pages: P1 `LEVEL · PITCH · START · LENGTH` · P2 `ATK · REL · LOOP · DIR` · P3 type-specific (engine macros for SYNTH; FROM/QUALITY/ARM for TAPE).
 
+As built (Phase 4b, `firmware/src/umbra_source.c`, `umbra_tape.c`): the type is picked with PRESETS on the **SOURCE**
+page (EDIT's cycle, after ARP 2); the engine pages and VOICE show only for SYNTH and SAMPLE. SAMPLE loads the SAMPLE
+engine (its flash sets and user slots) and then plays as SYNTH. OFF is silence (the engine keeps its notes, so switching
+back is instant). **RETURN** (`FROM · LVL`) reads the other track's block after its chain, one block late (0.7 ms) on
+one core or two. **TAPE** pages `LVL · PTCH · STRT · LEN` / `ATK · REL · MODE · DIR` / `FROM · QUAL · REC · FDBK`:
+- Memory: 40 KiB shared by the TAPE tracks in equal parts (one: all of it), at 22.05 kHz: HI 16-bit 0.93 s, LO µ-law
+  1.86 s for one track. Changing the parts or the quality empties the takes. Never saved (RAM only).
+- FROM MIX (the mix before the limiter), T1–T4 (a track after its chain) or SELF (its engine, monitored; REC over a
+  take overdubs where it plays, the old take × FDBK).
+- REC: a new take from the start until OFF or full; full, it plays with REC still on. **CLR** asks first, then empties
+  the take and the track's GRANULAR ring, a 2 KiB chunk a block (no CPU spike).
+- MODE LOOP: START .. START+LEN round at PITCH, forward or reversed, the ends faded; KEYS: the track's notes play it
+  chromatically from START (C4 = PITCH), 4 voices, ATK / REL.
+- GRANULAR on a TAPE track in LO reads the take itself (all of it valid: the cloud can sit anywhere in it); in HI, or
+  while a take is still recording, its own ring.
+Host cost: a LOOP 0.49 ANALOG voices, KEYS with 4 voices 0.87 (`tests/tape_test.c`).
+
 ### 3.2 GRANULAR — granular
 Reads TAPE if SOURCE is TAPE, else a short per-track ring buffer that always records SOURCE (target ≥ 0.5 s, sized in Phase 0).
 - P1 `SIZE · DENSITY · PITCH · SPRAY` (spray = position jitter)
@@ -100,8 +117,9 @@ As built (Phase 4a, `firmware/src/umbra_granular.c`): type **GRAINS** beside THR
 22.05 kHz, 8-bit µ-law (11 KiB each, 44 KiB: from the delay's freed half). SPEED 64 follows live; lower or higher the
 read point drifts back or catches up through the ring; 0 suspends recording and the cloud hangs. 12 grains (8 above
 ~80 % CPU), 6 a track; a grain with no slot fades the oldest out over 64 samples. SCALE puts each grain on the track's
-scale and lights its keys. Host cost: the full pool with four rings ≈ 4 ANALOG voices, a grain ≈ 0.2. Until TAPE
-(Phase 4b) GRAINS always reads its ring.
+scale and lights its keys. Host cost: the full pool with four rings ≈ 4 ANALOG voices, a grain ≈ 0.2. A grain waits
+until the ring holds what it reads (an empty ring's bytes would decode as full-scale negative). On a TAPE track in LO it
+reads the take (§3.1).
 
 ### 3.3 FILTER — filter & resonator
 Types:
@@ -163,7 +181,8 @@ limiter and soft clip.
 - **TEMP**: hold LFO + turn knobs → changes snap back on release.
 - **MACROS**: 4 macros, each driving up to 4 params with ranges.
 - **SCENES**: 8 snapshots of all device params on white keys 9–16 while holding ENV; knob 1 morphs current → target over a time knob (up to a minute).
-- **CLEAR**: hold REC + OCT− on a track clears its TAPE and GRANULAR buffers (confirm first).
+- **CLEAR**: hold REC + OCT− on a track clears its TAPE and GRANULAR buffers (confirm first). As built (4b): TAPE's REC turned to
+  **CLR**, then a confirm (REC + OCT− is the base tree's recording gesture, kept).
 
 ## 7. Controls (approved in Phase 0)
 
@@ -274,7 +293,10 @@ Until factory projects exist (Phase 6), recipes are in the browser emulator's de
 golden renders `tests/umbra_golden.txt`). Phase 2 has Sunken Pulse (plus the kit through a RESONATOR in fifths) and
 Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk MOD arrives (Phase 5). Phase 3 adds
 Frozen Hall: the choir and a pad into the longest HALL with PRE-DLY and WOW, for FREEZE. Phase 4a adds Dead Bells
-(FM6 BELL → GRAINS, long grains, slow scan → RESONATOR A minor → HALL; FREEZE by GLO + G5 until SCENES).
+(FM6 BELL → GRAINS, long grains, slow scan → RESONATOR A minor → HALL; FREEZE by GLO + G5 until SCENES). Phase 4b
+adds Worn Cathedral (an FM6 pad; track 2's TAPE takes the mix in LO until full, then GRAINS hangs over the take, SPEED
+0, random pitches on C minor, into a long HALL) and Shadow (an ANALOG pluck; track 4 a RETURN of it through GRAINS
+60 % reversed and a COMB).
 
 ## 10. Budget plan
 - Target: 4 tracks, full chain at defaults, ≤ 70 % of one core. 2nd core stays optional.
