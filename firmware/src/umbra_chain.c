@@ -22,7 +22,7 @@
 #endif
 
 enum { DEV_SOURCE, DEV_GRANULAR, DEV_FILTER, DEV_DRIVE, DEV_SPACE, DEV_COUNT };
-#define DEV_NP 8                                        /* values a device has (two pages of four) */
+#define DEV_NP 12                                       /* values a device has (three pages of four) */
 
 typedef struct {
     const char *name;           /* on the device page's context line and in the type message, <= 8 */

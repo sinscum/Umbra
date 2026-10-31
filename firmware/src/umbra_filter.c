@@ -11,7 +11,7 @@
 enum { FILTER_THRU, FILTER_SVF, FILTER_COMB, FILTER_RES, FILTER_FORMANT };   /* (DEV_T_FILTER's order: stored) */
 enum { SVF_FREQ, SVF_RES, SVF_MORPH, SVF_MIX, SVF_KTRK, SVF_WANDER };
 
-static const param_desc_t FLT_PD_SVF[8] = {
+static const param_desc_t FLT_PD_SVF[DEV_NP] = {
     {"FREQ", F_CUTOFF, 0, 127, 100, 0, 0},
     {"RES", F_PCT, 0, 127, 30, 0, 0},
     {"MRPH", F_PCT, 0, 127, 0, 0, 0},
@@ -113,7 +113,7 @@ static void flt_svf(flt_state_t *s, const track_t *t, const int16_t *p, int32_t 
  * (tanh), never runs away. KEYTRK, WANDER as SVF's (in semitones here) */
 enum { CMB_NOTE, CMB_FDBK, CMB_DAMP, CMB_MIX, CMB_KTRK, CMB_WANDER, CMB_POL };
 static const char *const CMB_POL_N[] = {"+", "-"};
-static const param_desc_t FLT_PD_COMB[8] = {
+static const param_desc_t FLT_PD_COMB[DEV_NP] = {
     {"NOTE", F_NOTE, 30, 96, 57, 0, 0},
     {"FDBK", F_PCT, 0, 127, 90, 0, 0},
     {"DAMP", F_PCT, 0, 127, 40, 0, 0},
@@ -240,7 +240,7 @@ enum { TUNE_MINOR, TUNE_MAJOR, TUNE_SUS4, TUNE_FIFTHS, TUNE_OCTAVES, TUNE_SCALE 
 static const char *const RSN_TUNE_N[] = {"MINOR", "MAJOR", "SUS4", "FIFTHS", "OCTAVE", "SCALE"};
 static const int8_t RSN_CHORD[5][FLT_BANDS] = {
     {0, 3, 7, 12, 15, 19}, {0, 4, 7, 12, 16, 19}, {0, 5, 7, 12, 17, 19}, {0, 7, 12, 19, 24, 31}, {0, 12, 24, 7, 19, 36}};
-static const param_desc_t FLT_PD_RES[8] = {
+static const param_desc_t FLT_PD_RES[DEV_NP] = {
     {"ROOT", F_NOTE, 24, 84, 45, 0, 0},
     {"RING", F_PCT, 0, 127, 80, 0, 0},
     {"MRPH", F_PCT, 0, 127, 64, 0, 0},
@@ -317,7 +317,7 @@ enum { FMT_SHIFT, FMT_RES, FMT_VOWEL, FMT_MIX, FMT_KTRK, FMT_WANDER };
 static const uint16_t FMT_HZ[5][3] = {{730, 1090, 2440}, {530, 1840, 2480}, {270, 2290, 3010}, {570, 840, 2410},
                                       {300, 870, 2240}};   /* A E I O U (Peterson and Barney's means) */
 static const int16_t FMT_GAIN[3] = {32767, 20000, 11000};
-static const param_desc_t FLT_PD_FORMANT[8] = {
+static const param_desc_t FLT_PD_FORMANT[DEV_NP] = {
     {"SHFT", F_BIPCT, -64, 63, 0, 0, 0},
     {"RES", F_PCT, 0, 127, 60, 0, 0},
     {"VOWL", F_PCT, 0, 127, 0, 0, 0},

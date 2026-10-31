@@ -10,7 +10,7 @@
 enum { DRV_DRIVE, DRV_FOLD, DRV_CRUSH, DRV_DECIM, DRV_NOISE, DRV_TILT, DRV_COMP, DRV_OUT };
 #define DRV_OUT_UNITY 112                       /* OUT: LEVEL_Q12 / LEVEL_DB_X10's 0 dB (4096) */
 
-static const param_desc_t DRV_PD_DAMAGE[8] = {
+static const param_desc_t DRV_PD_DAMAGE[DEV_NP] = {
     {"DRV", F_PCT, 0, 127, 0, 0, 0},
     {"FOLD", F_PCT, 0, 127, 0, 0, 0},
     {"CRSH", F_PCT, 0, 127, 0, 0, 0},

@@ -209,8 +209,8 @@ int main(void)
     }
 
     /* 8. the record (v3: + the song's values) */
-    bad += check("the chain record v3: 12 + 4 tracks x 88 + 16 bytes, in one object",
-                 sizeof(uch_store_t) == 12u + 4u * 88u + 16u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
+    bad += check("the chain record v4: 12 + 4 tracks x 128 + 16 bytes, in one object",
+                 sizeof(uch_store_t) == 12u + 4u * 128u + 16u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
 
     /* 9. a device's type and values round trip (DRIVE DAMAGE, FOLD 90, TILT -20); out-of-range stored values clamp */
     reset();
@@ -283,7 +283,7 @@ int main(void)
     usong[US_GLUE] = 50;                                /* (playing before the load: the load puts the default back) */
     project_save(2);
     {
-        uch_v2_t v;
+        uch_v3_t v;                                     /* (v2: v3 without its song values) */
         memset(&v, 0, sizeof v);
         v.magic = UCH_MAGIC;
         v.ver = 2;
@@ -291,7 +291,7 @@ int main(void)
         v.proj_crc = uch_crc(&proj_slot[2], sizeof(project_store_t));
         v.c[1].type[DEV_FILTER] = FILTER_SVF;
         v.c[1].p[DEV_FILTER][SVF_FREQ] = 33;
-        st_save(OBJ_UCHAIN0 + 2, &v, sizeof v);
+        st_save(OBJ_UCHAIN0 + 2, &v, sizeof v - 16u);
     }
     power_cycle();
     usong[US_GLUE] = 50;
@@ -299,6 +299,29 @@ int main(void)
     bad += check("a v2 record: its types and values, the song's values their defaults",
                  uchain[1].type[DEV_FILTER] == FILTER_SVF && uchain[1].p[DEV_FILTER][SVF_FREQ] == 33 &&
                  usong[US_GLUE] == 0 && usong[US_WOW] == 0 && uch_slot[2].ver == UCH_VER);
+
+    /* 13. a v3 record (Phase 3, 380 bytes) loads: its chain's 8 values a device, its song values; the 4 new ones the
+     * defaults */
+    reset();
+    settings_init();
+    project_save(1);
+    {
+        uch_v3_t v;
+        memset(&v, 0, sizeof v);
+        v.magic = UCH_MAGIC;
+        v.ver = 3;
+        v.ntrk = NTRK;
+        v.proj_crc = uch_crc(&proj_slot[1], sizeof(project_store_t));
+        v.c[2].type[DEV_DRIVE] = DRIVE_DAMAGE;
+        v.c[2].p[DEV_DRIVE][DRV_OUT] = 100;
+        v.song[US_WOW] = 33;
+        st_save(OBJ_UCHAIN0 + 1, &v, sizeof v);
+    }
+    power_cycle();
+    project_load(1);
+    bad += check("a v3 record: its types, values and song values (8 a device), the rest their defaults",
+                 uchain[2].type[DEV_DRIVE] == DRIVE_DAMAGE && uchain[2].p[DEV_DRIVE][DRV_OUT] == 100 &&
+                 usong[US_WOW] == 33 && uch_slot[1].ver == UCH_VER && uch_slot[1].c[2].p[DEV_DRIVE][9] == UCH_DEF);
     printf(bad ? "store: %d FAILED\n" : "store: all ok\n", bad);
     return bad ? 1 : 0;
 }

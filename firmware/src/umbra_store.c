@@ -10,12 +10,13 @@
  * write) gets the default chain (every slot its first type, nothing bypassed). Included by project.c, after its
  * staging (proj_wire, proj_slot). Main loop only. */
 #define UCH_MAGIC 0x31424D55u                  /* "UMB1" */
-#define UCH_VER 3u                             /* 3 (Phase 3): + the song's 8 values. 2 (Phase 2): + each device's
-                                                * DEV_NP values. 1 (Phase 1): types, bypasses. Older ones load: what
-                                                * they lack, the defaults */
+#define UCH_VER 4u                             /* 4 (Phase 4): 12 values a device. 3 (Phase 3): + the song's 8 values.
+                                                * 2 (Phase 2): + each device's 8 values. 1 (Phase 1): types,
+                                                * bypasses. Older ones load: what they lack, the defaults */
+#define UCH_NP 12u                             /* values a device as stored (DEV_NP) */
 typedef struct {                               /* a track's chain as stored (fixed: not umbra_chain_t, which may grow) */
     uint8_t type[5], bypass, rsv[2];
-    int16_t p[5][8];
+    int16_t p[5][UCH_NP];
 } uch_trk_t;
 typedef struct {
     uint32_t magic;
@@ -24,23 +25,31 @@ typedef struct {
     uch_trk_t c[NTRK];
     int16_t song[8];                           /* usong (US_FRZ stored as 0) */
 } uch_store_t;
-typedef struct {                               /* version 2, as Phase 2 wrote it (364 bytes) */
-    uint32_t magic;
+typedef struct {                               /* a track as versions 2 and 3 stored it: 8 values a device */
+    uint8_t type[5], bypass, rsv[2];
+    int16_t p[5][8];
+} uch_trk8_t;
+typedef struct {                               /* version 3, as Phase 3 wrote it (380 bytes); version 2 the same */
+    uint32_t magic;                            /* without song (364 bytes) */
     uint16_t ver, ntrk;
     uint32_t proj_crc;
-    uch_trk_t c[NTRK];
-} uch_v2_t;
+    uch_trk8_t c[NTRK];
+    int16_t song[8];
+} uch_v3_t;
 typedef struct {                               /* version 1, as Phase 1 wrote it (36 bytes) */
     uint32_t magic;
     uint16_t ver, ntrk;
     uint32_t proj_crc;
     uint8_t c[NTRK][6];                        /* type[5], bypass */
 } uch_v1_t;
-_Static_assert(sizeof(uch_trk_t) == 88u && sizeof(uch_store_t) == 12u + NTRK * 88u + 16u, "UMB1 v3 layout");
-_Static_assert(sizeof(uch_v2_t) == 12u + NTRK * 88u, "UMB1 v2 layout");
-_Static_assert(US_N == 8, "UMB1 v3 stores 8 song values");
+_Static_assert(sizeof(uch_trk_t) == 128u && sizeof(uch_store_t) == 12u + NTRK * 128u + 16u, "UMB1 v4 layout");
+_Static_assert(sizeof(uch_v3_t) == 12u + NTRK * 88u + 16u, "UMB1 v3 layout");
+_Static_assert(US_N == 8, "UMB1 stores 8 song values");
 _Static_assert(sizeof(uch_v1_t) == 36u, "UMB1 v1 layout");
-_Static_assert(DEV_COUNT == 5 && DEV_NP == 8, "UMB1 v2 stores 5 devices x 8 values");
+_Static_assert(DEV_COUNT == 5 && DEV_NP == UCH_NP, "UMB1 v4 stores 5 devices x 12 values");
+#ifdef ST_PAYLOAD_MAX
+_Static_assert(sizeof(uch_store_t) <= ST_PAYLOAD_MAX, "UMB1: one storage object");
+#endif
 static uch_store_t uch_slot[4] __attribute__((section(".pool")));   /* the slots' chain records (v3) */
 static uch_store_t uch_tmp __attribute__((section(".pool")));       /* the autosave's (main loop only) */
 
@@ -55,34 +64,29 @@ static uint32_t uch_crc(const void *p, uint32_t n)   /* FNV-1a; never 0 (0: no p
     return h ? h : 1u;
 }
 
-/* a record read from flash (n bytes in s) as v3: v1 and v2 converted in place (what they lack: 0x7FFF, "the
+/* a record read from flash (n bytes in s) as v4: v1, v2 and v3 converted in place (what they lack: 0x7FFF, "the
  * default"), anything else cleared. 1 = a record */
 #define UCH_DEF 0x7FFF
 static int uch_take(uch_store_t *s, int n)
 {
-    uint32_t k;
-    if (n == (int)sizeof(uch_v2_t) && s->magic == UCH_MAGIC && s->ver == 2u && s->ntrk == NTRK) {
-        s->ver = UCH_VER;                      /* (v2 is v3's start: the song's values after it) */
-        for (k = 0; k < 8u; k++)
-            s->song[k] = UCH_DEF;
-        return 1;
-    }
-    if (n == (int)sizeof(uch_v1_t) && s->magic == UCH_MAGIC && s->ver == 1u && s->ntrk == NTRK) {
-        uch_v1_t v;
-        uint32_t i, d, k;
-        memcpy(&v, s, sizeof v);
+    uint32_t i, d, k;
+    int v1 = n == (int)sizeof(uch_v1_t) && s->ver == 1u;
+    int v2 = n == (int)(sizeof(uch_v3_t) - 16u) && s->ver == 2u, v3 = n == (int)sizeof(uch_v3_t) && s->ver == 3u;
+    if ((v1 || v2 || v3) && s->magic == UCH_MAGIC && s->ntrk == NTRK) {
+        static uch_v3_t o;                     /* (main loop only; v1 read into it as its first bytes) */
+        memcpy(&o, s, v1 ? sizeof(uch_v1_t) : v2 ? sizeof(uch_v3_t) - 16u : sizeof(uch_v3_t));
         memset(s->c, 0, sizeof s->c);
         s->ver = UCH_VER;
         for (i = 0; i < NTRK; i++) {
             for (d = 0; d < 5u; d++) {
-                s->c[i].type[d] = v.c[i][d];
-                for (k = 0; k < 8u; k++)
-                    s->c[i].p[d][k] = UCH_DEF;
+                s->c[i].type[d] = v1 ? ((const uch_v1_t *)(const void *)&o)->c[i][d] : o.c[i].type[d];
+                for (k = 0; k < UCH_NP; k++)
+                    s->c[i].p[d][k] = v1 || k >= 8u ? UCH_DEF : o.c[i].p[d][k];
             }
-            s->c[i].bypass = v.c[i][5];
+            s->c[i].bypass = v1 ? ((const uch_v1_t *)(const void *)&o)->c[i][5] : o.c[i].bypass;
         }
         for (k = 0; k < 8u; k++)
-            s->song[k] = UCH_DEF;
+            s->song[k] = v3 ? o.song[k] : UCH_DEF;
         return 1;
     }
     if (n == (int)sizeof *s && s->magic == UCH_MAGIC && s->ver == UCH_VER && s->ntrk == NTRK)
