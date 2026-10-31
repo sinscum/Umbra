@@ -63,10 +63,10 @@ static int32_t noise(int32_t amp)
 }
 
 /* ------------------------------------------------- the buses before SPRING --- */
-static int16_t ref_dly[DLY_LEN], ref_cho[CHO_LEN], ref_comb[1116 + 1188 + 1277 + 1356], ref_ap[556 + 441];
+static int16_t ref_dly[DLY_BUF], ref_cho[CHO_LEN], ref_comb[1116 + 1188 + 1277 + 1356], ref_ap[556 + 441];
 static struct {
     uint32_t dly_w, cho_w, cho_ph;
-    int32_t dly_lp;
+    int32_t dly_lp, dly_fb, dly_acc;
     uint16_t comb_i[4], ap_i[2];
     int32_t comb_lp[4];
 } rf;
@@ -90,9 +90,25 @@ static void ref_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_
             y += (c0 + (((c1 - c0) * f) >> 8)) << 1;
         }
         rf.cho_w++;
+#if UMBRA_DLY_HALF
+        {   /* (UMBRA: the line at half rate, as fx.c's) */
+            uint32_t w2 = rf.dly_w >> 1, p = (w2 - ((dl & ~1u) >> 1)) & (DLY_BUF - 1u);
+            int32_t col2 = 2 * col - (int32_t)(((int64_t)col * col) >> 15);
+            if (!(rf.dly_w & 1u)) {
+                x = ref_dly[p];
+                rf.dly_lp += mulq15(x - rf.dly_lp, col2);
+                rf.dly_fb = mulq15(rf.dly_lp, fb);
+                rf.dly_acc = dly_in[i];
+            } else {
+                x = (ref_dly[p] + ref_dly[(p + 1u) & (DLY_BUF - 1u)]) >> 1;
+                ref_dly[w2 & (DLY_BUF - 1u)] = (int16_t)clamp(((rf.dly_acc + dly_in[i]) >> 2) + rf.dly_fb, -32768, 32767);
+            }
+        }
+#else
         x = ref_dly[(rf.dly_w - dl) & (DLY_LEN - 1u)];
         rf.dly_lp += mulq15(x - rf.dly_lp, col);
         ref_dly[rf.dly_w & (DLY_LEN - 1u)] = (int16_t)clamp((dly_in[i] >> 1) + mulq15(rf.dly_lp, fb), -32768, 32767);
+#endif
         rf.dly_w++;
         y += mulq15(x << 1, dmix);
         a = 0;

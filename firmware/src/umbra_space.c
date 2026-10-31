@@ -152,6 +152,24 @@ static __attribute__((noinline)) int32_t space_dly_read(const int16_t *buf, uint
     spc.wph += 53567u;                                       /* 0.55 Hz (and three times it, 1.65 Hz) */
     return c0 + (((c1 - c0) * f) >> 8);
 }
+/* the same with the delay at half rate (fx.c UMBRA_DLY_HALF): sample w, d samples back, in a line of len values a
+ * pair each */
+static __attribute__((noinline)) int32_t space_dly_read_half(const int16_t *buf, uint32_t len, uint32_t w, uint32_t d)
+{
+    int32_t s = osc_sine(spc.wph) + (osc_sine(spc.wph * 3u + 0x40000000u) >> 2);
+    int32_t q = (spc.wd + (int32_t)(((int64_t)spc.wd * s) >> 15) * 4 / 5);     /* 0 .. 2 wd, Q8 samples */
+    uint32_t r = (d << 8) + (uint32_t)q, pos, ri;
+    int32_t f, c0, c1;
+    if (r > ((2u * len - 4u) << 8))
+        r = (2u * len - 4u) << 8;
+    pos = (w << 7) - (r >> 1);                          /* Q8 values: (w - r) / 2 */
+    ri = pos >> 8;
+    f = (int32_t)(pos & 255u);
+    c0 = buf[ri & (len - 1u)];
+    c1 = buf[(ri + 1u) & (len - 1u)];
+    spc.wph += 53567u;
+    return c0 + (((c1 - c0) * f) >> 8);
+}
 static __attribute__((noinline)) int space_wow_on(void)
 {
     int32_t t = (usong[US_WOW] * usong[US_WOW] * 7) >> 1;      /* Q8 samples: 0 .. ~220 */

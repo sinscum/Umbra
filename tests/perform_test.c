@@ -1181,7 +1181,8 @@ static int test_throw(void)
             if (abs(w0[t]) > 5000)
                 first = t;
         snprintf(what, sizeof what, "the delay at 1/8D, 120 BPM: the echo %u samples after the input (16537)", first);
-        bad += check(what, first == 16537u);
+        bad += check(what, UMBRA_DLY_HALF ? first + 2u >= 16537u && first <= 16537u : first == 16537u);   /* (UMBRA: a
+                                                                                       * pair's time: 2 samples) */
     }
     /* ECHO THROW's feedback: FDBK 0 lifted to 0.7 while held; one above 0.7 left alone; bounded and dying away */
     {

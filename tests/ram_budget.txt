@@ -1,4 +1,5 @@
 # UMBRA audio memory budget (tests/ram_test.c): bytes UMBRA's own buffers (firmware/src/umbra_mem.h) may take.
-# 33 KiB = the pool's 41.4 KiB free (docs/HARDWARE.md, measured) minus the build's 8 KiB headroom.
+# 33 KiB = the pool's 41.4 KiB free (docs/HARDWARE.md, measured) minus the build's 8 KiB headroom,
+# + 64 KiB (Phase 4, Shane's OK): the delay stored at 22.05 kHz (fx.c UMBRA_DLY_HALF) frees half its 128 KiB.
 # Raise it only by freeing base-tree memory first, with Shane's OK (CLAUDE.md).
-budget 33792
+budget 99328

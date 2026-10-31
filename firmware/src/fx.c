@@ -4,7 +4,13 @@
  * shared buses (chorus, tempo delay, reverb). Mono buses, stereo dry mix. */
 #define DLY_LEN 65536u           /* 1.49 s: 1/4 fits from 41 BPM, 1/4D from 61, 1/2 from 81 */
 #define CHO_LEN 2048u
-static int16_t dly_buf[DLY_LEN] __attribute__((section(".pool")));
+#ifndef UMBRA_DLY_HALF
+#define UMBRA_DLY_HALF 1         /* UMBRA (Phase 4): the delay stored at 22.05 kHz, a value a pair of samples: the same
+                                  * 1.49 s in half the pool (64 KiB to UMBRA's buffers, umbra_mem.h), echoes darker
+                                  * above ~10 kHz. 0: the base tree's line */
+#endif
+#define DLY_BUF (UMBRA_DLY_HALF ? DLY_LEN / 2u : DLY_LEN)
+static int16_t dly_buf[DLY_BUF] __attribute__((section(".pool")));
 static int16_t cho_buf[CHO_LEN] __attribute__((section(".pool")));
 static const uint16_t REV_COMB[4] = {1116, 1188, 1277, 1356};
 static const uint16_t REV_AP[2] = {556, 441};
@@ -17,6 +23,7 @@ static union {                          /* ROOM's allpasses; SPRING's allpass ch
 static struct {
     uint32_t dly_w, cho_w, cho_ph;
     int32_t dly_lp;
+    int32_t dly_fb, dly_acc;             /* UMBRA_DLY_HALF: the pair's feedback, its first input */
     uint16_t comb_i[4], ap_i[2];
     int32_t comb_lp[4];
     uint8_t rtype;                       /* the reverb model running (G_RTYPE: 0 ROOM, 1 SPRING, 2 HALL) */
@@ -591,6 +598,10 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
     fb = frz_mix(fb, 32768);                            /* UMBRA FREEZE: feedback 1, no colour: lossless */
     col = frz_mix(col, 32768);
 #endif
+#if UMBRA_DLY_HALF
+    int32_t col2 = 2 * col - (int32_t)(((int64_t)col * col) >> 15);   /* (the low-pass once a pair: 1 - (1 - c)^2) */
+    dl &= ~1u;                                          /* (a whole number of pairs) */
+#endif
     for (i = 0; i < n; i++) {
         int32_t y = 0, x, r;
         /* chorus: modulated short delay, 5..15 ms */
@@ -605,6 +616,31 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         }
         fx.cho_w++;
         /* delay with a low-passed feedback */
+#if UMBRA_DLY_HALF
+        {   /* UMBRA: a stored value a pair: read on the even sample (the low-pass and the feedback from it), between
+             * two values on the odd one; the pair's input averaged and written with the feedback at its end. dl even:
+             * frozen (feedback 1, no colour) the line copies itself exactly */
+            uint32_t w2 = fx.dly_w >> 1, p = (w2 - (dl >> 1)) & (DLY_BUF - 1u);
+            if (!(fx.dly_w & 1u)) {
+#if UMBRA_SPACE
+                x = wow ? space_dly_read_half(dly_buf, DLY_BUF, fx.dly_w, dl) : dly_buf[p];
+#else
+                x = dly_buf[p];
+#endif
+                fx.dly_lp += mulq15(x - fx.dly_lp, col2);
+                fx.dly_fb = mulq15(fx.dly_lp, fb);
+                fx.dly_acc = dly_in[i];
+            } else {
+#if UMBRA_SPACE
+                x = wow ? space_dly_read_half(dly_buf, DLY_BUF, fx.dly_w, dl)
+                        : (dly_buf[p] + dly_buf[(p + 1u) & (DLY_BUF - 1u)]) >> 1;
+#else
+                x = (dly_buf[p] + dly_buf[(p + 1u) & (DLY_BUF - 1u)]) >> 1;
+#endif
+                dly_buf[w2 & (DLY_BUF - 1u)] = (int16_t)clamp(((fx.dly_acc + dly_in[i]) >> 2) + fx.dly_fb, -32768, 32767);
+            }
+        }
+#else
 #if UMBRA_SPACE
         x = wow ? space_dly_read(dly_buf, DLY_LEN, fx.dly_w, dl) : dly_buf[(fx.dly_w - dl) & (DLY_LEN - 1u)];
 #else
@@ -613,6 +649,7 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         fx.dly_lp += mulq15(x - fx.dly_lp, col);
         dly_buf[fx.dly_w & (DLY_LEN - 1u)] =
             (int16_t)clamp((dly_in[i] >> 1) + mulq15(fx.dly_lp, fb), -32768, 32767);
+#endif
         fx.dly_w++;
         y += mulq15(x << 1, dmix);
         wet[i] = y;
