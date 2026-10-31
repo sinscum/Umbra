@@ -8,9 +8,12 @@
  *   1 SUNKEN PULSE    a saw bass through DRIVE DAMAGE and a keytracked SVF; the kit rings a RESONATOR in fifths
  *   2 DISTANT CHOIR   wind through a wandering FORMANT into a long HALL; a low pad under a dark SVF
  *   3 FROZEN HALL     the choir and the pad into the longest HALL, 40 ms before it, echoes with WOW: turn SPACE 3's
- *                     FREEZE (KNOB 4) on, stop, and the hall hangs (tests/umbra_golden.c freezes it at 4 s) */
-#define UMBRA_NRECIPES 4u
-static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR", "FROZEN HALL"};
+ *                     FREEZE (KNOB 4) on, stop, and the hall hangs (tests/umbra_golden.c freezes it at 4 s)
+ *   4 DEAD BELLS      an FM6 bell into a slow cloud of long grains (GRANULAR GRAINS), a RESONATOR in A minor, a
+ *                     long HALL (GLO + G5 freezes it) */
+#define UMBRA_NRECIPES 5u
+static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR", "FROZEN HALL",
+                                                        "DEAD BELLS"};
 
 static uint32_t recipe_engine(const char *name)      /* an engine by its name (ENGINES[]), 0 if none */
 {
@@ -101,6 +104,20 @@ static void umbra_recipe(uint32_t n)
         load_pat16(&trk[1], PATTERNS[7].note, PATTERNS[7].flags);   /* the power-on pad, SUB */
         trk[1].p[P_REV] = 110;
         recipe_dev(1, DEV_FILTER, FILTER_SVF, SVF);
+        break;
+    }
+    case 4: {   /* DEAD BELLS */
+        static const int8_t GRN[DEV_NP] = {110, 90, -12, 30, 20, 40, CONT_HANN, 100, 15, 0, 0, 30};
+        static const int8_t RSN[DEV_NP] = {45, 115, 64, 50, TUNE_MINOR, 20, 30, K_};
+        song.g[G_BPM] = 66;
+        song.g[G_RTYPE] = 2;
+        song.g[G_RSIZE] = 115;
+        recipe_track(0, "FM6", "BELL", 7);                         /* BELL: sparse */
+        trk[0].p[P_LEVEL] = 127;                                    /* (the bell is quiet, the RESONATOR takes more) */
+        trk[0].p[P_REV] = 100;
+        trk[0].p[P_DLY] = 30;
+        recipe_dev(0, DEV_GRANULAR, GRAN_GRAINS, GRN);
+        recipe_dev(0, DEV_FILTER, FILTER_RES, RSN);
         break;
     }
     default:    /* FOUR ENGINES */

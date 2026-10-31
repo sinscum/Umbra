@@ -51,7 +51,9 @@ from replacing these. Examples at 16-bit / 8-bit µ-law:
 
 UMBRA's own buffers so far (`firmware/src/umbra_mem.h`, checked by `tests/ram_budget.txt`): FILTER COMB's delay lines,
 4 × 1,024 × int16 = **8,192 B** of pool (Phase 2); SPACE PRE-DLY's line, 2,208 × int16 = **4,416 B** (Phase 3;
-SHIMMER's 2 KB more only with `UMBRA_SHIMMER=1`); 12,608 B of a 33,792 B budget. RESONATOR, FORMANT, SVF and DAMAGE keep only
+SHIMMER's 2 KB more only with `UMBRA_SHIMMER=1`); GRANULAR's rings, 4 × 11,264 B (Phase 4). Phase 4 stores the base
+tree's delay at 22.05 kHz (`fx.c` `UMBRA_DLY_HALF`: the same 1.49 s in 64 KiB), which adds 64 KiB to UMBRA's budget:
+57,664 B used of 99,328 B (`tests/ram_budget.txt`); 40 KiB is kept for TAPE (Phase 4b). RESONATOR, FORMANT, SVF and DAMAGE keep only
 a few words of state per track (.bss).
 
 DESIGN §2's "4 × TAPE buffers" does not fit as written; Phase 1/4 have to choose (one shared TAPE, or short per-track ones).

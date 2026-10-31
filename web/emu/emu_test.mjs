@@ -196,7 +196,7 @@ if (nativePath) {                                             // web/emu/native_
 
 // ---- UMBRA: the page's "Load demo" (umbra_web.c web_demo, umbra_recipes.c): each recipe loads while stopped, PLAY
 // sounds it through its chains; refused while playing and past the list
-for (let n = 0; n < 4; n++) {
+for (let n = 0; n < 5; n++) {
   const g = await device(null);
   g.render(1200);
   const loaded = g.ex.web_demo(n) === 1;
@@ -206,7 +206,7 @@ for (let n = 0; n < 4; n++) {
   const playing = g.ex.web_playing() === 1, pk = g.peak, refused = g.ex.web_demo(n) === 0;
   g.tap(B.PLAY);
   check(`UMBRA: recipe ${n} loaded, then PLAY: it plays (peak ${pk.toFixed(3)}); refused while playing`,
-        loaded && playing && pk > 0.01 && pk < 1.0 && refused && g.ex.web_recipes() === 4 && g.ex.web_demo(4) === 0);
+        loaded && playing && pk > 0.01 && pk < 1.0 && refused && g.ex.web_recipes() === 5 && g.ex.web_demo(5) === 0);
 }
 
 // ---- the cost: 1 s of the heavy song against real time (the best of 3, after 2 s to settle)

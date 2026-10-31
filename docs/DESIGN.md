@@ -95,6 +95,14 @@ Reads TAPE if SOURCE is TAPE, else a short per-track ring buffer that always rec
 - P3 `REVERSE % · PITCH RAND · SCALE LOCK · DETUNE` — scale lock uses the base tree's scale system
 - Grain pool: global cap (start 12), per-track cap (start 6). Scheduled at control rate; per-sample work = 2 reads + linear interp + window table + gain. Fixed-point phase accumulators.
 
+As built (Phase 4a, `firmware/src/umbra_granular.c`): type **GRAINS** beside THRU (PRESETS on ARP's page). Pages
+`SIZE · DENS · PTCH · SPRY` / `SCAN · SPED · CONT · MIX` / `REV · PRND · SCAL · DTUN`. The ring: 0.51 s a track at
+22.05 kHz, 8-bit µ-law (11 KiB each, 44 KiB: from the delay's freed half). SPEED 64 follows live; lower or higher the
+read point drifts back or catches up through the ring; 0 suspends recording and the cloud hangs. 12 grains (8 above
+~80 % CPU), 6 a track; a grain with no slot fades the oldest out over 64 samples. SCALE puts each grain on the track's
+scale and lights its keys. Host cost: the full pool with four rings ≈ 4 ANALOG voices, a grain ≈ 0.2. Until TAPE
+(Phase 4b) GRAINS always reads its ring.
+
 ### 3.3 FILTER — filter & resonator
 Types:
 - **SVF** — LP / BP / HP / notch morph on one knob. Cheap.
@@ -265,7 +273,8 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 Until factory projects exist (Phase 6), recipes are in the browser emulator's demo list (`web/emu/umbra_recipes.c`;
 golden renders `tests/umbra_golden.txt`). Phase 2 has Sunken Pulse (plus the kit through a RESONATOR in fifths) and
 Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk MOD arrives (Phase 5). Phase 3 adds
-Frozen Hall: the choir and a pad into the longest HALL with PRE-DLY and WOW, for FREEZE.
+Frozen Hall: the choir and a pad into the longest HALL with PRE-DLY and WOW, for FREEZE. Phase 4a adds Dead Bells
+(FM6 BELL → GRAINS, long grains, slow scan → RESONATOR A minor → HALL; FREEZE by GLO + G5 until SCENES).
 
 ## 10. Budget plan
 - Target: 4 tracks, full chain at defaults, ≤ 70 % of one core. 2nd core stays optional.
@@ -278,7 +287,8 @@ A project is the base tree's record (one full 4 KB flash sector: no room) plus U
 its own storage object ("UMB1", `firmware/src/umbra_store.c`, flash 0xE8000..0xF1FFF: four project slots and the
 autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Version 2 (Phase 2) adds each device's eight values
 (88 bytes a track; a v1 record loads with the types' defaults). Version 3 (Phase 3) adds the song's SPACE and MASTER
-values (16 bytes; FREEZE stored as off; a v2 record loads with their defaults). Later versions add
+values (16 bytes; FREEZE stored as off; a v2 record loads with their defaults). Version 4 (Phase 4) stores 12 values
+a device (GRANULAR's three pages): 128 bytes a track, 540 in all; v1–v3 load. Later versions add
 mods, sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
 record names the project record it was saved with (its CRC): a base-tree project, a slot re-saved by the base tree,
 or a torn write loads with the default chain, never another project's. TAPE audio is **not** saved (RAM only);
