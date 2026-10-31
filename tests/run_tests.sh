@@ -418,6 +418,8 @@ if [ -f build/gen/umbra_tables.h ]; then
         "$OUT/regress_chain_0" tests/golden.txt tests/cpu_baseline.txt
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/chain_test" tests/chain_test.c -lm
     run "UMBRA chain: nothing bypassed = bit for bit, SOURCE / DRIVE / SPACE bypass, types, the descriptors" "$OUT/chain_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drive_test" tests/drive_test.c -lm
+    run "UMBRA DRIVE DAMAGE: defaults bit for bit, each stage bounded and DC-free, no click on a jump, TILT, cost" "$OUT/drive_test"
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for
     # bit
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -DC1_HOST -pthread -o "$OUT/regress_c1" tests/regress.c -lm

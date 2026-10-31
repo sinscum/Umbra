@@ -1062,7 +1062,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
-    if (pg->scope != SC_GLOBAL) {
+    if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV) {   /* (UMBRA: a device's values: not P_*, no motion yet) */
         motion_capture(TSEL, (uint32_t)(vp - TSEL->p), *vp);
         ml_knob(TSEL, (uint32_t)(vp - TSEL->p));        /* (MIDI LEARN: picked) */
     }
@@ -1281,6 +1281,22 @@ static void seq_entry(uint32_t pressed)
  *   HOME, PRESETS and every other page (EDIT, ENV, LFO, FX, SCL, ARP, MIXER, CLOCK, ...): the selected track's
  *     sound, one list over every engine, then the used user presets (preset_step). A sound load keeps the steps
  *     (SAVE held undoes it). Up to 1.0.3 it did that on HOME and PRESETS only */
+/* UMBRA: PRESETS on a device's page (not SOURCE's: there it is the sound, as ever): its type, a detent a step
+ * (umbra_chain.c; a new type takes its defaults) */
+static void dev_type_turn(uint32_t d, int32_t s)
+{
+    uint32_t tr = song.sel % NTRK, n = UCH_DESC[d].ntypes;
+    int32_t t = (int32_t)uchain[tr].type[d] + (s > 0 ? 1 : -1);
+    if (n < 2u) {
+        ui_say(UCH_DESC[d].name, ": ONE TYPE");
+        return;
+    }
+    chain_set_type(tr, d, (uint32_t)clamp(t, 0, (int32_t)n - 1));
+    ui_say(UCH_DESC[d].name, " ");
+    str_cpy(ui.msg + str_len(ui.msg), dev_type(tr, d)->name, sizeof ui.msg - str_len(ui.msg));
+    ui.force = 1;
+}
+
 static void presets_turn(int32_t s)
 {
     const page_t *pg = cur_page();
@@ -1297,7 +1313,9 @@ static void presets_turn(int32_t s)
         nudge_turn(held, s);
         return;
     }
-    if (ui.home || g == GR_BROWSE) {
+    if (!ui.home && fam_device(pg->fam) < DEV_COUNT && fam_device(pg->fam) != DEV_SOURCE && g != GR_SONG) {
+        dev_type_turn(fam_device(pg->fam), s);           /* UMBRA: a device's page: its type */
+    } else if (ui.home || g == GR_BROWSE) {
         preset_step(s);
     } else if (g == GR_ROLL || g == GR_USER || g == GR_SLOTS || g == GR_PATS || g == GR_SONG || g == GR_EVENTS) {
         edit_param(0, s);                                 /* KNOB 1's (STEP: STOP TO EDIT while a song plays) */

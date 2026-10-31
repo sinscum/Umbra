@@ -2611,8 +2611,8 @@ static int test_song_timeline(void)
  * held undoes it */
 static int test_presets_knob(void)
 {
-    int bad = 0, cur_ok = 1, sel_ok = 1, snd_ok = 1, undo_ok = 1, tools_ok = 1, grid_ok;
-    uint32_t i, n_snd = 0, n_cur = 0;
+    int bad = 0, cur_ok = 1, sel_ok = 1, snd_ok = 1, undo_ok = 1, tools_ok = 1, grid_ok, type_ok = 1;
+    uint32_t i, n_snd = 0, n_cur = 0, n_type = 0;
     for (i = 0; i < NPAGES; i++) {
         track_t before;
         uint32_t g = PAGES[i].graph, uslot, ppick;
@@ -2646,6 +2646,13 @@ static int test_presets_knob(void)
                 sel_ok &= same_snd && same_steps && ui.page == i && ui.ev_row == 1u;
             } else if (g == GR_TOOLS) {
                 tools_ok &= same_snd && same_steps && !ui.confirm;
+            } else if (fam_device(PAGES[i].fam) < DEV_COUNT && fam_device(PAGES[i].fam) != DEV_SOURCE) {
+                uint32_t d = fam_device(PAGES[i].fam);   /* UMBRA: a device's page: its type (umbra_chain.c) */
+                char one[32];
+                snprintf(one, sizeof one, "%s: ONE TYPE", UCH_DESC[d].name);
+                type_ok &= same_snd && same_steps && (UCH_DESC[d].ntypes > 1u ? uchain[0].type[d] == 1u :
+                                                      uchain[0].type[d] == 0u && msg_is(one));
+                n_type++;
             } else {
                 snd_ok &= !same_snd && same_steps && ui.page == i && !ui.home;
                 hold(B_SAVE);
@@ -2658,8 +2665,10 @@ static int test_presets_knob(void)
     bad += check("#92 PRESETS on STEP (and 1.5.1's DETAIL): the step cursor; the sound and the steps stay", cur_ok && n_cur == 2u);
     bad += check("#94 PRESETS on USER, PROJECT, PHRASES, SONG, AUTOMATION: the selection (KNOB 1's); nothing loaded", sel_ok);
     bad += check("#94 PRESETS on TOOLS does nothing", tools_ok);
-    bad += check("#94 PRESETS elsewhere (EDIT, ENV, LFO, FX, SCL, ARP, MIXER, GLOBAL, ...): the next sound, the steps stay",
-                 snd_ok && n_snd >= 15u);
+    bad += check("#94 PRESETS elsewhere (EDIT, ENV, LFO, MIXER, CLOCK, ...): the next sound, the steps stay",
+                 snd_ok && n_snd >= 10u);
+    bad += check("UMBRA: PRESETS on a device's page (GRANULAR FILTER DRIVE SPACE): its type (DRIVE: DAMAGE), the sound "
+                 "and the steps stay", type_ok && n_type >= 8u);
     bad += check("#94   SAVE held undoes each of those loads", undo_ok);
     ui_power_on();
     set_engine_of(TSEL, ENGI_DRUM);
@@ -9907,6 +9916,27 @@ static int test_umbra_chain(void)
     btn_up(B_FX); btn_up(B_GLO); frames(320);
     ok &= uchain[2].bypass == 1u << DEV_DRIVE;
     bad += check("UMBRA: the selected track's (T3) only; \"DRIVE BYPASSED\"; two device buttons held: nothing", ok);
+    /* Phase 2: PRESETS on DRIVE's page: its type; the type's pages follow; KNOB 2 edits FOLD (the device's value) */
+    ui_power_on();
+    song.sel = 1;
+    go_home(); frames(320);
+    press(B_FX); frames(320);
+    ok = str_eq(cur_page()->title, "FX") && uchain[1].type[DEV_DRIVE] == DRIVE_BASIC;
+    turn(EN_PRESET, 1); frame();
+    ok &= uchain[1].type[DEV_DRIVE] == DRIVE_DAMAGE && msg_is("DRIVE DAMAGE") && str_eq(cur_page()->title, "DAMAGE") &&
+          !uchain[0].type[DEV_DRIVE];
+    turn(EN_K2, 5); frame();
+    ok &= uchain[1].p[DEV_DRIVE][DRV_FOLD] > 0;
+    press(B_FX); frames(320);
+    ok &= str_eq(cur_page()->title, "DAMAGE 2");
+    press(B_FX); frames(320);
+    ok &= str_eq(cur_page()->title, "DAMAGE");      /* (BASIC's pages hidden: DAMAGE's two go round) */
+    turn(EN_PRESET, 1); frame();
+    ok &= uchain[1].type[DEV_DRIVE] == DRIVE_DAMAGE;  /* (the last type: stays) */
+    turn(EN_PRESET, -1); frame();
+    ok &= uchain[1].type[DEV_DRIVE] == DRIVE_BASIC && msg_is("DRIVE BASIC") && str_eq(cur_page()->title, "FX") &&
+          uchain[1].p[DEV_DRIVE][DRV_FOLD] == 0;    /* (back: BASIC's page; a type change takes its defaults) */
+    bad += check("UMBRA: PRESETS on FX: DRIVE BASIC <-> DAMAGE (its pages, FX's taps go round them); KNOB 2 its FOLD", ok);
     chain_reset();
     return bad;
 }

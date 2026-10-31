@@ -208,9 +208,48 @@ int main(void)
         (void)i;
     }
 
-    /* 8. the record */
-    bad += check("the chain record: 4 tracks x 6 bytes + 12, in one object",
-                 sizeof(uch_store_t) == 12u + 4u * 6u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
+    /* 8. the record (v2: + the devices' values) */
+    bad += check("the chain record v2: 12 + 4 tracks x 88 bytes, in one object",
+                 sizeof(uch_store_t) == 12u + 4u * 88u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
+
+    /* 9. a device's type and values round trip (DRIVE DAMAGE, FOLD 90, TILT -20); out-of-range stored values clamp */
+    reset();
+    settings_init();
+    chain_set_type(2, DEV_DRIVE, DRIVE_DAMAGE);
+    uchain[2].p[DEV_DRIVE][DRV_FOLD] = 90;
+    uchain[2].p[DEV_DRIVE][DRV_TILT] = -20;
+    project_save(0);
+    chain_reset();
+    power_cycle();
+    project_load(0);
+    bad += check("DRIVE DAMAGE and its values (FOLD 90, TILT -20, the rest defaults) saved and loaded",
+                 uchain[2].type[DEV_DRIVE] == DRIVE_DAMAGE && uchain[2].p[DEV_DRIVE][DRV_FOLD] == 90 &&
+                 uchain[2].p[DEV_DRIVE][DRV_TILT] == -20 && uchain[2].p[DEV_DRIVE][DRV_OUT] == DRV_OUT_UNITY &&
+                 uchain[0].type[DEV_DRIVE] == DRIVE_BASIC);
+    uch_slot[0].c[2].p[DEV_DRIVE][DRV_FOLD] = 999;   /* (a damaged value in the record) */
+    project_load(0);
+    bad += check("a stored value out of its range: clamped (FOLD 999 -> 127)", uchain[2].p[DEV_DRIVE][DRV_FOLD] == 127);
+
+    /* 10. a v1 record (Phase 1: types and bypasses, 36 bytes) loads: its types and bypasses, the values defaults */
+    reset();
+    settings_init();
+    project_save(1);
+    {
+        uch_v1_t v;
+        memset(&v, 0, sizeof v);
+        v.magic = UCH_MAGIC;
+        v.ver = 1;
+        v.ntrk = NTRK;
+        v.proj_crc = uch_crc(&proj_slot[1], sizeof(project_store_t));
+        v.c[0][DEV_DRIVE] = DRIVE_DAMAGE;              /* (no Phase 1 build wrote one; any type takes its defaults) */
+        v.c[3][5] = 1u << DEV_SPACE;
+        st_save(OBJ_UCHAIN0 + 1, &v, sizeof v);
+    }
+    power_cycle();
+    project_load(1);
+    bad += check("a v1 record: its types and bypasses, every value its type's default",
+                 uchain[0].type[DEV_DRIVE] == DRIVE_DAMAGE && uchain[0].p[DEV_DRIVE][DRV_OUT] == DRV_OUT_UNITY &&
+                 uchain[0].p[DEV_DRIVE][DRV_FOLD] == 0 && uchain[3].bypass == 1u << DEV_SPACE);
     printf(bad ? "store: %d FAILED\n" : "store: all ok\n", bad);
     return bad ? 1 : 0;
 }

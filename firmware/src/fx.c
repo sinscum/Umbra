@@ -839,8 +839,8 @@ static __attribute__((noinline)) void mix_spread(track_t *t, int32_t *b, uint32_
     xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);
     for (i = 0; i < n; i++)
         d[i] = (d[i] << 1) - b[i];                      /* left - right */
-    if (chain_off(t, DEV_DRIVE))
-        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed (umbra_chain.c) */
+    if (chain_off(t, DEV_DRIVE) || chain_drive(t, b, n))
+        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed or its own type (umbra_chain.c) */
     else {
         track_dist(t, b, n);
         if (t->p[P_ITYPE] | t->ins_run)
@@ -914,8 +914,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
     chain_pre(t, b, n);                                 /* UMBRA: SOURCE's bypass, GRANULAR, FILTER (umbra_chain.c) */
     if (T_SPREAD(t))
         mix_spread(t, b, n SM_ARG(sm));
-    else if (chain_off(t, DEV_DRIVE))
-        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed: no DIST, INSERT or SLICER gate */
+    else if (chain_off(t, DEV_DRIVE) || chain_drive(t, b, n))
+        slicer_track(t, 0, n);                          /* UMBRA: DRIVE bypassed, or its own type ran (umbra_chain.c):
+                                                         * no DIST, INSERT or SLICER gate */
     else {
         track_dist(t, b, n);
         if (t->p[P_ITYPE] | t->ins_run)

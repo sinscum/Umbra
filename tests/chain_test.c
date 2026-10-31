@@ -50,7 +50,7 @@ static void fresh(void)
 }
 
 /* what a phrase sets on track 1 before it plays */
-static struct { int dist, ins, sends, sprd, byp, byp_trk; } ph;
+static struct { int dist, ins, sends, sprd, byp, byp_trk, damage, fold; } ph;
 
 /* a chord phrase on track 1 (ANALOG, POLY) in a fork()ed child: its output's hash and peak */
 static ph_t phrase(void)
@@ -80,6 +80,10 @@ static ph_t phrase(void)
         for (k = 0; k < DEV_COUNT; k++)
             if ((ph.byp >> k) & 1u)
                 chain_set_bypass((uint32_t)ph.byp_trk, k, 1);
+        if (ph.damage) {                                 /* DRIVE DAMAGE on track 1 (umbra_drive.c) */
+            chain_set_type(0, DEV_DRIVE, DRIVE_DAMAGE);
+            uchain[0].p[DEV_DRIVE][DRV_FOLD] = (int16_t)ph.fold;
+        }
         trk_note_on(t, 48, 100);
         trk_note_on(t, 55, 90);
         trk_note_on(t, 64, 120);
@@ -161,6 +165,24 @@ int main(void)
     base(); ph.byp = 1u << DEV_GRANULAR | 1u << DEV_FILTER;
     ck("GRANULAR and FILTER bypassed: bit for bit (pass-through in Phase 1)", same(phrase(), plain));
 
+    /* 6. DRIVE DAMAGE (Phase 2): at its defaults the base tree's sound; FOLD changes it; bypassed: as DIST 0 */
+    for (s = 0; s < 2; s++) {
+        char what[160];
+        const char *how = s ? " (SPREAD)" : " (POLY)";
+        base(); ph.sprd = s ? 100 : 0;
+        off = phrase();
+        ph.damage = 1;
+        x = phrase();
+        snprintf(what, sizeof what, "DRIVE DAMAGE at its defaults = the base tree (DIST 0) bit for bit%s", how);
+        ck(what, same(x, off));
+        ph.fold = 100;
+        y = phrase();
+        ph.byp = 1u << DEV_DRIVE;
+        x = phrase();
+        snprintf(what, sizeof what, "DAMAGE FOLD 100 changes it, bounded; bypassed: the base tree again%s", how);
+        ck(what, !same(y, off) && y.peak <= 32767 * 2 && same(x, off));
+    }
+
     /* 5 */
     {
         int ok = 1;
@@ -169,7 +191,15 @@ int main(void)
             for (k = 0; k < UCH_DESC[d].ntypes; k++)
                 ok &= UCH_DESC[d].types[k].name && strlen(UCH_DESC[d].types[k].name) <= 8u;
         }
-        ck("descriptors: 5 devices, 3-letter tags, names <= 8, each with a type", ok);
+        for (d = 0; d < DEV_COUNT; d++)                 /* (a type with values: each default within its range) */
+            for (k = 0; k < UCH_DESC[d].ntypes; k++) {
+                const param_desc_t *pd = UCH_DESC[d].types[k].pd;
+                uint32_t j;
+                for (j = 0; pd && j < DEV_NP; j++)
+                    ok &= pd[j].label && pd[j].min <= pd[j].def && pd[j].def <= pd[j].max && strlen(pd[j].label) <= 4u;
+            }
+        ck("descriptors: 5 devices, 3-letter tags, names <= 8, each with a type; values' defaults in range, labels <= 4",
+           ok);
         chain_reset();
         chain_set_type(0, DEV_FILTER, 200);
         chain_set_type(9, DEV_FILTER, 0);

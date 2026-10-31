@@ -20,11 +20,13 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"LFO 2", "[K1]SYNC TO BPM[LFO]LFO DEST"},
     {"LFO DEST", "[K1-4]LFO AMOUNTS[LFO]MOD"},
     {"MOD", "[K1]SLOT[K2]SOURCE[K3]DEST"},
-    {"FX", "[K1-4]SENDS[FX]HOLD: PERFORM"},
+    {"FX", "[PRESETS]TYPE[FX]HOLD: PERFORM"},   /* (UMBRA: PRESETS DRIVE's type) */
     {"SLICER", "[K1]ON[K2]PATTERN[FX]INSERT"},
     {"INSERT", "[K1]TYPE[FX]DRY / WET"},
     {"INSERT 2", "[K1]DRY / WET[FX]FX"},
     {"SENDS", "[K1-4]SENDS[GLO]DLY"},   /* UMBRA: SPACE (GLO) */
+    {"DAMAGE", "[PRESETS]TYPE[FX]DAMAGE 2"},   /* UMBRA: DRIVE (FX) */
+    {"DAMAGE 2", "[K2]TILT[K3]COMP[FX]DAMAGE"},
     {"DLY", "[K1-4]ALL TRACKS[GLO]REVERB"},
     {"REVERB", "[K1]ROOM SPRING HALL[GLO]CHORUS"},
     {"CHORUS", "[K1-4]ALL TRACKS[GLO]SONG"},

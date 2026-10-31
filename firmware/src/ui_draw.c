@@ -1639,8 +1639,9 @@ static void ui_draw_page(uint32_t counting)
         return;
     }
     if (!ui.home && !page_visible(ui.page)) {          /* an OP page of a track that is not DIGITAL (without
-                                                         * UMBRA_FM4: any track): EDIT 1 */
-        ui.page = (uint8_t)page_first(FAM_EDIT);
+                                                         * UMBRA_FM4: any track): EDIT 1; UMBRA: a device type's page
+                                                         * after a type change: its family's first shown */
+        ui.page = (uint8_t)page_first(PAGES[ui.page].fam);
         page_entered();
     }
     cursor_fix();

@@ -425,6 +425,8 @@ static uint32_t layer_btn(void);
  * track's (its patch's operators, ui_fm6op.c) */
 static int page_visible(uint32_t i)
 {
+    if (!dev_page_visible(&PAGES[i]))                 /* UMBRA: a device type's page, another type in the slot */
+        return 0;
     if (PAGES[i].scope == SC_TRACK && PAGES[i].id[0] >= P_LN0 && PAGES[i].id[0] <= P_LN7)
         return TSEL->eng_req % NENGINES == ENGI_DRUM;
     if (PAGES[i].id[0] == P_FTYPE)                    /* FILTER (1.5, #104): ANALOG's */
@@ -445,6 +447,9 @@ static int page_visible(uint32_t i)
 static uint32_t page_first(uint32_t fam)
 {
     uint32_t i;
+    for (i = 0; i < NPAGES; i++)                      /* (UMBRA: the first shown: a device's type has its own) */
+        if (PAGES[i].fam == fam && page_visible(i))
+            return i;
     for (i = 0; i < NPAGES; i++)
         if (PAGES[i].fam == fam)
             return i;

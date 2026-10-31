@@ -480,6 +480,30 @@ static void graph_insert(const track_t *t, uint16_t c)
 }
 /* SLICER page: the pattern's 16 steps, a 'x' step a full bar; a '.' step: GATE a bar as high as it stays
  * open (DEPTH), STUT hatched (it repeats the last 'x'); the step playing underlined. Grey when OFF. */
+/* UMBRA: DRIVE DAMAGE's transfer curve (DESIGN §8.1): in across, out up; straight when clean, bending with DRIVE,
+ * folding with FOLD, stepped with CRUSH (umbra_drive.c drv_shape: the audio's own); OUT scales it; NOISE a fine grain
+ * over the field */
+static void graph_drive(uint16_t c)
+{
+    const volatile int16_t *p = uchain[song.sel % NTRK].p[DEV_DRIVE];
+    int32_t x, cy = graph_ht / 2, a = 38 * graph_ht / 100, py = cy, g = drv_gain(p[DRV_DRIVE]);
+    int32_t fg = drv_fold_gain(p[DRV_FOLD]), sh = drv_crush_sh(p[DRV_CRUSH]), o = p[DRV_OUT];
+    uint32_t nz = (uint32_t)p[DRV_NOISE] * 3u, r = 0x2545F491u;
+    cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
+    cv_line(PANEL_X0 + PANEL_W / 2, cy - a, PANEL_X0 + PANEL_W / 2, cy + a, T_RAISE);
+    for (x = 0; x < PANEL_W; x++) {
+        int32_t v = (x - PANEL_W / 2) * 32767 / (PANEL_W / 2), w, y;
+        w = (drv_shape(v, p[DRV_DRIVE], g, p[DRV_FOLD], fg, sh) * LEVEL_Q12[o & 127]) >> 12;
+        y = cy - clamp(w, -40000, 40000) * a / 32767;
+        if (x)
+            cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y, c, 2);
+        py = y;
+        r ^= r << 13; r ^= r >> 17; r ^= r << 5;
+        if (nz && (r & 1023u) < nz)                   /* NOISE: grain */
+            cv_rect(PANEL_X0 + x, (int32_t)(r >> 16) % (2 * a) + cy - a, 1, 1, T_DIM);
+    }
+}
+
 static void graph_slicer(const track_t *t, uint16_t c)
 {
     uint32_t i, pat = sl_pattern(t), mode = (uint32_t)t->p[P_SLCR], cur = sl[t - trk].idx;
@@ -1191,6 +1215,9 @@ static uint32_t graph_signature(void)
         return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
     h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u +
          (uint32_t)uchain[song.sel % NTRK].bypass * 524287u;   /* (UMBRA: GR_THRU says BYPASSED) */
+    if (pg->scope == SC_DEV)                         /* (UMBRA: the device's values draw its picture) */
+        for (i = 0; i < DEV_NP; i++)
+            h = (h ^ (uint32_t)uchain[song.sel % NTRK].p[fam_device(pg->fam) % DEV_COUNT][i]) * 16777619u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP) h ^= ui.frame / 2u;
@@ -2298,6 +2325,9 @@ static void draw_graph(void)
             break;
         case GR_INS:
             graph_insert(t, c);
+            break;
+        case GR_DRV:                                  /* UMBRA */
+            graph_drive(c);
             break;
         case GR_MOD:
             cv_oy = 0;

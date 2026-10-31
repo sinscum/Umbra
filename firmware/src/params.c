@@ -434,10 +434,12 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
 /* ------------------------------------------------------------ pages --- */
 enum { FAM_HOME, FAM_ENV, FAM_LFO, FAM_FX, FAM_SCL, FAM_EDIT, FAM_GLO, FAM_SAVE, FAM_ARP, FAM_SEQ, FAM_TRK,
        FAM_COUNT };
-enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK };   /* SC_TRK: the TRACKS page (ui_input.c tracks_edit) */
+enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK,   /* SC_TRK: the TRACKS page (ui_input.c tracks_edit) */
+       SC_DEV };                /* UMBRA: a chain device's values, ids its index (umbra_chain.c dev_page_desc) */
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_BROWSE, GR_SLOTS, GR_USER, GR_TRK,
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHORD, GR_SLICES, GR_EVENTS,
-       GR_FMOP, GR_FMOP2, GR_FMENV, GR_INS, GR_THRU };   /* GR_THRU: a pass-through device's placeholder (UMBRA) */   /* (GR_STEPS: SEQ TOOLS' knobs; GR_FMOP..: FM6's operator pages, ui_fm6op.c) */
+       GR_FMOP, GR_FMOP2, GR_FMENV, GR_INS, GR_THRU,   /* GR_THRU: a pass-through device's placeholder (UMBRA) */
+       GR_DRV };                /* UMBRA: DRIVE DAMAGE's transfer curve */   /* (GR_STEPS: SEQ TOOLS' knobs; GR_FMOP..: FM6's operator pages, ui_fm6op.c) */
 
 typedef struct {
     const char *title;
@@ -457,6 +459,9 @@ static const page_t PAGES[] = {
     {"SLICER", FAM_FX, SC_TRACK, GR_SLCR, {P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH}},
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* 1.5: the track's INSERT (fx.c) */
     {"INSERT 2", FAM_FX, SC_TRACK, GR_INS, {P_IMIX, 0xFF, 0xFF, 0xFF}},  /* .. its dry / wet */
+    /* UMBRA: DRIVE's types' pages (FX is DRIVE's button; the four above are BASIC's: umbra_chain.c DEV_PAGES) */
+    {"DAMAGE", FAM_FX, SC_DEV, GR_DRV, {0, 1, 2, 3}},    /* DRIVE FOLD CRUSH DECIM (umbra_drive.c) */
+    {"DAMAGE 2", FAM_FX, SC_DEV, GR_DRV, {4, 5, 6, 7}},  /* NOISE TILT COMP OUT */
     /* UMBRA: SCL is FILTER's button: its pass-through page first (umbra_chain.c), then the scale pages */
     {"THRU", FAM_SCL, SC_TRACK, GR_THRU, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},
@@ -509,6 +514,7 @@ static const page_t PAGES[] = {
     {"CLOCK", FAM_TRK, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, 0xFF}},
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
+static const param_desc_t *dev_page_desc(const page_t *pg, uint32_t id, int16_t **valp);   /* (umbra_chain.c) */
 static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..3) KNOB 2..4 edit */
 
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
@@ -526,6 +532,8 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         *valp = &song.g[id];
         return &GP[id];
     }
+    if (pg->scope == SC_DEV)                          /* UMBRA: the selected track's device */
+        return dev_page_desc(pg, id, valp);
     if (pg->graph == GR_MOD)                          /* SRC DST AMT of the slot shown */
         id += 3u * mod_ui_slot;
     *valp = &TSEL->p[id];
