@@ -318,6 +318,39 @@ static int keys_own(void)
  * the keys play now: the note a key gives with TRN (QNT SNAP / SEQ: the key's own note; the others round down onto
  * the scale); QNT WHITE every white key (they walk the scale; the black ones are silent). *root: the keys of the
  * scale's root. None where the engine maps the keys itself (DRUM's GM map, the slices): 0 there, and OFF */
+/* UMBRA (Phase 3 lights): the pages of the SOURCE device (EDIT's family): the scale's keys light (scale_leds) */
+static int src_page_on(void) { return UMBRA_CHAIN && !ui.home && !ui.menu && !ui.layer && cur_page()->fam == FAM_EDIT; }
+/* UMBRA: the pitch class (0 = C) key k plays on track t (as scale_leds reads it) */
+static uint32_t key_pc(const track_t *t, uint32_t k)
+{
+    int32_t pc = t->p[P_QUANT] == QN_WHITE && kb_map(t, k) <= 127u ? (int32_t)kb_map(t, k) : 53 + (int32_t)k + t->p[P_TRANS];
+    return (uint32_t)((pc % 12 + 12) % 12);
+}
+/* UMBRA: on FILTER's own pages, the keys of the notes it is tuned to: RESONATOR's bands (ROOT and its chord or scale,
+ * as MORPH sets them), COMB's NOTE; 0 for the other types */
+static uint32_t filter_leds(void)
+{
+    const track_t *t = TSEL;
+    const page_t *pg = cur_page();
+    uint32_t tr = song.sel % NTRK, ty, k, pcs = 0, m = 0;
+    const volatile int16_t *p;
+    if (!UMBRA_CHAIN || ui.home || ui.menu || ui.layer || pg->fam != FAM_SCL || pg->scope != SC_DEV)
+        return 0;
+    ty = uchain[tr].type[DEV_FILTER];
+    p = uchain[tr].p[DEV_FILTER];
+    if (ty == FILTER_RES) {
+        for (k = 0; k < FLT_BANDS; k++) {
+            int32_t iv = (rsn_interval(t, (uint32_t)p[RSN_TUNE], k, p[RSN_ROOT]) * p[RSN_MORPH] + 32) / 64;
+            pcs |= 1u << (uint32_t)((p[RSN_ROOT] + iv) % 12);
+        }
+    } else if (ty == FILTER_COMB) {
+        pcs = 1u << (uint32_t)(p[CMB_NOTE] % 12);
+    }
+    for (k = 0; pcs && k < 27u; k++)
+        m |= ((pcs >> key_pc(t, k)) & 1u) << k;
+    return m;
+}
+
 static uint32_t scale_leds(uint32_t *root)
 {
     const track_t *t = TSEL;
@@ -325,8 +358,8 @@ static uint32_t scale_leds(uint32_t *root)
     uint32_t k, m = 0, r = 0, mask = scale_mask(t), note;
     int32_t pc;
     *root = 0;
-    if (!(ui_rec_prefs & (PREF_SCALE_LEDS >> 8)))
-        return 0;
+    if (!(ui_rec_prefs & (PREF_SCALE_LEDS >> 8)) && !(src_page_on() && (mask & 0xFFFu) != 0xFFFu))
+        return 0;                                       /* (UMBRA: on SOURCE's pages too, a scale that is not CHR) */
     for (k = 0; k < 27u; k++) {
         if (e->keys && e->keys(t, k) >= 0)
             continue;
@@ -373,7 +406,7 @@ static int idle_leds(void)
 /* the key LEDs, bit k = key k: NAME's keys, the layer's map, the DRUM grid, else the keys held and the notes
  * the selected track's sequencer, ARP and MIDI IN play, on STEP while stopped the cursor step's notes (#89; and
  * on SLICES the keys of the selected slice; on SONG the key of the cell's slot, 1.2) */
-static uint32_t mixer_leds(void);                     /* (UMBRA MIXER: below, with its keys) */
+static uint32_t mixer_leds(void), mixer_solo_leds(void), mixer_mid_leds(void);   /* (UMBRA MIXER: below, with its keys) */
 static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys that breathe, layer_leds) */
 {
     uint32_t c;
@@ -382,6 +415,8 @@ static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys t
     c = name_on() && !ui.menu ? name_leds() : ui.layer ? layer_leds(br) : grid_on() ? grid_leds() :
                  (fm1_in.notes & ~kb_layer) | play_leds() | step_leds() | (song_keys_on() ? song_leds() : 0u) |
                  (mixer_keys_on() ? mixer_leds() : 0u);
+    if (br && !ui.layer && mixer_keys_on())
+        *br |= mixer_solo_leds();                       /* (UMBRA MIXER: a soloed track's key breathes) */
 #if UMBRA_SLICE
     if (!ui.layer && !ui.menu && !name_on() && slice_page_on())
         c |= slice_leds();                              /* SLICES: and the keys of the selected slice */
@@ -412,8 +447,9 @@ static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nd[FM1_NCOL] = {0}, own[FM1_NCOL] = {0}, og[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
     uint8_t nm[FM1_NCOL] = {0}, sg[FM1_NCOL] = {0}, sm[FM1_NCOL] = {0}, iv[FM1_NCOL] = {0};
-    uint32_t k, c, g, br, beat, sc, sr = 0;
+    uint32_t k, c, g, br, beat, sc, sr = 0, hl;
     uint32_t fam = cur_fam(), mode = settings_leds, inv = leds_inv();   /* (1.5.6: INV LO 1, INV HI 2) */
+    int dim = mode == LEDS_DIM || mode == LEDS_DIM_LO;  /* (UMBRA: the backlight's modes) */
     int keys_map = keys_own();
     static uint8_t ready;
     if (idle_leds() || fm1_led_anim_on())              /* the idle animation, the power-on sweep have them (main.c */
@@ -440,14 +476,20 @@ static void ui_leds(void)
     g = !keys_map ? 0u : grid_on() && !ui.layer && !name_on() ? grid_glow() : 0u;   /* (key_leds: the grid's map) */
     beat = g ? grid_beats() & ~c : 0u;                  /* (the grid's empty beat starts: brighter than the glow) */
     sc = keys_map ? 0u : scale_leds(&sr);               /* SCALE LEDS: the scale's keys glow, the root's brighter */
+    hl = keys_map ? 0u : (mixer_keys_on() ? mixer_mid_leds() : 0u) | filter_leds();   /* UMBRA: at the mid level */
     for (k = 0; k < 27u; k++) {
         uint32_t in = (sc >> k) & 1u, rt = (sr >> k) & 1u, idle = !((c >> k) & 1u);
-        led_put(nm, 14u + k, (int)((beat >> k) & 1u));
+        led_put(nm, 14u + k, (int)(((beat | hl) >> k) & 1u));
         led_put(keys_map ? own : nl, 14u + k, (int)((c >> k) & 1u));
-        led_put(keys_map ? og : nd, 14u + k, keys_map ? (int)((g >> k) & 1u) : !sc || (mode == LEDS_INV && rt));
-        led_put(nb, 14u + k, (int)((br >> k) & 1u));
+        led_put(keys_map ? og : nd, 14u + k, dim ? (int)(!keys_map || idle) : keys_map ? (int)((g >> k) & 1u) : !sc || (mode == LEDS_INV && rt));
+        led_put(nb, 14u + k, (int)((br >> k) & 1u));    /* (UMBRA, DIM HI / LO: every key glows, the backlight) */
         if (!sc)
             continue;
+        if (dim) {                                      /* UMBRA: over the backlight the scale's keys at the mid */
+            led_put(sm, 14u + k, (int)in);              /* level, the root's lit */
+            led_put(nl, 14u + k, rt && idle);
+            continue;
+        }
         led_put(sg, 14u + k, mode == LEDS_INV ? !in && idle : (int)in);   /* (INV: the active ones dark) */
         led_put(sm, 14u + k, mode == LEDS_INV ? in && !rt && idle : (int)rt);
     }
@@ -578,14 +620,28 @@ static void mixer_keys(uint32_t notes)
         ui.force = 1;
     }
 }
-static uint32_t mixer_leds(void)                       /* the muted and soloed tracks' keys */
+/* MIXER's key lights (ui_leds): a muted track's key lit, a soloed one's breathing, the other six of them at the mid
+ * level (above the backlight: the keys that do something here) */
+static uint32_t mixer_leds(void)
 {
     uint32_t i, m = 0;
-    for (i = 0; i < NTRK; i++) {
+    for (i = 0; i < NTRK; i++)
         if (trk[i].p[P_MUTE]) m |= 1u << MIXER_KEY[i];
-        if ((usolo >> i) & 1u) m |= 1u << MIXER_KEY[NTRK + i];
-    }
     return m;
+}
+static uint32_t mixer_solo_leds(void)
+{
+    uint32_t i, m = 0;
+    for (i = 0; i < NTRK; i++)
+        if ((usolo >> i) & 1u) m |= 1u << MIXER_KEY[NTRK + i];
+    return m;
+}
+static uint32_t mixer_mid_leds(void)
+{
+    uint32_t i, m = 0;
+    for (i = 0; i < 8u; i++)
+        m |= 1u << MIXER_KEY[i];
+    return m & ~mixer_leds() & ~mixer_solo_leds();
 }
 
 /* SONG's keys (song.grid 3): a press of A3 B3 C4 D4 (seq.c song_key) sets the selected cell's slot A..D (on + ADD it

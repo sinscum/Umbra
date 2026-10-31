@@ -5465,7 +5465,9 @@ static int test_breath(void)
                         br0 = breath_keys();
                         lit0 = lit_keys(fm1_led);
                     }
-                    ok &= breath_keys() == br0 && lit_keys(fm1_led) == lit0 && !lit_keys(fm1_led_dim) &&
+                    ok &= breath_keys() == br0 && lit_keys(fm1_led) == lit0 &&   /* (UMBRA: the backlight, DIM HI / LO: */
+                          lit_keys(fm1_led_dim) == (MODES[m] == LEDS_DIM || MODES[m] == LEDS_DIM_LO ?   /* the others glow) */
+                                                    ~(br0 | lit0) & ((1u << 27) - 1u) : 0u) &&
                           led_of(fm1_led_breath, panel.btn[LB[i]]) && !led_of(fm1_led, panel.btn[LB[i]]) &&
                           !led_of(fm1_led_dim, panel.btn[LB[i]]);
                 }
@@ -5653,7 +5655,7 @@ static int test_step_leds(void)
                 }
                 kc = (uint32_t)__builtin_popcount(keys);
                 if (glow)
-                    want_dim = (uint32_t)__builtin_popcount((drum ? grid_glow() : 0x7FFFFFFu) & ~keys);
+                    want_dim = (uint32_t)__builtin_popcount(0x7FFFFFFu & ~keys);   /* (UMBRA: the backlight, the grid too) */
                 else if (drum)                              /* (OFF, INV: the grid's beats alone glow) */
                     want_dim = (uint32_t)__builtin_popcount(grid_beats() & ~keys);
                 snprintf(what, sizeof what, "STEP %s, %s, LEDS %s: buttons and keys as the mode says (%u lit, %u glow)",
@@ -6393,17 +6395,22 @@ static int test_scale_leds(void)
         if (m == LEDS_INV)
             ok = lit_keys(fm1_led) == C_KEYS && lit_keys(fm1_led_mid) == (white & ~C_KEYS) &&
                  lit_keys(fm1_led_dim) == (ALL & ~white);
-        else
+        else if (m == LEDS_OFF)
             ok = !lit_keys(fm1_led) && lit_keys(fm1_led_dim) == white && lit_keys(fm1_led_mid) == C_KEYS;
+        else                                            /* (UMBRA, DIM HI / LO: over the backlight the scale mid, */
+            ok = lit_keys(fm1_led) == C_KEYS && lit_keys(fm1_led_dim) == ALL && lit_keys(fm1_led_mid) == white;   /* the root lit) */
         fm1_in.notes = held;
         ui_leds();
         if (m == LEDS_INV)
             ok &= lit_keys(fm1_led) == (C_KEYS & ~held) && !(lit_keys(fm1_led_mid) & held) &&
                   !(lit_keys(fm1_led_dim) & held) && lit_keys(fm1_led_mid) == (white & ~C_KEYS);
-        else
+        else if (m == LEDS_OFF)
             ok &= lit_keys(fm1_led) == held && lit_keys(fm1_led_dim) == white && lit_keys(fm1_led_mid) == C_KEYS;
+        else
+            ok &= lit_keys(fm1_led) == (held | C_KEYS) && lit_keys(fm1_led_dim) == ALL && lit_keys(fm1_led_mid) == white;
         snprintf(what, sizeof what, "#127 LEDS %s: %s; the keys held %s", LEDS_NAME[m],
-                 m == LEDS_INV ? "root lit, the scale mid, the others glow" : "the scale glows, the root brighter",
+                 m == LEDS_INV ? "root lit, the scale mid, the others glow" : m == LEDS_OFF ?
+                 "the scale glows, the root brighter" : "all glow, the scale mid, the root lit",
                  m == LEDS_INV ? "dark" : "lit over it");
         bad += check(what, ok);
     }
@@ -6427,16 +6434,19 @@ static int test_scale_leds(void)
     sc = scale_leds(&root);
     ok &= sc == white && root == (1u << 7 | 1u << 16 | 1u << 24);
     ui_leds();
-    ok &= lit_keys(fm1_led_dim) == white && lit_keys(fm1_led_mid) == root;
-    t->p[P_QUANT] = QN_OFF;
+    ok &= lit_keys(fm1_led_dim) == ALL && lit_keys(fm1_led_mid) == white && lit_keys(fm1_led) == root;   /* (UMBRA: the */
+    t->p[P_QUANT] = QN_OFF;                             /* backlight, the scale mid, the roots lit) */
     t->p[P_SCALE] = 0;                                  /* CHR: every key, the C keys brighter */
     sc = scale_leds(&root);
     ok &= sc == ALL && root == C_KEYS;
     bad += check("#127 QNT SNAP: the keys of the scale; QNT WHITE: all the white keys, its roots; CHR: every key", ok);
     t->p[P_SCALE] = 1;
-    ui.layer = LAYER_SCL;                               /* a layer: its own map, no scale glow under it */
-    ui_leds();
-    ok = !lit_keys(fm1_led_mid) && !lit_keys(fm1_led_dim);
+    ui.layer = LAYER_SCL;                               /* a layer: its own map, no scale glow under it (UMBRA: the */
+    ui_leds();                                          /* backlight on the keys neither lit nor breathing) */
+    {
+        uint32_t lbr, llit = layer_leds(&lbr);
+        ok = !lit_keys(fm1_led_mid) && lit_keys(fm1_led_dim) == (ALL & ~(lbr | llit));
+    }
     ui.layer = 0;
     set_engine_of(t, ENGI_DRUM);
     t->engine = t->eng_req;
@@ -6450,7 +6460,7 @@ static int test_scale_leds(void)
         frame();
     }
     ui_leds();
-    ok &= grid_on() && lit_keys(fm1_led_dim) == grid_glow() &&
+    ok &= grid_on() && lit_keys(fm1_led_dim) == (ALL & ~key_leds(0)) &&   /* (UMBRA: the backlight on every idle key) */
           lit_keys(fm1_led_mid) == (grid_beats() & ~key_leds(0));
     bad += check("#127 a layer, a DRUM track (its keys as before) and the DRUM grid keep their own LEDs", ok);
     menu_put(MI_SCLLED, 0);
@@ -9994,7 +10004,32 @@ static int test_umbra_space(void)
         key_up(white(0)); frame();
         key_down(white(5)); frame(); key_up(white(5)); frame();     /* D4: track 2 soloed */
         ok &= trk[0].p[P_MUTE] == 1 && usolo == 2u && perf_solo == 2u;
-        ok &= (key_leds(0) >> white(0) & 1u) && (key_leds(0) >> white(5) & 1u) && !(key_leds(0) >> white(1) & 1u);
+        {   /* lights: T1's key lit (muted), D4 breathing (T2 soloed), the other six of the eight at the mid level */
+            uint32_t br, lit = key_leds(&br), mid = mixer_mid_leds();
+            ok &= (lit >> white(0) & 1u) && !(lit >> white(5) & 1u) && (br >> white(5) & 1u) && !(lit >> white(1) & 1u);
+            ok &= mid == ((1u << white(1) | 1u << white(2) | 1u << white(3) | 1u << white(4) | 1u << white(6) |
+                           1u << white(7)));
+            static const int8_t MAP[6][FM1_NCOL] = {     /* (bsp/boards/fm1/fm1_input.h FM1_KEYMAP) */
+                {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+                { 5, 11,  4, 10,  3,  9,  2,  8, -1, -1, -1},
+                {34, 35, 36, 37, 38, 40, 39, 13,  7,  6, 12},
+                {23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33},
+                { 0,  1, 15, 14, 17, 16, 19, 18, 20, 21, 22},
+                {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+            };
+            uint32_t id, c, r;
+            ui_leds();
+            for (id = 0; id < 41u; id++) {
+                led_pos[id] = 0xFF;
+                for (c = 0; c < FM1_NCOL; c++)
+                    for (r = 1; r < 5u; r++)
+                        if (MAP[r][c] == (int8_t)id)
+                            led_pos[id] = (uint8_t)(c << 3 | r);
+            }
+            ui_leds();
+            ok &= (lit_keys(fm1_led_mid) >> white(1) & 1u) && (lit_keys(fm1_led_breath) >> white(5) & 1u) &&
+                  (lit_keys(fm1_led) >> white(0) & 1u) && (lit_keys(fm1_led_dim) >> white(10) & 1u);   /* (backlight) */
+        }
         key_down(white(0)); frame(); key_up(white(0)); frame();
         key_down(white(5)); frame(); key_up(white(5)); frame();
         ok &= trk[0].p[P_MUTE] == 0 && usolo == 0u && perf_solo == 0u;
@@ -10004,10 +10039,45 @@ static int test_umbra_space(void)
     key_down(white(0)); frame();
     ok &= kb_note[white(0)] != KB_SILENT;               /* (elsewhere the key plays as ever) */
     key_up(white(0)); frame();
-    bad += check("UMBRA MIXER: white keys 1-4 mute, 5-8 solo (silent there, their keys lit); elsewhere they play", ok);
+    bad += check("UMBRA MIXER: white keys 1-4 mute (lit), 5-8 solo (breathing), the eight at the mid level; silent there, "
+                 "elsewhere they play", ok);
     for (i = 0; i < NPAGES; i++)                        /* (MASTER on HOME's round, after CLOCK) */
         if (str_eq(PAGES[i].title, "MASTER")) ok = i > 0 && str_eq(PAGES[i - 1].title, "CLOCK");
     bad += check("UMBRA MASTER: on HOME's round after CLOCK", ok);
+    /* key lights on the device pages: FILTER RESONATOR's chord, COMB's note; SOURCE's scale */
+    ui_power_on();
+    go_title("THRU");
+    ok = cur_page()->fam == FAM_SCL && !filter_leds();
+    chain_set_type(0, DEV_FILTER, FILTER_RES);          /* ROOT A, MINOR, MORPH 64: A C E */
+    go_title("RESONATOR"); frame();
+    ok &= filter_leds() == (1u << 4 | 1u << 16 | 1u << 7 | 1u << 19 | 1u << 11 | 1u << 23);
+    uchain[0].p[DEV_FILTER][RSN_MORPH] = 0;             /* (collapsed: the root alone) */
+    ok &= filter_leds() == (1u << 4 | 1u << 16);
+    chain_set_type(0, DEV_FILTER, FILTER_COMB);         /* NOTE A3 */
+    go_title("COMB"); frame();
+    ok &= filter_leds() == (1u << 4 | 1u << 16);
+    chain_set_type(0, DEV_FILTER, FILTER_SVF);
+    go_title("SVF"); frame();
+    ok &= !filter_leds();
+    bad += check("UMBRA lights: FILTER RESONATOR's keys its chord (MORPH 0: the root), COMB's its note, SVF none", ok);
+    {
+        uint32_t root, wk = 0, k;
+        for (k = 0; k < 27u; k++)
+            wk |= (uint32_t)!key_black(k) << k;
+        chain_reset();
+        TSEL->p[P_SCALE] = 1;                           /* C major */
+        TSEL->p[P_ROOT] = 0;
+        go_home(); frame();
+        ok = !scale_leds(&root);                        /* (HOME: no, SCALE LEDS is off) */
+        go_title("EDIT 1"); frame();
+        ok &= scale_leds(&root) == wk && root == (1u << 7 | 1u << 19);
+        TSEL->p[P_SCALE] = 0;                           /* CHR: nothing to show */
+        ok &= !scale_leds(&root);
+        TSEL->p[P_SCALE] = 1;
+        go_title("VOICE"); frame();
+        ok &= scale_leds(&root) == wk;
+        bad += check("UMBRA lights: SOURCE's pages show the track's scale (not CHR, not elsewhere)", ok);
+    }
     chain_reset();
     return bad;
 }
