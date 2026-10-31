@@ -104,11 +104,23 @@ Types:
 
 Pages: P1 `FREQ · RES · MORPH · MIX` · P2 `TUNE (chord/scale) · SPREAD · WANDER · KEYTRACK`. WANDER = slow built-in drift so static settings still move.
 
+As built (Phase 2, `firmware/src/umbra_filter.c`; types in this stored order: THRU, SVF, COMB, RESONATOR, FORMANT), each
+type's two pages keep the shape above with its own words:
+- SVF `FREQ · RES · MRPH · MIX` / `KTRK · WNDR` — MRPH sweeps LP → BP → HP → NOTCH.
+- COMB `NOTE · FDBK · DAMP · MIX` / `KTRK · WNDR · POL` — the delay tuned to a note (F#1..C7), POL + / − (− an octave down, hollow).
+- RESONATOR `ROOT · RING · MRPH · MIX` / `TUNE · SPRD · WNDR · KTRK` — TUNE: MINOR, MAJOR, SUS4, FIFTHS, OCTAVE, SCALE (the
+  song's scale from ROOT); MRPH collapses the six bands to the root or spreads them; drops to 4 bands above ~80 % CPU.
+- FORMANT `SHFT · RES · VOWL · MIX` / `KTRK · WNDR` — three bands through A E I O U.
+
 ### 3.4 DRIVE — colour & damage
 - P1 `DRIVE · FOLD · CRUSH · DECIMATE`
 - P2 `NOISE · TILT · COMP · OUT`
 - NOISE adds a hiss/crackle/tape-dust floor. Drive via tanh table, triangle fold, bit mask, sample-and-hold decimation in Hz. Saturate, never wrap.
 - Stretch (budget permitting): split-band DRIVE with a 1-pole crossover.
+
+As built (Phase 2, `firmware/src/umbra_drive.c`): type **DAMAGE**, beside **BASIC** (the base tree's DIST, SLICER and
+INSERT pages, kept). Page labels `DRV · FOLD · CRSH · DCM` / `NOIS · TILT · COMP · OUT`; OUT in dB (OFF .. +7.5, 0 dB
+default). At its defaults DAMAGE is the input bit for bit.
 
 ### 3.5 SPACE — space
 Shared reverb and delay buses on the master; per track you set sends.
@@ -152,7 +164,11 @@ PLAY REC; OCT− OCT+; 27 keys (16 white). Reference: `docs/controls.jpg`.
 Phase 1 (interim, until each device's own DSP lands): SOURCE = the engine's pages + VOICE + ARP; GRANULAR and
 FILTER = pass-through pages (FILTER's button keeps the scale and chord pages after it); DRIVE = DIST, SLICER, INSERT;
 SPACE = the track's sends, the shared delay / reverb / chorus, then SONG. The footer's first row shows the chain strip
-on every device page. Turning PRESETS to change a device's type arrives with the first device that has two types.
+on every device page.
+
+Phase 2: on a FILTER or DRIVE page, PRESETS picks the device's type (its values go to the type's defaults); hold the
+device's button + OCT+ to bypass it (the chain strip outlines a bypassed device). Device values are not automatable
+or MOD targets until Phase 5.
 
 ## 8. Screen & look (240×240)
 
@@ -221,6 +237,10 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 5. **Shadow** — Track 4 = RETURN of track 1, GRANULAR reverse 60 % + COMB → a ghost of track 1.
 6. **Iron Rain** — DRUM → COMB tuned to scale → delay synced dotted-8th.
 
+Until factory projects exist (Phase 6), recipes are in the browser emulator's demo list (`web/emu/umbra_recipes.c`;
+golden renders `tests/umbra_golden.txt`). Phase 2 has Sunken Pulse (plus the kit through a RESONATOR in fifths) and
+Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk MOD arrives (Phase 5).
+
 ## 10. Budget plan
 - Target: 4 tracks, full chain at defaults, ≤ 70 % of one core. 2nd core stays optional.
 - Every device declares its cost in `tests/target_budget.txt`; Phase 0 fills in measured numbers.
@@ -230,7 +250,8 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 ## 11. Saved data
 A project is the base tree's record (one full 4 KB flash sector: no room) plus UMBRA's own record beside it, in
 its own storage object ("UMB1", `firmware/src/umbra_store.c`, flash 0xE8000..0xF1FFF: four project slots and the
-autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Later versions add device params,
+autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Version 2 (Phase 2) adds each device's eight values
+(88 bytes a track; a v1 record loads with the types' defaults). Later versions add
 mods, sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
 record names the project record it was saved with (its CRC): a base-tree project, a slot re-saved by the base tree,
 or a torn write loads with the default chain, never another project's. TAPE audio is **not** saved (RAM only);

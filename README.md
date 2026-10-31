@@ -8,9 +8,11 @@ UMBRA is a dark ambient instrument firmware for the M-VAVE FM-1: four tracks, ea
 (SOURCE → GRANULAR → FILTER → DRIVE → SPACE) that turns a source into slow, decaying texture.
 See [docs/DESIGN.md](docs/DESIGN.md) for the instrument and [docs/ROADMAP.md](docs/ROADMAP.md) for where it is.
 
-**Status: early development (Phase 0).** It currently plays as its base firmware does; the chain arrives from Phase 1.
+**Status: early development (Phase 2).** The chain is in place; FILTER (SVF, COMB, RESONATOR, FORMANT) and DRIVE
+(DAMAGE) have their own sound. GRANULAR, SPACE and TAPE come next.
 
 - **Play it in your browser:** <https://sinscum.github.io/Umbra/> — no FM-1 needed. Every change is tested here first.
+  **Load demo** (after Switch on) picks a recipe: Four engines, Sunken Pulse, Distant Choir; then press PLAY.
 - **On the FM-1:** no device builds are published yet.
 - Hardware facts: [docs/HARDWARE.md](docs/HARDWARE.md) · Build: [BUILDING.md](BUILDING.md)
 

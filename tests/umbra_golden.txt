@@ -1,0 +1,4 @@
+# UMBRA golden renders: recipe hash peak mean (tests/umbra_golden.c; UPDATE=1 rewrites)
+0 2ef4798c 20686 -4 FOUR ENGINES
+1 dca4d3fd 18621 0 SUNKEN PULSE
+2 a939ad66 17746 -2 DISTANT CHOIR

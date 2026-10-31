@@ -49,6 +49,10 @@ from replacing these. Examples at 16-bit / 8-bit µ-law:
 - the delay's 128 KiB = 1.49 s HI or 2.97 s LO at 44.1 kHz; **2.97 s HI / 5.9 s LO at 22.05 kHz** — shared by all four tracks;
 - the SLICER's 32 KiB = 4 × 0.37 s LO at 22.05 kHz — enough for the GRANULAR ring buffers (DESIGN asks ≥ 0.5 s: needs ~44 KiB at 22.05 kHz LO for four).
 
+UMBRA's own buffers so far (`firmware/src/umbra_mem.h`, checked by `tests/ram_budget.txt`): FILTER COMB's delay lines,
+4 × 1,024 × int16 = **8,192 B** of pool (Phase 2), of a 33,792 B budget. RESONATOR, FORMANT, SVF and DAMAGE keep only
+a few words of state per track (.bss).
+
 DESIGN §2's "4 × TAPE buffers" does not fit as written; Phase 1/4 have to choose (one shared TAPE, or short per-track ones).
 
 ## Flash (1 MiB NOR, offsets from flash 0)

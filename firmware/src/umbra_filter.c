@@ -101,7 +101,7 @@ static void flt_svf(flt_state_t *s, const track_t *t, const int16_t *p, int32_t 
         hp = x - ((k * bp) >> 12) - lp;
         o[0] = lp; o[1] = bp; o[2] = hp; o[3] = lp + hp;
         y = seg >= 3 ? o[3] : o[seg] + (int32_t)(((int64_t)(o[seg + 1] - o[seg]) * fr) >> 15);
-        y = clamp(y, -131071, 131071) << 1;
+        y = clamp(y, -131071, 131071) * 2;
         b[i] = mix >= 127 ? y : b[i] + (int32_t)(((int64_t)(y - b[i]) * mq) >> 15);
     }
 }
@@ -199,7 +199,7 @@ static int32_t res2_makeup(uint32_t t60x10, uint32_t nb)
 /* a bank's sum (quarter scale), saturated (tanh: the bank's top is half the block's), full scale */
 static inline int32_t flt_bank_out(int32_t y)
 {
-    return softclip(clamp(y, -65535, 65535)) << 2;
+    return softclip(clamp(y, -65535, 65535)) * 4;
 }
 
 /* a band at pitch16 (1/16 semitone) ringing for t60 (TIME_MS_X10's units: 0.1 ms) */

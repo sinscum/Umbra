@@ -87,7 +87,11 @@ footer small { font-size: 11px; opacity: .8; }
   <span><kbd>↑</kbd> <kbd>↓</kbd> SELECT</span>
   <span><kbd>←</kbd> <kbd>→</kbd> ALGORITHM</span>
   <span><kbd>Shift</kbd>-click holds a button</span>
-  <span><button id="demo" type="button" hidden>Load demo</button></span>
+  <span id="demos" hidden><select id="recipe" aria-label="Demo recipe">
+    <option value="0">Four engines</option>
+    <option value="1">Sunken Pulse</option>
+    <option value="2">Distant Choir</option>
+  </select> <button id="demo" type="button">Load demo</button></span>
   <span id="midiknobs" hidden><label><input type="checkbox" id="knobson"> MIDI CC 20–27 turn the panel's knobs</label>
   <select id="knobmode" aria-label="How the controller sends CC 20–26" hidden>
     <option value="abs">absolute</option>
@@ -501,7 +505,7 @@ async function switchOn() {
     await new Promise((res, rej) => {
       node.port.onmessage = (e) => {
         const m = e.data;
-        if (m.type === "ready") { res(); document.getElementById("demo").hidden = false; }
+        if (m.type === "ready") { res(); document.getElementById("demos").hidden = false; }
         else if (m.type === "error") rej(new Error(m.message));
         else if (m.type === "frame") {
           if (m.fb) drawScreen(m.fb);
@@ -530,7 +534,7 @@ async function switchOn() {
   }
 }
 document.getElementById("go").addEventListener("click", switchOn);
-document.getElementById("demo").addEventListener("click", () => send({ type: "demo" }));   // UMBRA: four tracks to PLAY
+document.getElementById("demo").addEventListener("click", () => send({ type: "demo", n: +document.getElementById("recipe").value }));   // UMBRA: a recipe to PLAY (stopped)
 document.addEventListener("visibilitychange", () => send({ type: "visible", on: !document.hidden }));
 </script>
 </body>

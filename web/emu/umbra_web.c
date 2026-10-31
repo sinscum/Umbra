@@ -371,18 +371,21 @@ EXPORT void web_boot(void)
 /* UMBRA (Phase 1's demo, the page's "Load demo"): a factory pattern in each track's sequencer (T1 ANALOG SUB, T2 FM6
  * PAD, T3 LOFI BELL, T4 DRUM BEAT: engines.c PATTERNS), so PLAY sounds the four engines through their chains. The
  * sounds and the chains as they are; the steps that were there are replaced (no undo). Stopped only */
-EXPORT uint32_t web_demo(void)
+#include "umbra_recipes.c"
+/* the page's demo list: recipe n (umbra_recipes.c) while stopped; 1 if loaded */
+EXPORT uint32_t web_demo(uint32_t n)
 {
-    static const uint8_t PAT[NTRK] = {8, 5, 7, 12};     /* PATTERNS[n - 1] */
-    uint32_t i;
-    if (!web_booted || song.playing)
+    char msg[24];
+    if (!web_booted || song.playing || n >= UMBRA_NRECIPES)
         return 0;
-    for (i = 0; i < NTRK; i++)
-        load_pat16(&trk[i], PATTERNS[PAT[i] - 1u].note, PATTERNS[PAT[i] - 1u].flags);
-    ui_message("DEMO LOADED: PLAY");
+    umbra_recipe(n);
+    strcpy(msg, RECIPE_NAME[n]);
+    strcat(msg, ": PLAY");
+    ui_message(msg);
     ui.force = 1;
     return 1;
 }
+EXPORT uint32_t web_recipes(void) { return UMBRA_NRECIPES; }
 
 /* input, by the printed labels: buttons bit b = B_FX .. B_OCTUP (panel.c), keys bit k = key k (F3 .. G5),
  * encoders by role (EN_SELECT .. EN_K4), MASTER 0..1023 */
