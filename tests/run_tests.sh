@@ -362,6 +362,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm
     run "metronome and count-in: beats sample for sample (internal and external clock), accent, level, MASTER, not in USB, count-in timing, notes onto step 1" "$OUT/click_test"
+    $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/umbra_store_test" tests/umbra_store_test.c -lm
+    run "UMBRA chains saved beside the projects: round trip, power cycle, base-tree projects, re-saved slots, erase, autosave, torn writes" "$OUT/umbra_store_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/persistence_test" tests/persistence_test.c -lm
     run "persistence: deferred settings, retry and failed-save rollback" "$OUT/persistence_test"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/backup_test" tests/backup_test.c -lm

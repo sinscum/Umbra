@@ -805,6 +805,9 @@ static union {                               /* serialized main-loop work; no re
 } proj_wire_u __attribute__((section(".pool")));
 #define proj_wire (proj_wire_u.s)
 static uint8_t proj_wire_gen;                /* +1 whenever proj_wire is rewritten (a backup's runtime copy lives there) */
+#if UMBRA_CHAIN
+#include "umbra_store.c"                     /* UMBRA: the projects' chains, beside them */
+#endif
 
 static void proj_steps(step_t *s)            /* a loaded sequence stays inside its fixed fields */
 {
@@ -906,6 +909,9 @@ static int project_save_as(uint32_t slot, const char *name)
             return 2;
         }
         memcpy(&proj_slot[slot & 3u], &proj_wire, sizeof proj_wire);
+#if UMBRA_CHAIN
+        uch_saved(slot);                                /* UMBRA: its chain, beside it */
+#endif
         proj_name_get(proj_name, (const uint8_t *)p->name);
         proj_cur = (uint8_t)(slot & 3u);
         pat_from_set((slot & 3u) + 1u);
@@ -914,6 +920,9 @@ static int project_save_as(uint32_t slot, const char *name)
     }
 #endif
     memcpy(&proj_slot[slot & 3u], &proj_wire, sizeof proj_wire);
+#if UMBRA_CHAIN
+    uch_saved(slot);
+#endif
     proj_name_get(proj_name, (const uint8_t *)p->name);
     proj_cur = (uint8_t)(slot & 3u);
     pat_from_set((slot & 3u) + 1u);
@@ -1033,6 +1042,9 @@ static int project_erase(uint32_t slot)
     }
 #endif
     memset(&proj_slot[slot], 0, sizeof proj_slot[slot]);
+#if UMBRA_CHAIN
+    uch_erased(slot);
+#endif
     if (proj_cur == slot)
         proj_cur = PROJ_NO_SLOT;
     for (k = 0; k < NTRK; k++)
@@ -1139,6 +1151,9 @@ static void project_load(uint32_t slot)
     if (!project_restore_runtime(&proj_scratch)) {
         proj_cur = (uint8_t)(slot & 3u);
         pat_from_set((slot & 3u) + 1u);
+#if UMBRA_CHAIN
+        uch_loaded(slot);                               /* UMBRA: its chain (none saved with it: the default) */
+#endif
     }
 }
 
@@ -1184,6 +1199,9 @@ static void persist_boot(void)                    /* before settings_init / pane
             if (!proj_import(&proj_scratch, &proj_slot[i], sizeof(project_store_t)))
                 proj_fetch(i);
     }
+#if UMBRA_CHAIN
+    uch_boot();                                    /* UMBRA: their chains */
+#endif
     up_boot();                                     /* user presets */
 #endif
 }
@@ -1330,6 +1348,9 @@ static uint32_t autosave_sig(void)
     h = as_mix(h, song.mch, sizeof song.mch);           /* (1.5.5: MIDI IN TRACK's channels, the project's) */
     h = as_mix(h, &motion, sizeof motion);
     h = as_mix(h, &chain_config, sizeof chain_config);
+#if UMBRA_CHAIN
+    h = as_mix(h, (const void *)uchain, sizeof uchain);   /* UMBRA: a bypass changed is a change to save */
+#endif
     return as_mix(h, proj_name, sizeof proj_name);
 }
 
@@ -1370,6 +1391,10 @@ static void autosave_poll(void)
     project_capture(&proj_scratch);
     proj_wire_gen++;
     as.err = !proj_pack(&proj_wire, &proj_scratch) || st_save(OBJ_AUTOSAVE, &proj_wire, sizeof proj_wire) != 0;
+#if UMBRA_CHAIN
+    if (!as.err)
+        uch_autosaved(&proj_wire, sizeof proj_wire);   /* UMBRA: the chain with it */
+#endif
     if (!as.err) {
         as.saved = sig;
         as.writes++;
@@ -1391,6 +1416,9 @@ static int autosave_boot(int allowed)
         if (n > 0 && proj_import(&proj_scratch, &proj_wire, n)) {
             proj_bound(&proj_scratch);
             if (!project_restore_runtime(&proj_scratch)) {
+#if UMBRA_CHAIN
+                uch_autorestored(&proj_wire, (uint32_t)n);   /* UMBRA: its chain */
+#endif
                 ui_message("RESTORED");
                 rc = 1;
             }

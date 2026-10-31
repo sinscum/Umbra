@@ -228,7 +228,13 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 - RAM: all audio buffers static, in one header, checked against `tests/ram_budget.txt`.
 
 ## 11. Saved data
-PROJECT format (`UMBRA_PROJ v1`): per track — source type + params, device bypass/types/params, mods, sends; per project — macros, scenes, mixer, sequences. TAPE audio is **not** saved in v1 (RAM only); flash-saved TAPE is a v2 feature with its own version bump.
+A project is the base tree's record (one full 4 KB flash sector: no room) plus UMBRA's own record beside it, in
+its own storage object ("UMB1", `firmware/src/umbra_store.c`, flash 0xE8000..0xF1FFF: four project slots and the
+autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Later versions add device params,
+mods, sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
+record names the project record it was saved with (its CRC): a base-tree project, a slot re-saved by the base tree,
+or a torn write loads with the default chain, never another project's. TAPE audio is **not** saved (RAM only);
+flash-saved TAPE is a later version with its own bump.
 
 ## 12. Decisions and open questions
 - **Decided (Phase 0):** stay on the current base tree. FM1 Open's engine is a closed, FM-1-only binary SDK

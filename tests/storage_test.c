@@ -107,14 +107,14 @@ int main(void)
     /* the user presets' FM6 patches (1.0.3) in the two sectors of the retired FM6 bank: 0x9F000 (after the projects)
      * and 0xFE000 (after the settings); the two objects share them, told apart by the commit record's type */
     bad += check("FM6 user preset patches (and the retired bank) in the sectors 0x9F000 / 0xFE000",
-                 OBJ_UPFM6 == OBJ_COUNT - 2 && OBJ_FM6BANK == OBJ_UPFM6 - 1 && st_sector(OBJ_UPFM6, 0) == 0x9F000u &&
+                 OBJ_UPFM6 == OBJ_UCHAIN0 - 2 && OBJ_FM6BANK == OBJ_UPFM6 - 1 && st_sector(OBJ_UPFM6, 0) == 0x9F000u &&
                      st_sector(OBJ_PROJECT0 + 3, 1) + 4096 == 0x9F000u && st_sector(OBJ_UPFM6, 1) == 0xFE000u &&
                      st_sector(OBJ_FM6BANK, 0) == 0x9F000u && st_sector(OBJ_FM6BANK, 1) == 0xFE000u &&
                      st_sector(OBJ_SETTINGS, 1) + 4096 == 0xFE000u);
     /* the autosave (1.2, project.c): its own pair 0xE5000 / 0xE6000, above the OTA staging, apart from every other
      * object; a save there touches no other object */
     {
-        uint32_t o, c, ok = OBJ_AUTOSAVE == OBJ_COUNT - 1 && st_sector(OBJ_AUTOSAVE, 0) == 0xE5000u &&
+        uint32_t o, c, ok = OBJ_AUTOSAVE == OBJ_UCHAIN0 - 1 && st_sector(OBJ_AUTOSAVE, 0) == 0xE5000u &&
                                st_sector(OBJ_AUTOSAVE, 1) == 0xE6000u;
         static uint8_t snap[0x100000];
         for (o = 0; o < OBJ_AUTOSAVE; o++)
@@ -124,6 +124,25 @@ int main(void)
         ok &= st_save(OBJ_AUTOSAVE, a, sizeof a) == 0 && st_load(OBJ_AUTOSAVE, got, sizeof got) == (int)sizeof a &&
               !memcmp(got, a, sizeof a) && !memcmp(snap, nor, 0xE5000u) && !memcmp(snap + 0xE7000u, nor + 0xE7000u, 0x19000u);
         bad += check("the autosave in its own sectors 0xE5000 / 0xE6000, nothing else touched", ok);
+    }
+    /* UMBRA: the chains (umbra_store.c): 5 objects (4 projects + the autosave), A/B in 0xE8000..0xF1FFF (FL_XDATA1),
+     * apart from every other object and from the FM6 voice bank (0xE7000); a save there touches nothing else */
+    {
+        uint32_t o, c, o2, c2, ok = OBJ_UCHAIN_AUTO == OBJ_UCHAIN0 + 4 && OBJ_COUNT == OBJ_UCHAIN_AUTO + 1;
+        static uint8_t snap[0x100000];
+        for (o = OBJ_UCHAIN0; o < OBJ_COUNT; o++)
+            for (c = 0; c < 2u; c++) {
+                uint32_t a0 = st_sector(o, c);
+                ok &= a0 >= 0xE8000u && a0 + 4096u <= 0xF2000u;
+                for (o2 = 0; o2 < OBJ_COUNT; o2++)
+                    for (c2 = 0; c2 < 2u; c2++)
+                        if ((o2 != o || c2 != c) && o2 != OBJ_FM6BANK)
+                            ok &= st_sector(o2, c2) != a0;
+            }
+        memcpy(snap, nor, sizeof nor);
+        ok &= st_save(OBJ_UCHAIN0 + 1, a, 64) == 0 && st_load(OBJ_UCHAIN0 + 1, got, sizeof got) == 64 &&
+              !memcmp(got, a, 64) && !memcmp(snap, nor, 0xE8000u) && !memcmp(snap + 0xF2000u, nor + 0xF2000u, 0xE000u);
+        bad += check("UMBRA chains: 5 objects A/B in 0xE8000..0xF1FFF, apart from the rest; a save touches nothing else", ok);
     }
     {
         static uint8_t bank[3472], back[3728], tab[3728];

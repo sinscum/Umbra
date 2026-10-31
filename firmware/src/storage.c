@@ -29,7 +29,9 @@
  * The FM6 voice bank (1.4.1, fm6_vbank.c): 0xE7000, the sector above the autosave, with a commit record of the same
  * kind (type OBJ_FM6VB, not an st_load object); a new bank is first staged in the autosave's older copy (fm6_vbank.c). */
 enum { OBJ_SETTINGS, OBJ_PROJECT0, OBJ_UPRESET0 = OBJ_PROJECT0 + 4, OBJ_FM6BANK = OBJ_UPRESET0 + 2, OBJ_UPFM6,
-       OBJ_AUTOSAVE, OBJ_COUNT };
+       OBJ_AUTOSAVE,
+       OBJ_UCHAIN0, OBJ_UCHAIN_AUTO = OBJ_UCHAIN0 + 4,   /* UMBRA: the projects' and the autosave's chains (umbra_store.c), */
+       OBJ_COUNT };                                    /* A/B at 0xE8000..0xF1FFF (FL_XDATA1, a firmware's own data) */
 #define OBJ_FM6VB 32u                          /* the voice bank's commit records (fm6_vbank.c; >= OBJ_COUNT: st_load
                                                 * never takes one, no object here takes its sectors) */
 
@@ -69,6 +71,8 @@ static uint32_t st_sector(uint32_t obj, uint32_t copy)  /* flash offset of copy 
         return copy ? 0xFE000u : 0x9F000u;
     if (obj == OBJ_AUTOSAVE)
         return 0xE5000u + copy * ST_SECTOR;
+    if (obj >= OBJ_UCHAIN0)                              /* UMBRA */
+        return 0xE8000u + (obj - OBJ_UCHAIN0) * 2u * ST_SECTOR + copy * ST_SECTOR;
     if (obj >= OBJ_UPRESET0)
         return 0xDC000u + (obj - OBJ_UPRESET0) * 2u * ST_SECTOR + copy * ST_SECTOR;
     return 0x97000u + (obj - OBJ_PROJECT0) * 2u * ST_SECTOR + copy * ST_SECTOR;

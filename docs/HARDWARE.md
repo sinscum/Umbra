@@ -59,7 +59,7 @@ DESIGN §2's "4 × TAPE buffers" does not fit as written; Phase 1/4 have to choo
 | 0x097000..0x0E0000 | 292 KiB | store: settings, projects, user presets; **user sample slots** at 0xA0000 |
 | 0x0E0000..0x0E5000 | 20 KiB | update loader staging |
 | 0x0E5000..0x0E7000 | 8 KiB | autosave A/B |
-| 0x0E7000..0x0FC000 | 84 KiB | FL_XDATA1: FM6 voice bank (0xE7000) + firmware data |
+| 0x0E7000..0x0FC000 | 84 KiB | FL_XDATA1: FM6 voice bank (0xE7000); **UMBRA's chains 0xE8000..0xF1FFF** (5 objects A/B: 4 projects + the autosave, `umbra_store.c`); 0xF2000..0xFBFFF (40 KiB) free |
 | 0x0FC000..0x0FF000 | 12 KiB | globals |
 | 0x0FF000 | 4 KiB | key / MAC |
 
