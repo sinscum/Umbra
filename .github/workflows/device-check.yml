@@ -43,7 +43,7 @@ jobs:
         run: mkdir -p build && ./build.sh | tee build/build.log
       - name: Host tests
         run: |
-          sh tests/run_tests.sh > build/tests.log 2>&1 && { tail -3 build/tests.log; exit 0; }
+          sh tests/run_tests.sh > build/tests.log 2>&1 && { grep "^target: " build/tests.log || true; tail -3 build/tests.log; exit 0; }
           echo "::group::the failing lines"
           grep -niE "fail|error|sanitizer|abort|segmentation|timeout|not ok|^== " build/tests.log | grep -viE " ok$|fails? (at once|the capture)|failure keeps|save error|failed-save|_fail" | head -150
           echo "::endgroup::"
