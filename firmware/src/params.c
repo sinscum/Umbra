@@ -463,7 +463,7 @@ static const page_t PAGES[] = {
     {"LFO 2", FAM_LFO, SC_TRACK, GR_LFO, {P_LSYNC, P_LTRIG, P_LPOL, 0xFF}},   /* 1.2: SYNC TRIG POL */
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
-    {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
+    {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, 0xFF, 0xFF, 0xFF}},   /* (UMBRA: the sends are SPACE's) */
     {"SLICER", FAM_FX, SC_TRACK, GR_SLCR, {P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH}},
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* 1.5: the track's INSERT (fx.c) */
     {"INSERT 2", FAM_FX, SC_TRACK, GR_INS, {P_IMIX, 0xFF, 0xFF, 0xFF}},  /* .. its dry / wet */
@@ -506,9 +506,10 @@ static const page_t PAGES[] = {
                                                                            * WIDTH (SPREAD) */
     {"SPACE 2", FAM_GLO, SC_GLOBAL, GR_NONE, {G_RSIZE, G_RDAMP, G_DTIME, G_DFDBK}},   /* the buses: DECAY DAMP TIME FDBK */
     {"SPACE 3", FAM_GLO, SC_USONG, GR_NONE, {0, 1, 2, 3}},   /* WOW SHIMMER PRE-DLY FREEZE (umbra_space.c US_*) */
-    {"SENDS", FAM_GLO, SC_TRACK, GR_NONE, {P_REV, P_DLY, P_CHOR, 0xFF}},
-    {"DLY", FAM_GLO, SC_GLOBAL, GR_NONE, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},
-    {"REVERB", FAM_GLO, SC_GLOBAL, GR_NONE, {G_RTYPE, G_RSIZE, G_RDAMP, 0xFF}},   /* TYPE: ROOM / SPRING / HALL */
+    {"SENDS", FAM_GLO, SC_TRACK, GR_NONE, {P_CHOR, 0xFF, 0xFF, 0xFF}},   /* (UMBRA: REV DLY on SPACE) */
+    {"DLY", FAM_GLO, SC_GLOBAL, GR_NONE, {G_DCOLOR, G_DMIX, 0xFF, 0xFF}},   /* (UMBRA: TIME FDBK on SPACE 2) */
+    {"REVERB", FAM_GLO, SC_GLOBAL, GR_NONE, {G_RTYPE, 0xFF, 0xFF, 0xFF}},   /* TYPE: ROOM / SPRING / HALL (UMBRA: SIZE
+                                                                          * DAMP on SPACE 2) */
     {"CHORUS", FAM_GLO, SC_GLOBAL, GR_NONE, {G_CRATE, G_CDEPTH, 0xFF, 0xFF}},
     {"SONG", FAM_GLO, SC_GLOBAL, GR_SONG, {0xFF, 0xFF, 0xFF, 0xFF}},        /* (1.2: GLO's only page; up to 1.1.5 SEQ's) */
     /* SAVE's taps (1.5, #173): USER (SAVE from another page: the quick save, SAVE OCT+ OCT+), PRESETS (the engines and

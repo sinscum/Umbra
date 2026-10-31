@@ -181,6 +181,16 @@ FILTER = pass-through pages (FILTER's button keeps the scale and chord pages aft
 SPACE = the track's sends, the shared delay / reverb / chorus, then SONG. The footer's first row shows the chain strip
 on every device page.
 
+Lights (Phase 3): the keys have one colour and four levels (dark, the backlight glow, a mid level, lit) plus a
+breath. With MENU > LEDS DIM HI or DIM LO every button and key that is not lit or breathing glows, on every page,
+so the panel can be found in the dark. Over that glow:
+- MIXER: white keys 1–8 at the mid level; a muted track's key lit; a soloed track's key breathes.
+- FILTER (RESONATOR, COMB): the keys of the notes it is tuned to at the mid level (the chord as MORPH sets it).
+- SOURCE pages, and anywhere with MENU > SCALE LEDS ON: the scale's keys at the mid level, the root's lit.
+- GLO held + G5: FREEZE on / off (SPACE 3's), G5 lit while frozen.
+Pages trimmed so each value has one home: DRIVE BASIC's FX page is DIST alone, SENDS is CHOR alone, DLY is COLOR
+and MIX, REVERB is TYPE (the sends, PAN, TIME, FDBK, SIZE and DAMP are SPACE's pages).
+
 Phase 2: on a FILTER or DRIVE page, PRESETS picks the device's type (its values go to the type's defaults); hold the
 device's button + OCT+ to bypass it (the chain strip outlines a bypassed device). Device values are not automatable
 or MOD targets until Phase 5.

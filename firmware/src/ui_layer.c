@@ -653,6 +653,9 @@ static void layer_key(uint32_t l, uint32_t k)
             ml_toggle();                                /* D4: MIDI LEARN on / off (midi_learn.c) */
         } else if (p == 6u) {
             lys.fill |= 1u << k;                        /* E4: FILL while held (layer_keys) */
+        } else if (p == 15u && UMBRA_SPACE) {           /* UMBRA: G5, SPACE's FREEZE on / off (umbra_space.c) */
+            usong[US_FRZ] = (int16_t)!usong[US_FRZ];
+            ui_message(usong[US_FRZ] ? "FREEZE ON" : "FREEZE OFF");
         }
     } else if (l == LAYER_SCL) {
         TSEL->p[P_ROOT] = (int16_t)((k + 5u) % 12u);    /* the key's note name (F3 = F) */
@@ -851,8 +854,9 @@ static uint32_t layer_leds(uint32_t *br)
             on = can && ((held >> e) & 1u);
         } else if (l == LAYER_GLO) {                    /* sounding lit; SOLO held lit, the others, C4, F4 breathe */
             on = b ? p < NTRK && glo_sounding(p) : (p < NTRK && ((lys.solo >> k) & 1u)) || (p == 5u && ui.ml.on) ||
-                 (p == 6u && seq_fill);
-            can = !b && (p < NTRK || p == 4u || p == 5u || p == 6u || (p == 7u && !song.g[G_CLOCK]));
+                 (p == 6u && seq_fill) || (p == 15u && UMBRA_SPACE && usong[US_FRZ]);   /* (UMBRA: G5 lit, frozen) */
+            can = !b && (p < NTRK || p == 4u || p == 5u || p == 6u || (p == 7u && !song.g[G_CLOCK]) ||
+                         (p == 15u && UMBRA_SPACE));
         } else if (l == LAYER_SCL) {                    /* the root lit, the scale's notes breathe */
             e = (k + 5u + 12u - root) % 12u;
             on = e == 0u;

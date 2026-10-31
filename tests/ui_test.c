@@ -3261,8 +3261,8 @@ static int test_layer(void)
      * power-on since 1.2), kept by a project */
     ui_power_on();
     go_title("REVERB");
-    ok = cur_page()->fam == FAM_GLO && cur_page()->id[0] == G_RTYPE && cur_page()->id[1] == G_RSIZE &&
-         cur_page()->id[2] == G_RDAMP && song.g[G_RTYPE] == 2 && str_eq(GP[G_RTYPE].names[2], "HALL");
+    ok = cur_page()->fam == FAM_GLO && cur_page()->id[0] == G_RTYPE && cur_page()->id[1] == 0xFF &&   /* (UMBRA: SIZE DAMP on SPACE 2) */
+         cur_page()->id[2] == 0xFF && song.g[G_RTYPE] == 2 && str_eq(GP[G_RTYPE].names[2], "HALL");
     turn(EN_K1, -2);
     ok &= song.g[G_RTYPE] == 0 && str_eq(GP[G_RTYPE].names[song.g[G_RTYPE]], "ROOM");
     turn(EN_K1, 1);
@@ -3276,7 +3276,7 @@ static int test_layer(void)
     turn(EN_K1, -1);
     ok &= song.g[G_RTYPE] == 0;
     project_load(2);
-    bad += check("REVERB page: TYPE HALL (power-on) / ROOM / SPRING on KNOB 1 (SIZE, DAMP beside it); a project keeps SPRING",
+    bad += check("REVERB page: TYPE HALL (power-on) / ROOM / SPRING on KNOB 1 (SIZE, DAMP on SPACE 2); a project keeps SPRING",
                  ok && song.g[G_RTYPE] == 1);
     go_title("CHORUS");
     bad += check("  CHORUS page: CRT CDP", cur_page()->fam == FAM_GLO && cur_page()->id[0] == G_CRATE &&
@@ -10077,6 +10077,23 @@ static int test_umbra_space(void)
         go_title("VOICE"); frame();
         ok &= scale_leds(&root) == wk;
         bad += check("UMBRA lights: SOURCE's pages show the track's scale (not CHR, not elsewhere)", ok);
+    }
+    {   /* FREEZE on GLO held + G5 (white key 16), lit while frozen; again: off */
+        uint32_t g5 = white(15), br, lit;
+        ui_power_on();
+        btn_down(B_GLO); frames(64);
+        key_down(g5); frame();
+        lit = layer_leds(&br);
+        ok = ui.layer == LAYER_GLO && usong[US_FRZ] == 1 && msg_is("FREEZE ON") && (lit >> g5 & 1u) &&
+             kb_note[g5] == KB_SILENT;
+        key_up(g5); frame();
+        lit = layer_leds(&br);
+        ok &= (lit >> g5 & 1u) && !(br >> g5 & 1u);     /* (stays lit: latched) */
+        key_down(g5); frame(); key_up(g5); frame();
+        lit = layer_leds(&br);
+        ok &= usong[US_FRZ] == 0 && !(lit >> g5 & 1u) && (br >> g5 & 1u);   /* (off: it breathes, it can be pressed) */
+        btn_up(B_GLO); frames(64);
+        bad += check("UMBRA: GLO held + G5 turns FREEZE on and off, its key lit while frozen", ok);
     }
     chain_reset();
     return bad;
