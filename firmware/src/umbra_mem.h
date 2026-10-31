@@ -34,7 +34,7 @@
 #define UMBRA_GRN_RING 11264u                   /* GRANULAR's ring a track: 0.51 s at 22.05 kHz, mu-law (umbra_granular.c) */
 #define UMBRA_MEM_GRN (4u * UMBRA_GRN_RING)     /* 44 KiB (Phase 4: the delay's freed half, fx.c UMBRA_DLY_HALF) */
 
-#define UMBRA_TAPE_BYTES 40960u                 /* SOURCE TAPE, shared by the tracks set to it: 1.86 s LO / 0.93 s HI at
+#define UMBRA_TAPE_BYTES 38912u                 /* SOURCE TAPE, shared by the tracks set to it: 1.76 s LO / 0.88 s HI at
                                                  * 22.05 kHz for one (umbra_tape.c) */
 #define UMBRA_MEM_TAPE UMBRA_TAPE_BYTES
 

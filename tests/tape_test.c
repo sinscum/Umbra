@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* UMBRA SOURCE RETURN and TAPE (firmware/src/umbra_source.c, umbra_tape.c), on the real sources:
  * 1. RETURN: track 2 is track 1's last block after its chain, at LEVEL (one block late); itself: silence
- * 2. TAPE's parts: one track all 40 KiB, two half each (apart), a change empties them
+ * 2. TAPE's parts: one track all 38 KiB, two half each (apart), a change empties them
  * 3. a take (FROM SELF, LO): its length as recorded; LOOP plays it at its pitch, bounded, its ends without a click; HI
  *    within 0.1 % of the source, LO within a mu-law step; PITCH +12 an octave up; DIR REV the same pitch
  * 4. a take runs full: it stops at the part's end (REC still on: no more)
@@ -113,7 +113,7 @@ int main(void)
     }
     /* 2 */
     fresh(1u);
-    ck("parts: one TAPE track, all 40 KiB", tps[0].size == UMBRA_TAPE_BYTES && tps[0].base == 0);
+    ck("parts: one TAPE track, all of UMBRA_TAPE_BYTES", tps[0].size == UMBRA_TAPE_BYTES && tps[0].base == 0);
     tape_block(1u | 4u);
     ck("parts: two, half each, apart (track order)", tps[0].size == UMBRA_TAPE_BYTES / 2u && tps[2].base == UMBRA_TAPE_BYTES / 2u &&
        tps[0].len == 0);
@@ -170,7 +170,7 @@ int main(void)
     P[TP_FROM] = TFROM_SELF;
     P[TP_REC] = TREC_ON;
     run(220, 8000, SECS(2.2), 0);
-    ck("a take runs full: it stops at the part's end (1.86 s LO), REC still on", tps[0].full && tps[0].len == UMBRA_TAPE_BYTES);
+    ck("a take runs full: it stops at the part's end (1.76 s LO), REC still on", tps[0].full && tps[0].len == UMBRA_TAPE_BYTES);
     /* 5 */
     {
         double hz0, hz1;

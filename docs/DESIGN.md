@@ -93,8 +93,8 @@ page (EDIT's cycle, after ARP 2); the engine pages and VOICE show only for SYNTH
 engine (its flash sets and user slots) and then plays as SYNTH. OFF is silence (the engine keeps its notes, so switching
 back is instant). **RETURN** (`FROM · LVL`) reads the other track's block after its chain, one block late (0.7 ms) on
 one core or two. **TAPE** pages `LVL · PTCH · STRT · LEN` / `ATK · REL · MODE · DIR` / `FROM · QUAL · REC · FDBK`:
-- Memory: 40 KiB shared by the TAPE tracks in equal parts (one: all of it), at 22.05 kHz: HI 16-bit 0.93 s, LO µ-law
-  1.86 s for one track. Changing the parts or the quality empties the takes. Never saved (RAM only).
+- Memory: 38 KiB shared by the TAPE tracks in equal parts (one: all of it), at 22.05 kHz: HI 16-bit 0.88 s, LO µ-law
+  1.76 s for one track. Changing the parts or the quality empties the takes. Never saved (RAM only).
 - FROM MIX (the mix before the limiter), T1–T4 (a track after its chain) or SELF (its engine, monitored; REC over a
   take overdubs where it plays, the old take × FDBK).
 - REC: a new take from the start until OFF or full; full, it plays with REC still on. **CLR** asks first, then empties

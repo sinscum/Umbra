@@ -2,4 +2,6 @@
 # 33 KiB = the pool's 41.4 KiB free (docs/HARDWARE.md, measured) minus the build's 8 KiB headroom,
 # + 64 KiB (Phase 4, Shane's OK): the delay stored at 22.05 kHz (fx.c UMBRA_DLY_HALF) frees half its 128 KiB.
 # Raise it only by freeing base-tree memory first, with Shane's OK (CLAUDE.md).
-budget 99328
+# Phase 4b, measured: the device build's pool check (8 KiB headroom) failed by 1,548 B with UMBRA at 98,624 B, so
+# the real limit is 98,624 - 1,548 = 97,076 (the arithmetic above was 2,252 B generous). Lowered to that.
+budget 97076

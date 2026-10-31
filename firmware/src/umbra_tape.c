@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* UMBRA SOURCE TAPE (docs/DESIGN.md §3.1): a loop recorder. The tracks set to TAPE share UMBRA_TAPE_BYTES (40 KiB,
+/* UMBRA SOURCE TAPE (docs/DESIGN.md §3.1): a loop recorder. The tracks set to TAPE share UMBRA_TAPE_BYTES (38 KiB,
  * umbra_mem.h), in equal parts in track order (one TAPE track: all of it); a part changing (a track to or from TAPE)
- * empties them. At 22.05 kHz (a value a pair of samples, the pair's average): HI 16-bit (0.93 s for one track), LO 8-bit
- * mu-law (1.86 s), changing the quality empties it.
+ * empties them. At 22.05 kHz (a value a pair of samples, the pair's average): HI 16-bit (0.88 s for one track), LO 8-bit
+ * mu-law (1.76 s), changing the quality empties it.
  *   FROM  MIX (the mix of the block before, before the limiter), T1..T4 (a track after its chain, the block before:
  *         umbra_source.c), SELF (the track's own engine: monitored while recording; over a take, an overdub with FDBK)
  *   REC   ON: a new take from the start (SELF over a take: overdubs where it plays) until OFF or full (then it plays,
