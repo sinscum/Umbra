@@ -41,6 +41,8 @@ typedef struct {
 #include "umbra_mem.h"
 #include "umbra_drive.c"
 #include "umbra_filter.c"
+#include "umbra_space.c"
+#include "umbra_master.c"
 
 static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}};   /* the engine's cost is its own (ENG_VCOST) */
 static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}};
@@ -176,6 +178,8 @@ static void chain_reset(void)                           /* every track: first ty
         }
         uchain[i].bypass = 0;
     }
+    usong_reset();                                      /* (SPACE's and MASTER's song values; FREEZE off) */
+    usolo = 0;
 }
 
 /* the device a page family is (DESIGN §7: EDIT ARP SCL FX GLO open SOURCE GRANULAR FILTER DRIVE SPACE); DEV_COUNT none */

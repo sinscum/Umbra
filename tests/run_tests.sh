@@ -422,6 +422,10 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UMBRA DRIVE DAMAGE: defaults bit for bit, each stage bounded and DC-free, no click on a jump, TILT, cost" "$OUT/drive_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/filter_test" tests/filter_test.c -lm
     run "UMBRA FILTER: SVF's responses, stability at full RES, its ring ending, KEYTRK, WANDER, cost" "$OUT/filter_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/space_test" tests/space_test.c -lm
+    run "UMBRA SPACE / MASTER: FREEZE holds and releases clean (HALL ROOM delay), PRE-DLY, WOW, DJ FILTER, GLUE, cost" "$OUT/space_test"
+    $CC -O2 -w -DUMBRA_SHIMMER=1 -Ibuild/gen -Ifirmware/src -o "$OUT/space_test_shim" tests/space_test.c -lm
+    run "UMBRA SPACE built with UMBRA_SHIMMER=1: SHIMMER bounded, its cost" "$OUT/space_test_shim"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/umbra_golden" tests/umbra_golden.c -lm
     run "UMBRA golden renders: each emulator recipe (FOUR ENGINES, SUNKEN PULSE, DISTANT CHOIR), 8 s against tests/umbra_golden.txt" "$OUT/umbra_golden"
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for

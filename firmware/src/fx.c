@@ -245,6 +245,10 @@ static __attribute__((noinline)) void rev_room(const int32_t *rev_in, int32_t *o
 {
     uint32_t i, k;
     int32_t size = 25000 + song.g[G_RSIZE] * 50, damp = 32767 - song.g[G_RDAMP] * 200;
+#if UMBRA_SPACE
+    size = frz_mix(size, 32768);                        /* UMBRA FREEZE: lossless combs (umbra_space.c) */
+    damp = frz_mix(damp, 32767);
+#endif
     for (i = 0; i < n; i++) {
         int32_t a = 0;
         int16_t *c = rev_comb;
@@ -406,6 +410,9 @@ static __attribute__((noinline)) void rev_hall(const int32_t *rev_in, int32_t *o
     int16_t *b = rev_comb, *a = rev_ap;
     uint32_t i, k, s, m, d;
     int32_t kd = HL_KD(song.g[G_RDAMP]);
+#if UMBRA_SPACE
+    kd = frz_mix(kd, 32768);                            /* UMBRA FREEZE: no damping (umbra_space.c) */
+#endif
     int32_t xp = hl.x, hp = hl.hp, he = hl.he, mp = hl.m, sp = hl.s;
     (void)n;
     if (hl.sz != song.g[G_RSIZE] + 1)
@@ -426,21 +433,33 @@ static __attribute__((noinline)) void rev_hall(const int32_t *rev_in, int32_t *o
         hl.d[k] = (uint16_t)d;
         a += HL_AP[k];
     }
+#if UMBRA_SPACE
+    if (!spc.fz)                                        /* UMBRA FREEZE: the drift stopped (lossless reads below) */
+#endif
     hl.ph += HL_LFO;
     for (k = 0; k < HL_NL; k++) {                       /* the lines' ends */
         int32_t g = hl.g[k], f = 0, lo;
+#if UMBRA_SPACE
+        g = frz_mix(g, HL_G_FRZ(spc.fzc));              /* UMBRA FREEZE: the loop at unity */
+#endif
         if ((HL_LPM >> k) & 1u)
             d = hl.i[k];                                /* (low-passed: the line's end) */
         else {                                          /* (drifting: HL_MOD + 2 +- HL_MOD samples short of it) */
             uint32_t r = (uint32_t)(((HL_MOD + 2) << 8) +
                                     ((osc_sine(hl.ph * (1u + (k & 1u)) + k * 0x2C000000u) * HL_MOD) >> 7));
             f = (int32_t)(r & 255u);
+#if UMBRA_SPACE
+            f = (f * (FRZ_ONE - spc.fz)) >> 15;         /* (frozen: on a sample, no dulling pass after pass) */
+#endif
             d = hl.i[k] + (r >> 8);
             d = d >= HL_LEN[k] ? d - HL_LEN[k] : d;
         }
         s = d + HL_LEN[k] / 2u;                         /* quiet? (two samples half a line apart) */
         s = s >= HL_LEN[k] ? s - HL_LEN[k] : s;
         lo = (b[d] < 0 ? -b[d] : b[d]) + (b[s] < 0 ? -b[s] : b[s]) < HL_LOUD;
+#if UMBRA_SPACE
+        lo = lo && !spc.fz;                             /* (frozen: rounded to the nearest, the quiet end held) */
+#endif
         if ((HL_LPM >> k) & 1u) {
             HL_RUNS(d, HL_LEN[k], m, s, hall_end_lp(b + d, hl.y[k] + s, m, g, lo, &hl.lp[k], &hl.le[k], kd));
         } else {
@@ -567,6 +586,11 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
     if (pf.ew1 && fb < THR_FB)
         fb += mulq16(THR_FB - fb, (uint32_t)pf.ew1 << 1);   /* ECHO THROW (perform.c): more feedback while held, 0.7
                                                              * at most (the loop's gain below 1: it never runs away) */
+#if UMBRA_SPACE
+    int wow = space_wow_on();                           /* UMBRA WOW: the read point drifting (umbra_space.c) */
+    fb = frz_mix(fb, 32768);                            /* UMBRA FREEZE: feedback 1, no colour: lossless */
+    col = frz_mix(col, 32768);
+#endif
     for (i = 0; i < n; i++) {
         int32_t y = 0, x, r;
         /* chorus: modulated short delay, 5..15 ms */
@@ -581,7 +605,11 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         }
         fx.cho_w++;
         /* delay with a low-passed feedback */
+#if UMBRA_SPACE
+        x = wow ? space_dly_read(dly_buf, DLY_LEN, fx.dly_w, dl) : dly_buf[(fx.dly_w - dl) & (DLY_LEN - 1u)];
+#else
         x = dly_buf[(fx.dly_w - dl) & (DLY_LEN - 1u)];
+#endif
         fx.dly_lp += mulq15(x - fx.dly_lp, col);
         dly_buf[fx.dly_w & (DLY_LEN - 1u)] =
             (int16_t)clamp((dly_in[i] >> 1) + mulq15(fx.dly_lp, fb), -32768, 32767);
@@ -592,6 +620,11 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
     rt = song.g[G_RTYPE];
     rt = rt == 1 || rt == 2 ? rt : 0;
     hl.side = 0;
+#if UMBRA_SPACE && UMBRA_SHIMMER
+    int32_t shw[CTL];                                   /* UMBRA SHIMMER: the reverb's own block (umbra_space.c) */
+    for (i = 0; i < n; i++)
+        shw[i] = wet[i];
+#endif
     if (rt != fx.rtype)
         rev_switch(rev_in, wet, n, rt);
     else if (rt == 2)
@@ -600,6 +633,11 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         rev_spring(rev_in, wet, n);
     else
         rev_room(rev_in, wet, n);
+#if UMBRA_SPACE && UMBRA_SHIMMER
+    for (i = 0; i < n; i++)
+        shw[i] = wet[i] - shw[i];
+    space_shimmer(shw, n);
+#endif
 }
 
 /* after the buses: HALL's stereo difference to the left and from the right of the dry mix (the wet bus adds the
@@ -984,8 +1022,14 @@ static __attribute__((noinline)) void perf_master(int32_t *out, uint32_t n)
         mix_r[i] = (((mix_r[i] + wet[i]) >> 2) * mg) >> 10;
     }
     perf_block(mix_l, mix_r, n);
+#if UMBRA_SPACE
+    umaster_block(n);                                   /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+#endif
     for (i = 0; i < n; i++) {
         int32_t l = mix_l[i], r = mix_r[i];
+#if UMBRA_SPACE
+        umaster(&l, &r);
+#endif
         master_out(&l, &r);
         out[2u * i] = l;
         out[2u * i + 1u] = r;
@@ -1085,6 +1129,9 @@ static void mix_block(int32_t *out, uint32_t n)
 #endif
     if (perf)
         perf_pre(mix_l, mix_r, send_d, send_r, n);
+#if UMBRA_SPACE
+    space_pre(send_d, send_r, n);                       /* UMBRA: PRE-DLY, FREEZE's closed sends (umbra_space.c) */
+#endif
     fx_buses(send_c, send_d, send_r, wet, n);
     if (hl.side)
         rev_side_mix(mix_l, mix_r, n);                  /* HALL: stereo */
@@ -1094,9 +1141,15 @@ static void mix_block(int32_t *out, uint32_t n)
         perf_master(out, n);
         return;
     }
+#if UMBRA_SPACE
+    umaster_block(n);                                   /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+#endif
     for (i = 0; i < n; i++) {
         int32_t l = (((mix_l[i] + wet[i]) >> 2) * mg) >> 10;
         int32_t r = (((mix_r[i] + wet[i]) >> 2) * mg) >> 10;
+#if UMBRA_SPACE
+        umaster(&l, &r);
+#endif
         master_out(&l, &r);
         out[2u * i] = l;
         out[2u * i + 1u] = r;

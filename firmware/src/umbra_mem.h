@@ -25,6 +25,12 @@
                                                  * ~43 Hz (F1), int16 (umbra_filter.c) */
 #define UMBRA_MEM_COMB (4u * UMBRA_COMB_LEN * 2u)   /* 8 KiB */
 
-#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB)        /* the sum of every UMBRA_MEM_<NAME> above */
+#define UMBRA_MEM_PRE (2208u * 2u)              /* SPACE PRE-DLY: 100 ms at 22.05 kHz (2205 pairs), int16 (umbra_space.c) */
+#ifndef UMBRA_SHIMMER
+#define UMBRA_SHIMMER 0
+#endif
+#define UMBRA_MEM_SHIM (UMBRA_SHIMMER ? 1024u * 2u : 0u)   /* SPACE SHIMMER's line (UMBRA_SHIMMER only) */
+
+#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB + UMBRA_MEM_PRE + UMBRA_MEM_SHIM)   /* the sum of every UMBRA_MEM_<NAME> above */
 
 #endif
