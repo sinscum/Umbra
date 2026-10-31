@@ -450,7 +450,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     $CC -O2 -w '-DFE_TABLES_H="umbra_tables.h"' -Ibuild/gen -o "$OUT/fe_host" firmware/engines/tests/fe_host.c
     "$OUT/fe_host" > "$OUT/fe_renders.txt" || fail=1
     run "Felucca-Engines with Felucca's tables: the engines' golden renders" diff -u firmware/engines/tests/golden.txt "$OUT/fe_renders.txt"
-    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/union_test" tests/union_test.c -lm
+    $CC -O2 -w -DUMBRA_DLY_HALF=0 -Ibuild/gen -Ifirmware/src -o "$OUT/union_test" tests/union_test.c -lm   # (UMBRA: the
+    #  base tree's full-rate delay, so the engine switches compare with 1.4's mixes; the half-rate line: regress, golden)
     run "engine memory (1.5): every switch between the engines with per-part state sounds as in 1.4 (720 sequences)" \
         "$OUT/union_test" tests/union_golden.txt
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/descdump" tests/descdump.c -lm
