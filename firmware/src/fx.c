@@ -1023,13 +1023,13 @@ static __attribute__((noinline)) void perf_master(int32_t *out, uint32_t n)
     }
     perf_block(mix_l, mix_r, n);
 #if UMBRA_SPACE
-    umaster_block(n);                                   /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+    if (umaster_block(n)) {                             /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+        umaster_mix(out, mix_l, mix_r, 0, 0, n);
+        return;
+    }
 #endif
     for (i = 0; i < n; i++) {
         int32_t l = mix_l[i], r = mix_r[i];
-#if UMBRA_SPACE
-        umaster(&l, &r);
-#endif
         master_out(&l, &r);
         out[2u * i] = l;
         out[2u * i + 1u] = r;
@@ -1142,14 +1142,14 @@ static void mix_block(int32_t *out, uint32_t n)
         return;
     }
 #if UMBRA_SPACE
-    umaster_block(n);                                   /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+    if (umaster_block(n)) {                             /* UMBRA: DJ FILTER, GLUE (umbra_master.c) */
+        umaster_mix(out, mix_l, mix_r, wet, mg, n);
+        return;
+    }
 #endif
     for (i = 0; i < n; i++) {
         int32_t l = (((mix_l[i] + wet[i]) >> 2) * mg) >> 10;
         int32_t r = (((mix_r[i] + wet[i]) >> 2) * mg) >> 10;
-#if UMBRA_SPACE
-        umaster(&l, &r);
-#endif
         master_out(&l, &r);
         out[2u * i] = l;
         out[2u * i + 1u] = r;

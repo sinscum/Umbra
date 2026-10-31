@@ -394,7 +394,7 @@ int main(void)
     {
         struct timespec a, c;
         double ns[2];
-        uint32_t k, f, tr;
+        uint32_t k, f, tr, r;
         static const int16_t DMG[8] = {60, 40, 30, 0, 10, 0, 40, 112};
         for (k = 0; k < 2u; k++) {
             ui_power_on();
@@ -411,10 +411,15 @@ int main(void)
             }
             transport_req = 1;
             for (f = 0; f < FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }   /* (1 s to settle) */
-            clock_gettime(CLOCK_MONOTONIC, &a);
-            for (f = 0; f < 4u * FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }
-            clock_gettime(CLOCK_MONOTONIC, &c);
-            ns[k] = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (4.0 * FS);
+            ns[k] = 1e9;
+            for (r = 0; r < 3u; r++) {                  /* (the best of three 2 s: a busy machine's spikes out) */
+                double t;
+                clock_gettime(CLOCK_MONOTONIC, &a);
+                for (f = 0; f < 2u * FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }
+                clock_gettime(CLOCK_MONOTONIC, &c);
+                t = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (2.0 * FS);
+                ns[k] = t < ns[k] ? t : ns[k];
+            }
         }
         printf("space: the whole mix, four tracks: default chain %.1f ns / sample, every track DAMAGE + RESONATOR and the "
                "buses' and MASTER's additions %.1f ns (x%.2f)\n", ns[0], ns[1], ns[1] / ns[0]);

@@ -21,8 +21,9 @@ static struct {
     int32_t cg, g, gs;          /* .. the block's gain (Q12), the sample's, its step */
 } umst;
 
-/* once a block, before its samples (fx.c mix_block / perf_master) */
-static void umaster_block(uint32_t n)
+/* once a block, before its samples (fx.c mix_block / perf_master); 1 = DJ FILTER or GLUE running this block (then
+ * umaster_mix renders the master in place of fx.c's own loop: that loop, the ISR's, stays as it was) */
+static __attribute__((noinline)) int umaster_block(uint32_t n)
 {
     int32_t dj = usong[US_DJ], glue = usong[US_GLUE];
     if (dj || umst.dj_on) {                               /* DJ FILTER */
@@ -66,6 +67,7 @@ static void umaster_block(uint32_t n)
         if (!glue && umst.cg == 4096 && old == 4096)
             umst.gl_on = 0;
     }
+    return umst.dj_on || umst.gl_on;
 }
 
 static inline int32_t dj_run(dj_side_t *s, int32_t x)
@@ -99,5 +101,23 @@ static inline void umaster(int32_t *l, int32_t *r)
         umst.g += umst.gs;
         *l = (int32_t)(((int64_t)*l * umst.g) >> 12);
         *r = (int32_t)(((int64_t)*r * umst.g) >> 12);
+    }
+}
+
+/* the master's samples with DJ FILTER / GLUE (fx.c: mix_block's loop, or perf_master's when wet is 0: the mix already
+ * levelled), each through master_out as fx.c's loop does. Out of line: its cost is its own, the ISR's loop unchanged
+ * (tests/target_budget.py) */
+static inline void master_out(int32_t *l, int32_t *r);
+static __attribute__((noinline)) void umaster_mix(int32_t *out, const int32_t *ml, const int32_t *mr, const int32_t *wet,
+                                                  int32_t mg, uint32_t n)
+{
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t l = wet ? (((ml[i] + wet[i]) >> 2) * mg) >> 10 : ml[i];
+        int32_t r = wet ? (((mr[i] + wet[i]) >> 2) * mg) >> 10 : mr[i];
+        umaster(&l, &r);
+        master_out(&l, &r);
+        out[2u * i] = l;
+        out[2u * i + 1u] = r;
     }
 }

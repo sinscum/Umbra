@@ -103,7 +103,7 @@ static inline void space_freeze_step(void)
 static inline int32_t frz_mix(int32_t v, int32_t f) { return spc.fz ? v + (int32_t)(((int64_t)(f - v) * spc.fz) >> 15) : v; }
 
 /* before the buses (fx.c mix_block): SHIMMER's return and PRE-DLY into the reverb's send, FREEZE closing both sends */
-static void space_pre(int32_t *dly_in, int32_t *rev_in, uint32_t n)
+static __attribute__((noinline)) void space_pre(int32_t *dly_in, int32_t *rev_in, uint32_t n)
 {
     uint32_t i;
     int32_t want;
@@ -138,7 +138,8 @@ static void space_pre(int32_t *dly_in, int32_t *rev_in, uint32_t n)
 }
 
 /* the delay's read: d samples behind w (fx.c fx_buses), drifting with WOW (between samples, linear) */
-static inline int32_t space_dly_read(const int16_t *buf, uint32_t len, uint32_t w, uint32_t d)
+static __attribute__((noinline)) int32_t space_dly_read(const int16_t *buf, uint32_t len, uint32_t w, uint32_t d)   /* (out of
+                                                                     * line: the delay's loop stays as it was) */
 {
     int32_t s = osc_sine(spc.wph) + (osc_sine(spc.wph * 3u + 0x40000000u) >> 2);   /* -1.25 .. 1.25, Q15 */
     int32_t q = (spc.wd + (int32_t)(((int64_t)spc.wd * s) >> 15) * 4 / 5);     /* 0 .. 2 wd, Q8 */
@@ -151,7 +152,7 @@ static inline int32_t space_dly_read(const int16_t *buf, uint32_t len, uint32_t 
     spc.wph += 53567u;                                       /* 0.55 Hz (and three times it, 1.65 Hz) */
     return c0 + (((c1 - c0) * f) >> 8);
 }
-static inline int space_wow_on(void)
+static __attribute__((noinline)) int space_wow_on(void)
 {
     int32_t t = (usong[US_WOW] * usong[US_WOW] * 7) >> 1;      /* Q8 samples: 0 .. ~220 */
     if (spc.wd != t)
@@ -164,7 +165,7 @@ static inline int space_wow_on(void)
  * apart, cross-faded by triangles), scaled into spc.sfb for the next block's send. Cost: tests/space_test.c */
 #define SHIM_LO 64u
 #define SHIM_P 896u                                          /* the sweep, samples */
-static void space_shimmer(const int32_t *r, uint32_t n)
+static __attribute__((noinline)) void space_shimmer(const int32_t *r, uint32_t n)
 {
     int32_t amt = usong[US_SHIM] * 180;                      /* Q15: 0 .. 0.7 */
     uint32_t i;
