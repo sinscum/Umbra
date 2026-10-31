@@ -773,7 +773,7 @@ enum { S_HOME, S_HOME_IDLE, S_MESSAGE, S_MESSAGE_KEY, S_MESSAGE_NOFILE, S_PRESET
        S_DETAIL_COND, S_DETAIL_FILL, S_AUTO_COND, S_GLO_FILL, S_SEQ_EUCLID, S_SEQ_EUCLID_DRUM, S_SEQ_EUCLID_64,
        S_MENU_SELECT, S_PROJECT_ERASE, S_CONFIRM_ERASE_PROJ, S_TOOLS_CLEAN, S_CONFIRM_CLEAN,
        S_MENU_MIDI_TRACK, S_MENU_MIDI_TCH_UNUSED, S_MENU_MIDI_AUTO, S_HOME_TRACKS_MIDI, S_MIXER_MIDI, S_EDIT_PHASE_FOLD,
-       S_CHAIN_GRANULAR, S_CHAIN_FILTER, S_CHAIN_BYPASS, S_CHAIN_SENDS, S_DRIVE_DAMAGE, S_DRIVE_DAMAGE2, S_FILTER_SVF, S_FILTER_SVF2, S_FILTER_COMB, S_FILTER_RES, S_FILTER_RES2, S_FILTER_FORMANT, S_COUNT };   /* UMBRA: the chain (umbra_chain.c) */
+       S_CHAIN_GRANULAR, S_CHAIN_FILTER, S_CHAIN_BYPASS, S_CHAIN_SENDS, S_DRIVE_DAMAGE, S_DRIVE_DAMAGE2, S_FILTER_SVF, S_FILTER_SVF2, S_FILTER_COMB, S_FILTER_RES, S_FILTER_RES2, S_FILTER_FORMANT, S_SPACE1, S_SPACE2, S_SPACE3, S_MASTER, S_MIXER_SOLO, S_COUNT };   /* UMBRA: the chain (umbra_chain.c) */
 static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "message_key", "message_nofile", "presets", "presets_nofav", "user",
     "phrases", "project", "tools", "song_empty", "song", "step", "auto_steps", "auto_add_chance", "automation", "drum",
     "drum_hand", "drum_cym", "mixer", "mixer_from_home", "mixer_pan", "env", "env_dest", "lfo", "mod", "fx", "slicer", "dly", "scl", "chord", "chord_wide", "chord_off", "chord_kit", "arp",
@@ -805,7 +805,7 @@ static const char *const S_NAME[S_COUNT] = {"home", "home_idle", "message", "mes
     "layer_seq_euclid_64",
     "menu_select", "project_erase", "confirm_erase_project", "tools_clean", "confirm_clean",
     "menu_midi_track", "menu_midi_channels_unused", "menu_midi_auto_select", "home_tracks_midi", "mixer_midi", "edit_phase_fold",
-    "chain_granular", "chain_filter", "chain_bypass", "chain_sends", "drive_damage", "drive_damage2", "filter_svf", "filter_svf2", "filter_comb", "filter_res", "filter_res2", "filter_formant"};
+    "chain_granular", "chain_filter", "chain_bypass", "chain_sends", "drive_damage", "drive_damage2", "filter_svf", "filter_svf2", "filter_comb", "filter_res", "filter_res2", "filter_formant", "space1", "space2", "space3", "master", "mixer_solo"};
 
 /* the STEP page's piano roll (ui_graph.c graph_roll) on track 1, stopped unless said: an empty pattern; ACID in
  * A minor; POLY chords (Am7 F C G, tied); a line with ties, slides and accents in C major; LEN 32 on its second
@@ -1268,6 +1268,11 @@ static void setup(int s)
         uchain[song.sel].p[DEV_FILTER][FMT_VOWEL] = 50;
         go_title("FORMANT");
         break;
+    case S_SPACE1: TSEL->p[P_REV] = 90; TSEL->p[P_PAN] = -20; go_title("SPACE"); break;   /* UMBRA SPACE */
+    case S_SPACE2: go_title("SPACE 2"); break;
+    case S_SPACE3: usong[US_WOW] = 60; usong[US_PRE] = 45; usong[US_FRZ] = 1; go_title("SPACE 3"); break;
+    case S_MASTER: usong[US_DJ] = -24; usong[US_GLUE] = 80; go_title("MASTER"); break;
+    case S_MIXER_SOLO: trk[0].p[P_MUTE] = 1; usolo = 4u; go_page(GR_TRK); break;   /* UMBRA MIXER: T1 muted, T3 soloed */
     case S_ALG1: case S_ALG2: case S_ALG3: case S_ALG4: case S_ALG5: case S_ALG6: case S_ALG7: case S_ALG8:
         eng(1); TSEL->p[P_E0] = (int16_t)(s - S_ALG1);      /* the 8 DIGITAL charts; FB on the odd ones, IDX high .. 0 */
         TSEL->p[P_E6] = (s - S_ALG1) & 1 ? 40 : 0; TSEL->p[P_E4] = (int16_t)((S_ALG8 - s) * 18);

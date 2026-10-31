@@ -2721,8 +2721,10 @@ static int test_page_cycles(void)
         uint32_t f = PAGES[i].fam;
         ok &= f != FAM_SEQ || PAGES[i].graph == GR_ROLL || PAGES[i].graph == GR_EVENTS;
         ok &= f != FAM_GLO || PAGES[i].graph == GR_SONG || PAGES[i].scope == SC_GLOBAL ||   /* UMBRA: GLO is SPACE: */
-              str_eq(PAGES[i].title, "SENDS");      /* SENDS, DLY REVERB CHORUS, SONG */
-        ok &= f != FAM_TRK || PAGES[i].graph == GR_TRK || str_eq(PAGES[i].title, "CLOCK");   /* HOME's: MIXER CLOCK */
+              PAGES[i].scope == SC_USONG || str_eq(PAGES[i].title, "SPACE") ||   /* SPACE 1-3, SENDS, DLY REVERB */
+              str_eq(PAGES[i].title, "SENDS");      /* CHORUS, SONG */
+        ok &= f != FAM_TRK || PAGES[i].graph == GR_TRK || str_eq(PAGES[i].title, "CLOCK") ||   /* HOME's: MIXER CLOCK */
+              str_eq(PAGES[i].title, "MASTER");                                                /* (UMBRA) MASTER */
         ok &= PAGES[i].graph != GR_TRK || f == FAM_TRK;
         ui_power_on(); ui.home = 0; ui.page = (uint8_t)i; page_entered();
         ok &= FAM_BTN[cur_fam()] == (f == FAM_TRK ? B_HOME : f == FAM_GLO ? B_GLO : f == FAM_SEQ ? B_SEQ :
@@ -2757,14 +2759,14 @@ static int test_page_cycles(void)
         else if (PAGES[i].graph == GR_PATS) ui.fam_last[FAM_SEQ] = (uint8_t)i;
     ui.fam_last[FAM_SAVE] = 200u;
     ui.fam_last[FAM_ENV] = 250u;
-    open_family(FAM_GLO); ok = str_eq(cur_page()->title, "SENDS");   /* UMBRA: SPACE's first */
+    open_family(FAM_GLO); ok = str_eq(cur_page()->title, "SPACE");   /* UMBRA: SPACE's first */
     open_family(FAM_SEQ); ok &= cur_page()->graph == GR_ROLL;
     open_family(FAM_ENV); ok &= str_eq(cur_page()->title, "ENV");
     open_family(FAM_SAVE); ok &= str_eq(cur_page()->title, "USER");
     for (i = 0; i < 256u; i++) {                         /* any remembered index: one of GLO's (SPACE's) pages, else its first */
         go_home(); ui.fam_last[FAM_GLO] = (uint8_t)i; open_family(FAM_GLO);
         ok &= cur_page()->fam == FAM_GLO && ui.fam_last[FAM_GLO] == ui.page &&
-              (i < NPAGES && PAGES[i].fam == FAM_GLO ? ui.page == i : str_eq(cur_page()->title, "SENDS"));
+              (i < NPAGES && PAGES[i].fam == FAM_GLO ? ui.page == i : str_eq(cur_page()->title, "SPACE"));
         go_home(); ui.fam_last[FAM_TRK] = (uint8_t)i; press(B_HOME);
         ok &= cur_page()->graph == GR_TRK && !ui.home;
     }
@@ -2898,26 +2900,31 @@ static int test_product_ux(void)
         song.g[G_CLOCK] = clk;
     }
     press(B_HOME);
+    ok &= !ui.home && str_eq(cur_page()->title, "MASTER") && cur_fam() == FAM_TRK;   /* (UMBRA: MASTER after CLOCK) */
+    press(B_HOME);
     ok &= ui.home && !ui.menu;
     press(B_HOME);
     ok &= cur_page()->graph == GR_TRK;
     go_title("ENV"); press(B_HOME);
     ok &= ui.home;
-    go_title("CLOCK"); press(B_HOME);
+    go_title("MASTER"); press(B_HOME);
     ok &= ui.home;
-    bad += check("1.2: HOME cycles HOME > MIXER > CLOCK > HOME (CLOCK: BPM SWG CLK, HOME's LED); from any other page HOME", ok);
+    bad += check("1.2: HOME cycles HOME > MIXER > CLOCK > MASTER > HOME (CLOCK: BPM SWG CLK, HOME's LED); from any other page HOME", ok);
     hold(B_HOME);
     bad += check("1.2: HOME held still opens the menu", ui.menu == 1);
     ui_power_on();
     frames(320);                                       /* (taps further apart than a double tap: #83) */
-    press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "SENDS");
-    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "DLY") && cur_page()->fam == FAM_GLO && !ui.home;
+    press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "SPACE");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SPACE 2") && cur_page()->fam == FAM_GLO && !ui.home;
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SPACE 3");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SENDS");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "DLY");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "REVERB");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "CHORUS");
     press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SONG");
-    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SENDS");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SPACE");
     go_title("CLOCK"); press(B_GLO); frames(320); ok &= cur_page()->fam == FAM_GLO;
-    bad += check("UMBRA: GLO (SPACE) cycles SENDS > DLY > REVERB > CHORUS > SONG > SENDS (no GLOBAL, no SYSTEM, no MIXER)", ok);
+    bad += check("UMBRA: GLO (SPACE) cycles SPACE > SPACE 2 > SPACE 3 > SENDS > DLY > REVERB > CHORUS > SONG > SPACE", ok);
     go_home(); btn_down(B_SEQ); frames(500);
     ok = ui.layer == LAYER_SEQ && ui.home;
     btn_up(B_SEQ); frame();
@@ -3927,7 +3934,7 @@ static int test_quick_layers(void)
         btn_down(LB[i]);
         for (flash = 0, k = 0; k < 20u; k++) { frame(); flash |= ui.layer; }      /* 0.32 s */
         btn_up(LB[i]); frame();
-        ok &= !flash && !ui.home && (LB[i] == B_GLO ? str_eq(cur_page()->title, "SENDS") :   /* (UMBRA: SPACE) */
+        ok &= !flash && !ui.home && (LB[i] == B_GLO ? str_eq(cur_page()->title, "SPACE") :   /* (UMBRA: SPACE) */
                                      LB[i] == B_SCL ? cur_page()->fam == FAM_SCL : str_eq(cur_page()->title, "EDIT 1"));
         hint &= msg_is(HINT[i]);
         go_home(); frame();
@@ -7202,12 +7209,12 @@ static int test_layer_lock(void)
     btn_up(B_SEQ); frame();
     ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "STEP");
     press(B_GLO); frames(400);
-    ok &= str_eq(cur_page()->title, "SENDS") && !ui.lock;   /* (UMBRA: GLO is SPACE: SENDS first) */
+    ok &= str_eq(cur_page()->title, "SPACE") && !ui.lock;   /* (UMBRA: GLO is SPACE: SPACE first) */
     press(B_GLO);
     btn_down(B_GLO); frames(500);
     ok &= ui.layer == LAYER_GLO && !ui.lock;
     btn_up(B_GLO); frame();
-    ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "DLY");
+    ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "SPACE 2");
     press(B_SCL);
     lay_combo(B_SCL, white(2));
     key_up(white(2)); btn_up(B_SCL); frame(); frames(400);
@@ -7218,8 +7225,8 @@ static int test_layer_lock(void)
     press(B_GLO); frames(16);
     press(B_LFO); frames(16);
     press(B_GLO); frames(400);
-    ok = !ui.lock && str_eq(cur_page()->title, "SENDS");   /* (another button between the taps: two taps; GLO's
-                                                             * remembered page, SENDS) */
+    ok = !ui.lock && str_eq(cur_page()->title, "SPACE");   /* (another button between the taps: two taps; GLO's
+                                                             * remembered page, SPACE) */
     ui_power_on();
     go_title("ENV"); frame();
     press(B_FX); press(B_FX); frames(100);
@@ -9579,10 +9586,11 @@ static int test_home_tracks(void)
     bad += check("1.3 HOME > TRACKS: K1..K4 edit the selected track (HOME's four), ALGORITHM moves the selected row", ok);
     press(B_HOME); ok = !ui.home && cur_page()->graph == GR_TRK;
     press(B_HOME); ok &= !ui.home && str_eq(cur_page()->title, "CLOCK");
+    press(B_HOME); ok &= !ui.home && str_eq(cur_page()->title, "MASTER");   /* (UMBRA) */
     press(B_HOME); ok &= ui.home;
     frame();
     ok &= tr_px(3 + 22, tr_y(3) + 1) == T_THEME;
-    bad += check("1.3 HOME > TRACKS: HOME tapped still goes HOME > MIXER > CLOCK > HOME (the rows back)", ok);
+    bad += check("1.3 HOME > TRACKS: HOME tapped still goes HOME > MIXER > CLOCK > MASTER > HOME (the rows back)", ok);
 
     ui_prefs |= PREF_LARGE;                             /* MENU > LARGE: the cards as on a list page, the rows */
     ui.force = 1; frame();
@@ -9872,7 +9880,7 @@ static int test_edit_quick_actions(void)
 static int test_umbra_chain(void)
 {
     static const uint32_t DB[DEV_COUNT] = {B_EDIT, B_ARP, B_SCL, B_FX, B_GLO};
-    static const char *const FIRST[DEV_COUNT] = {"EDIT 1", "THRU", "THRU", "FX", "SENDS"};
+    static const char *const FIRST[DEV_COUNT] = {"EDIT 1", "THRU", "THRU", "FX", "SPACE"};
     int bad = 0, ok = 1;
     uint32_t d;
     int8_t oct;
@@ -9950,6 +9958,56 @@ static int test_umbra_chain(void)
     press(B_SCL); frames(320);
     ok &= str_eq(cur_page()->title, "SCL");             /* (then the scale pages, as ever) */
     bad += check("UMBRA: PRESETS on SCL: FILTER THRU -> SVF (its pages, then SCL's); KNOB 1 its FREQ", ok);
+    chain_reset();
+    return bad;
+}
+
+/* UMBRA Phase 3: SPACE's pages (the sends, PAN, WIDTH; the buses; WOW SHIMMER PRE-DLY FREEZE), MASTER's (DJ FILTER,
+ * GLUE), MIXER's keys (white 1-4 mute, 5-8 solo: silent there, lit) */
+static int test_umbra_space(void)
+{
+    int bad = 0, ok;
+    uint32_t i;
+    ui_power_on();
+    go_title("SPACE");
+    ok = cur_page()->fam == FAM_GLO && cur_page()->id[2] == P_PAN && cur_page()->id[3] == P_SPRD;
+    { int16_t pan = TSEL->p[P_PAN]; turn(EN_K3, 5); ok &= TSEL->p[P_PAN] != pan; }
+    go_title("SPACE 2");
+    { int16_t sz = song.g[G_RSIZE]; turn(EN_K1, -3); ok &= song.g[G_RSIZE] == sz - 3; }
+    go_title("SPACE 3");
+    turn(EN_K1, 10); turn(EN_K3, 20); turn(EN_K4, 1); frame();
+    ok &= usong[US_WOW] > 0 && usong[US_PRE] > 0 && usong[US_FRZ] == 1 && usong[US_SHIM] == 0 /* (not in this build) */;
+    bad += check("UMBRA SPACE: REV DLY PAN WIDTH; the buses' DECAY ..; SPACE 3's WOW PRE-DLY FREEZE edit the song's values", ok);
+    go_title("MASTER");
+    ok = cur_page()->fam == FAM_TRK;
+    turn(EN_K1, -20); turn(EN_K2, 30); frame();
+    ok &= usong[US_DJ] < 0 && usong[US_GLUE] > 0;
+    chain_reset();
+    ok &= !usong[US_DJ] && !usong[US_GLUE] && !usong[US_FRZ] && !usong[US_WOW];
+    bad += check("UMBRA MASTER: DJ FILTER and GLUE; a chain reset (power-on, a project load) puts the song's values back", ok);
+    ui_power_on();
+    go_page(GR_TRK); frame();
+    ok = song.grid == 4u;
+    {
+        key_down(white(0)); frame();                    /* F3: track 1 muted */
+        ok &= kb_note[white(0)] == KB_SILENT;           /* (no note sounded) */
+        key_up(white(0)); frame();
+        key_down(white(5)); frame(); key_up(white(5)); frame();     /* D4: track 2 soloed */
+        ok &= trk[0].p[P_MUTE] == 1 && usolo == 2u && perf_solo == 2u;
+        ok &= (key_leds(0) >> white(0) & 1u) && (key_leds(0) >> white(5) & 1u) && !(key_leds(0) >> white(1) & 1u);
+        key_down(white(0)); frame(); key_up(white(0)); frame();
+        key_down(white(5)); frame(); key_up(white(5)); frame();
+        ok &= trk[0].p[P_MUTE] == 0 && usolo == 0u && perf_solo == 0u;
+    }
+    go_home(); frame();
+    ok &= song.grid == 0u;
+    key_down(white(0)); frame();
+    ok &= kb_note[white(0)] != KB_SILENT;               /* (elsewhere the key plays as ever) */
+    key_up(white(0)); frame();
+    bad += check("UMBRA MIXER: white keys 1-4 mute, 5-8 solo (silent there, their keys lit); elsewhere they play", ok);
+    for (i = 0; i < NPAGES; i++)                        /* (MASTER on HOME's round, after CLOCK) */
+        if (str_eq(PAGES[i].title, "MASTER")) ok = i > 0 && str_eq(PAGES[i - 1].title, "CLOCK");
+    bad += check("UMBRA MASTER: on HOME's round after CLOCK", ok);
     chain_reset();
     return bad;
 }
@@ -10042,6 +10100,7 @@ int main(void)
     bad += test_help();
 #if UMBRA_CHAIN
     bad += test_umbra_chain();                        /* UMBRA: the chain's pages and controls */
+    bad += test_umbra_space();                        /* UMBRA: SPACE, MASTER, MIXER's keys */
 #endif
     bad += test_no_flash();
 #if UMBRA_FM4

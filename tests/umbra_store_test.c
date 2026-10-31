@@ -208,9 +208,9 @@ int main(void)
         (void)i;
     }
 
-    /* 8. the record (v2: + the devices' values) */
-    bad += check("the chain record v2: 12 + 4 tracks x 88 bytes, in one object",
-                 sizeof(uch_store_t) == 12u + 4u * 88u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
+    /* 8. the record (v3: + the song's values) */
+    bad += check("the chain record v3: 12 + 4 tracks x 88 + 16 bytes, in one object",
+                 sizeof(uch_store_t) == 12u + 4u * 88u + 16u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
 
     /* 9. a device's type and values round trip (DRIVE DAMAGE, FOLD 90, TILT -20); out-of-range stored values clamp */
     reset();
@@ -264,6 +264,41 @@ int main(void)
     bad += check("a v1 record: its types and bypasses, every value its type's default",
                  uchain[0].type[DEV_DRIVE] == DRIVE_DAMAGE && uchain[0].p[DEV_DRIVE][DRV_OUT] == DRV_OUT_UNITY &&
                  uchain[0].p[DEV_DRIVE][DRV_FOLD] == 0 && uchain[3].bypass == 1u << DEV_SPACE);
+
+    /* 11. the song's SPACE / MASTER values round trip; FREEZE is never saved */
+    reset();
+    settings_init();
+    usong[US_WOW] = 40; usong[US_PRE] = 70; usong[US_DJ] = -12; usong[US_GLUE] = 90; usong[US_FRZ] = 1;
+    project_save(3);
+    chain_reset();
+    power_cycle();
+    project_load(3);
+    bad += check("the song's WOW PRE-DLY DJ GLUE saved and loaded; FREEZE never (off after a load)",
+                 usong[US_WOW] == 40 && usong[US_PRE] == 70 && usong[US_DJ] == -12 && usong[US_GLUE] == 90 &&
+                 usong[US_FRZ] == 0 && uch_slot[3].song[US_FRZ] == 0);
+
+    /* 12. a v2 record (Phase 2, 364 bytes) loads: its chain, the song's values their defaults */
+    reset();
+    settings_init();
+    usong[US_GLUE] = 50;                                /* (playing before the load: the load puts the default back) */
+    project_save(2);
+    {
+        uch_v2_t v;
+        memset(&v, 0, sizeof v);
+        v.magic = UCH_MAGIC;
+        v.ver = 2;
+        v.ntrk = NTRK;
+        v.proj_crc = uch_crc(&proj_slot[2], sizeof(project_store_t));
+        v.c[1].type[DEV_FILTER] = FILTER_SVF;
+        v.c[1].p[DEV_FILTER][SVF_FREQ] = 33;
+        st_save(OBJ_UCHAIN0 + 2, &v, sizeof v);
+    }
+    power_cycle();
+    usong[US_GLUE] = 50;
+    project_load(2);
+    bad += check("a v2 record: its types and values, the song's values their defaults",
+                 uchain[1].type[DEV_FILTER] == FILTER_SVF && uchain[1].p[DEV_FILTER][SVF_FREQ] == 33 &&
+                 usong[US_GLUE] == 0 && usong[US_WOW] == 0 && uch_slot[2].ver == UCH_VER);
     printf(bad ? "store: %d FAILED\n" : "store: all ok\n", bad);
     return bad ? 1 : 0;
 }

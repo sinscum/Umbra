@@ -175,13 +175,17 @@ static int select_page(void)
     turn(EN_SELECT, 1);
     ok &= title_is("CLOCK");
     turn(EN_SELECT, 1);
+    ok &= title_is("MASTER");                           /* (UMBRA: MASTER after CLOCK) */
+    turn(EN_SELECT, 1);
     ok &= ui.home;
+    turn(EN_SELECT, -1);
+    ok &= title_is("MASTER");
     turn(EN_SELECT, -1);
     ok &= title_is("CLOCK");
     b0 = song.g[G_BPM];
     turn(EN_K1, 1);
     ok &= song.g[G_BPM] == b0 + 1;                      /* CLOCK's KNOB 1: the tempo */
-    bad += check("  PAGE: HOME -> MIXER -> CLOCK -> HOME (as HOME's taps), back too; CLOCK's KNOB 1 still the tempo", ok);
+    bad += check("  PAGE: HOME -> MIXER -> CLOCK -> MASTER -> HOME (as HOME's taps), back too; CLOCK's KNOB 1 still the tempo", ok);
 
     go_title("EDIT 1"); frame();
     for (i = 0; i < 12u && ok; i++) {                   /* EDIT's pages: only the ones the engine shows */
@@ -190,11 +194,11 @@ static int select_page(void)
     }
     go_title("SONG"); frame();
     turn(EN_SELECT, 1);
-    ok &= title_is("SENDS");                            /* (UMBRA: GLO is SPACE, SONG its last page: round to SENDS) */
+    ok &= title_is("SPACE");                            /* (UMBRA: GLO is SPACE, SONG its last page: round to SPACE) */
     go_home(); open_family(FAM_ARP); frame();
     turn(EN_SELECT, 1);
     ok &= cur_page()->fam == FAM_ARP;                   /* (GRANULAR: one page, it stays) */
-    bad += check("  PAGE: EDIT's round is the engine's pages; GLO's round SONG -> SENDS; a family of one page stays", ok);
+    bad += check("  PAGE: EDIT's round is the engine's pages; GLO's round SONG -> SPACE; a family of one page stays", ok);
 
     go_title("ENV"); frame();
     b0 = song.g[G_BPM];

@@ -606,6 +606,8 @@ static int detail_on(void)
 /* GLO > SONG (1.2): the white keys A B C D (A3 B3 C4 D4, white places 2..5: seq.c song_key) set the selected cell's slot;
  * they do not sound there, the other keys play as anywhere (seq.c keyboard_block: song.grid 3) */
 static int song_keys_on(void) { return !ui.home && !ui.menu && !ui.confirm && !ui.layer && cur_page()->graph == GR_SONG; }
+/* UMBRA MIXER: white keys 1-8 mute / solo (ui_input.c mixer_keys), silent there (seq.c MIXER_KEYS: song.grid 4) */
+static int mixer_keys_on(void) { return !ui.home && !ui.menu && !ui.confirm && !ui.layer && cur_page()->scope == SC_TRK; }
 
 /* black key place p (seq.c key_place) held, 0 = not */
 static int black_held(uint32_t p)

@@ -699,7 +699,7 @@ static void layer_keys(uint32_t keys)
     for (k = 0; k < 27u; k++)
         if ((lys.solo >> k) & 1u)
             s |= 1u << key_place(k);
-    perf_solo = (uint8_t)s;
+    perf_solo = (uint8_t)(s | usolo);                  /* (UMBRA: MIXER's solos too) */
 }
 
 /* KNOB 1..4 in the open layer: its own (FX macros, GLO levels, EDIT's sound), else the four of its page */

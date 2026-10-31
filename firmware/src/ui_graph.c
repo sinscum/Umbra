@@ -1806,7 +1806,8 @@ static void draw_tracks(void)
     }
     for (c = 0; c < NTRK; c++) {
         track_t *t = &trk[c];
-        uint32_t sel = c == song.sel, lvl = trk_level(c), mute = t->p[P_MUTE] != 0, lit = (uint32_t)midi_lit(c);
+        uint32_t sel = c == song.sel, lvl = trk_level(c), lit = (uint32_t)midi_lit(c);
+        uint32_t mute = t->p[P_MUTE] != 0 || (usolo && !((usolo >> c) & 1u));   /* (UMBRA: silenced by a MIXER solo) */
         uint32_t arm = (song.rec >> c) & 1u, st = arm ? (song.playing ? 1u : 2u) : mute ? 3u : 0u, sig;
         uint32_t hot = sel && ui.hot_t ? ui.hot_col + 1u : 0u;   /* the knob just turned (hot_col + 1): 1 LEVEL, 2 PAN,
                                                                 * 3 REV, 4 MUTE (its badge) */

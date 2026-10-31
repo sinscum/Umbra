@@ -1350,6 +1350,13 @@ static uint32_t autosave_sig(void)
     h = as_mix(h, &chain_config, sizeof chain_config);
 #if UMBRA_CHAIN
     h = as_mix(h, (const void *)uchain, sizeof uchain);   /* UMBRA: a bypass changed is a change to save */
+    {   /* UMBRA: so is a song value (not FREEZE) */
+        int16_t u[US_N];
+        uint32_t k;
+        for (k = 0; k < US_N; k++)
+            u[k] = k == US_FRZ ? 0 : usong[k];
+        h = as_mix(h, u, sizeof u);
+    }
 #endif
     return as_mix(h, proj_name, sizeof proj_name);
 }

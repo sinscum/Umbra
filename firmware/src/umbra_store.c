@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* UMBRA's saved chain ("UMB1", version 2): each project slot's tracks' chains (umbra_chain.c: types, bypasses, values),
+/* UMBRA's saved chain ("UMB1", version 3): each project slot's tracks' chains (umbra_chain.c: types, bypasses, values)
+ * and the song's SPACE / MASTER values (umbra_space.c usong: WOW SHIMMER PRE-DLY, DJ FILTER GLUE; FREEZE never),
  * beside the project in a storage object of its own (storage.c OBJ_UCHAIN0.., A/B at 0xE8000..: the BSP's FL_XDATA1,
  * a firmware's own data), and the autosave's (OBJ_UCHAIN_AUTO). The project record stays the base tree's (a full
  * flash sector: no room), so a project saved by the base tree, or by UMBRA before the chain, still loads.
@@ -9,8 +10,9 @@
  * write) gets the default chain (every slot its first type, nothing bypassed). Included by project.c, after its
  * staging (proj_wire, proj_slot). Main loop only. */
 #define UCH_MAGIC 0x31424D55u                  /* "UMB1" */
-#define UCH_VER 2u                             /* 2 (Phase 2): + each device's DEV_NP values. 1 (Phase 1): types,
-                                                * bypasses; loads, its values the types' defaults */
+#define UCH_VER 3u                             /* 3 (Phase 3): + the song's 8 values. 2 (Phase 2): + each device's
+                                                * DEV_NP values. 1 (Phase 1): types, bypasses. Older ones load: what
+                                                * they lack, the defaults */
 typedef struct {                               /* a track's chain as stored (fixed: not umbra_chain_t, which may grow) */
     uint8_t type[5], bypass, rsv[2];
     int16_t p[5][8];
@@ -20,17 +22,26 @@ typedef struct {
     uint16_t ver, ntrk;
     uint32_t proj_crc;                         /* the project record's (uch_crc), 0 = none */
     uch_trk_t c[NTRK];
+    int16_t song[8];                           /* usong (US_FRZ stored as 0) */
 } uch_store_t;
+typedef struct {                               /* version 2, as Phase 2 wrote it (364 bytes) */
+    uint32_t magic;
+    uint16_t ver, ntrk;
+    uint32_t proj_crc;
+    uch_trk_t c[NTRK];
+} uch_v2_t;
 typedef struct {                               /* version 1, as Phase 1 wrote it (36 bytes) */
     uint32_t magic;
     uint16_t ver, ntrk;
     uint32_t proj_crc;
     uint8_t c[NTRK][6];                        /* type[5], bypass */
 } uch_v1_t;
-_Static_assert(sizeof(uch_trk_t) == 88u && sizeof(uch_store_t) == 12u + NTRK * 88u, "UMB1 v2 layout");
+_Static_assert(sizeof(uch_trk_t) == 88u && sizeof(uch_store_t) == 12u + NTRK * 88u + 16u, "UMB1 v3 layout");
+_Static_assert(sizeof(uch_v2_t) == 12u + NTRK * 88u, "UMB1 v2 layout");
+_Static_assert(US_N == 8, "UMB1 v3 stores 8 song values");
 _Static_assert(sizeof(uch_v1_t) == 36u, "UMB1 v1 layout");
 _Static_assert(DEV_COUNT == 5 && DEV_NP == 8, "UMB1 v2 stores 5 devices x 8 values");
-static uch_store_t uch_slot[4] __attribute__((section(".pool")));   /* the slots' chain records (v2) */
+static uch_store_t uch_slot[4] __attribute__((section(".pool")));   /* the slots' chain records (v3) */
 static uch_store_t uch_tmp __attribute__((section(".pool")));       /* the autosave's (main loop only) */
 
 static uint32_t uch_crc(const void *p, uint32_t n)   /* FNV-1a; never 0 (0: no project) */
@@ -44,11 +55,18 @@ static uint32_t uch_crc(const void *p, uint32_t n)   /* FNV-1a; never 0 (0: no p
     return h ? h : 1u;
 }
 
-/* a record read from flash (n bytes in s) as v2: v1 converted in place (its values: 0x7FFF, "the type's default"),
- * anything else cleared. 1 = a record */
+/* a record read from flash (n bytes in s) as v3: v1 and v2 converted in place (what they lack: 0x7FFF, "the
+ * default"), anything else cleared. 1 = a record */
 #define UCH_DEF 0x7FFF
 static int uch_take(uch_store_t *s, int n)
 {
+    uint32_t k;
+    if (n == (int)sizeof(uch_v2_t) && s->magic == UCH_MAGIC && s->ver == 2u && s->ntrk == NTRK) {
+        s->ver = UCH_VER;                      /* (v2 is v3's start: the song's values after it) */
+        for (k = 0; k < 8u; k++)
+            s->song[k] = UCH_DEF;
+        return 1;
+    }
     if (n == (int)sizeof(uch_v1_t) && s->magic == UCH_MAGIC && s->ver == 1u && s->ntrk == NTRK) {
         uch_v1_t v;
         uint32_t i, d, k;
@@ -63,6 +81,8 @@ static int uch_take(uch_store_t *s, int n)
             }
             s->c[i].bypass = v.c[i][5];
         }
+        for (k = 0; k < 8u; k++)
+            s->song[k] = UCH_DEF;
         return 1;
     }
     if (n == (int)sizeof *s && s->magic == UCH_MAGIC && s->ver == UCH_VER && s->ntrk == NTRK)
@@ -88,6 +108,8 @@ static void uch_capture(uch_store_t *s, uint32_t crc)
         }
         s->c[i].bypass = uchain[i].bypass;
     }
+    for (k = 0; k < US_N; k++)
+        s->song[k] = k == US_FRZ ? 0 : usong[k];   /* (FREEZE: a performance control, never saved) */
 }
 
 /* s -> the chain playing, when it is the chain of the project record of CRC crc; else the default chain. 1 = taken.
@@ -109,6 +131,9 @@ static int uch_apply(const uch_store_t *s, uint32_t crc)
         }
         uchain[i].bypass = (uint8_t)(s->c[i].bypass & ((1u << DEV_COUNT) - 1u));
     }
+    for (k = 0; k < US_N; k++)                 /* the song's values (chain_reset: their defaults, FREEZE off) */
+        if (k != US_FRZ && s->song[k] != UCH_DEF)
+            usong[k] = (int16_t)clamp(s->song[k], US_PD[k].min, US_PD[k].max);
     return 1;
 }
 

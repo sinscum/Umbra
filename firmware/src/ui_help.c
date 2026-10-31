@@ -24,7 +24,10 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"SLICER", "[K1]ON[K2]PATTERN[FX]INSERT"},
     {"INSERT", "[K1]TYPE[FX]DRY / WET"},
     {"INSERT 2", "[K1]DRY / WET[FX]FX"},
-    {"SENDS", "[K1-4]SENDS[GLO]DLY"},   /* UMBRA: SPACE (GLO) */
+    {"SPACE", "[K1-4]REV DLY PAN WIDTH[GLO]BUS"},   /* UMBRA: SPACE (GLO) */
+    {"SPACE 2", "[K1-4]DECAY DAMP TIME[GLO]MORE"},
+    {"SPACE 3", "[K4]FREEZE[GLO]SENDS"},
+    {"SENDS", "[K1-4]SENDS[GLO]DLY"},
     {"DAMAGE", "[PRESETS]TYPE[FX]DAMAGE 2"},   /* UMBRA: DRIVE (FX) */
     {"SVF", "[PRESETS]TYPE[K3]LP BP HP NOTCH"},   /* UMBRA: FILTER (SCL) */
     {"SVF 2", "[K1]KEYTRACK[K2]WANDER[SCL]SCL"},
@@ -64,7 +67,8 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"STEP", "[KEYS]WRITE[K1]STEP[SEQ]RATCH"},   /* (1.5.1: SEQ to DETAIL) */
     {"DETAIL", "[PRESETS]STEP[K1]CHANCE, 1:4, FILL"},   /* (1.5.5: the conditions past 100 %) */
     {"AUTOMATION", "[K1]ROW[OCT+]DO[EDIT]DELETE"},
-    {"MIXER", "[K4]MUTE[ALGO]TRACK[HOME]CLOCK"},
+    {"MIXER", "[KEYS]MUTE SOLO[HOME]CLOCK"},   /* UMBRA: white keys 1-4 mute, 5-8 solo */
+    {"MASTER", "[K1]DJ FILTER[K2]GLUE[HOME]HOME"},
     {"CLOCK", "[SELECT]TEMPO[GLO]HOLD: TAP"},
 };
 #define H_HOME "[PRESETS]SOUND[HOME]HOLD: MENU"

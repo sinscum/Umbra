@@ -373,13 +373,15 @@ static int idle_leds(void)
 /* the key LEDs, bit k = key k: NAME's keys, the layer's map, the DRUM grid, else the keys held and the notes
  * the selected track's sequencer, ARP and MIDI IN play, on STEP while stopped the cursor step's notes (#89; and
  * on SLICES the keys of the selected slice; on SONG the key of the cell's slot, 1.2) */
+static uint32_t mixer_leds(void);                     /* (UMBRA MIXER: below, with its keys) */
 static uint32_t key_leds(uint32_t *br)                 /* (*br: a layer's keys that breathe, layer_leds) */
 {
     uint32_t c;
     if (br)
         *br = 0;
     c = name_on() && !ui.menu ? name_leds() : ui.layer ? layer_leds(br) : grid_on() ? grid_leds() :
-                 (fm1_in.notes & ~kb_layer) | play_leds() | step_leds() | (song_keys_on() ? song_leds() : 0u);
+                 (fm1_in.notes & ~kb_layer) | play_leds() | step_leds() | (song_keys_on() ? song_leds() : 0u) |
+                 (mixer_keys_on() ? mixer_leds() : 0u);
 #if UMBRA_SLICE
     if (!ui.layer && !ui.menu && !name_on() && slice_page_on())
         c |= slice_leds();                              /* SLICES: and the keys of the selected slice */
@@ -558,6 +560,34 @@ static void song_add(void)
     chain_config.count = (uint8_t)(n + 1u);
     ui.song_row = (uint8_t)n;
 }
+/* UMBRA MIXER's keys (song.grid 4; seq.c MIXER_KEYS, silent there): white keys 1-4 (F3 G3 A3 B3) mute tracks 1-4
+ * (P_MUTE, as K4 did), 5-8 (C4 D4 E4 F4) solo them (usolo: the others muted as by the GLO layer's solo, never saved) */
+static const uint8_t MIXER_KEY[8] = {0, 2, 4, 6, 7, 9, 11, 12};
+static void mixer_keys(uint32_t notes)
+{
+    uint32_t i;
+    for (i = 0; i < 8u; i++) {
+        if (!((notes >> MIXER_KEY[i]) & 1u))
+            continue;
+        if (i < NTRK) {
+            trk[i].p[P_MUTE] = (int16_t)!trk[i].p[P_MUTE];
+            ml_knob(&trk[i], P_MUTE);
+        } else {
+            usolo ^= (uint8_t)(1u << (i - NTRK));
+        }
+        ui.force = 1;
+    }
+}
+static uint32_t mixer_leds(void)                       /* the muted and soloed tracks' keys */
+{
+    uint32_t i, m = 0;
+    for (i = 0; i < NTRK; i++) {
+        if (trk[i].p[P_MUTE]) m |= 1u << MIXER_KEY[i];
+        if ((usolo >> i) & 1u) m |= 1u << MIXER_KEY[NTRK + i];
+    }
+    return m;
+}
+
 /* SONG's keys (song.grid 3): a press of A3 B3 C4 D4 (seq.c song_key) sets the selected cell's slot A..D (on + ADD it
  * adds the section first: a copy of the one before, the first with every track on that slot) */
 static void song_keys(uint32_t notes)
@@ -1062,7 +1092,8 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     v = param_turn(d, *vp, accel(EN_K1 + slot, steps, d->fmt == F_ENUM ? 0 : d->max - d->min));
     *vp = (int16_t)v;
-    if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV) {   /* (UMBRA: a device's values: not P_*, no motion yet) */
+    if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV && pg->scope != SC_USONG) {   /* (UMBRA: a device's values, the
+                                                                                     * song's: not P_*, no motion yet) */
         motion_capture(TSEL, (uint32_t)(vp - TSEL->p), *vp);
         ml_knob(TSEL, (uint32_t)(vp - TSEL->p));        /* (MIDI LEARN: picked) */
     }
@@ -1776,6 +1807,8 @@ static void ui_input(void)
     lock_keys();                                        /* (a grid key on a hit let go: the hit goes) */
     if (song.grid == 3u) {
         song_keys(notes);
+    } else if (song.grid == 4u) {
+        mixer_keys(notes);
     } else if (song.grid) {
         grid_keys(notes);
     } else if (song.seq_mode && cur_page()->graph == GR_ROLL) {   /* STEP */

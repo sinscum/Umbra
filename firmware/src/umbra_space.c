@@ -42,6 +42,16 @@ static void usong_reset(void)
         usong[i] = US_PD[i].def;
 }
 static volatile uint8_t usolo;                             /* MIXER's solos (bit t: track t), never saved */
+/* params.c page_desc, scope SC_USONG: value id */
+static const param_desc_t *usong_desc(uint32_t id, int16_t **valp)
+{
+    if (id >= US_N || US_PD[id].label[0] == '-') {
+        *valp = 0;
+        return 0;
+    }
+    *valp = (int16_t *)&usong[id];
+    return &US_PD[id];
+}
 
 #define FRZ_ONE 32768
 #define FRZ_STEP (FRZ_ONE / 24)                            /* 24 blocks of CTL: ~17 ms */
