@@ -50,7 +50,7 @@ static void fresh(void)
 }
 
 /* what a phrase sets on track 1 before it plays */
-static struct { int dist, ins, sends, sprd, byp, byp_trk, damage, fold; } ph;
+static struct { int dist, ins, sends, sprd, byp, byp_trk, damage, fold, svf, svf_mix; } ph;
 
 /* a chord phrase on track 1 (ANALOG, POLY) in a fork()ed child: its output's hash and peak */
 static ph_t phrase(void)
@@ -80,6 +80,11 @@ static ph_t phrase(void)
         for (k = 0; k < DEV_COUNT; k++)
             if ((ph.byp >> k) & 1u)
                 chain_set_bypass((uint32_t)ph.byp_trk, k, 1);
+        if (ph.svf) {                                    /* FILTER SVF on track 1 (umbra_filter.c) */
+            chain_set_type(0, DEV_FILTER, FILTER_SVF);
+            uchain[0].p[DEV_FILTER][SVF_FREQ] = 50;
+            uchain[0].p[DEV_FILTER][SVF_MIX] = (int16_t)ph.svf_mix;
+        }
         if (ph.damage) {                                 /* DRIVE DAMAGE on track 1 (umbra_drive.c) */
             chain_set_type(0, DEV_DRIVE, DRIVE_DAMAGE);
             uchain[0].p[DEV_DRIVE][DRV_FOLD] = (int16_t)ph.fold;
@@ -182,6 +187,15 @@ int main(void)
         snprintf(what, sizeof what, "DAMAGE FOLD 100 changes it, bounded; bypassed: the base tree again%s", how);
         ck(what, !same(y, off) && y.peak <= 32767 * 2 && same(x, off));
     }
+
+    /* 7. FILTER SVF (Phase 2): changes the sound; MIX 0 = the base tree (POLY); bypassed = the base tree */
+    base(); off = phrase();
+    ph.svf = 1; ph.svf_mix = 127; x = phrase();
+    ph.svf_mix = 0; y = phrase();
+    ck("FILTER SVF (FREQ 50) changes the sound; MIX 0: the base tree bit for bit", !same(x, off) && same(y, off));
+    base(); ph.sprd = 100; off = phrase();
+    ph.svf = 1; ph.svf_mix = 127; ph.byp = 1u << DEV_FILTER; x = phrase();
+    ck("FILTER SVF bypassed on a SPREAD track: the base tree bit for bit (stereo kept)", same(x, off));
 
     /* 5 */
     {

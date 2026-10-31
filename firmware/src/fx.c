@@ -893,7 +893,8 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
     uint32_t nr;
 #endif
     mod_begin(t);                                       /* the matrix's per-block values into t->p (mod.c) */
-    T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON);   /* (SPREAD, mix_spread) */
+    T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON) &&   /* (SPREAD, mix_spread) */
+                  !chain_filter_on(t);                  /* UMBRA: a FILTER: mono through it (the side would pass it by) */
 #if UMBRA_CPU2
     nr = track_render(t, b, n);
     part_cost[(uint32_t)(t - trk) % NTRK] = (uint16_t)(nr * ENG_VCOST[t->engine % NENGINES] + (nr || t->tail ? 60u : 0u));
@@ -903,7 +904,8 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
 #endif
         t->tail = t->p[P_ITYPE] ? 64 : 16;              /* blocks of DIST / INSERT state to run out after the last
                                                          * voice (the INSERT's: 46 ms, a flanger's feedback) */
-    else if ((!t->tail || !(t->p[P_DIST] | t->p[P_ITYPE]) || !--t->tail) && !slicer_busy(t)) {
+    else if ((!t->tail || !(t->p[P_DIST] | t->p[P_ITYPE]) || !--t->tail) && !slicer_busy(t) &&
+             !chain_ringing(t)) {                       /* (UMBRA: a FILTER still ringing runs on, on silence) */
         slicer_track(t, 0, n);                          /* (the SLICER's step clock runs on) */
         if (t->ins_run && !t->p[P_ITYPE])
             ins_rest(t);                                /* TYPE OFF while silent: no fade-out left for the next note */

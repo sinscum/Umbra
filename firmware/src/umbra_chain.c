@@ -39,10 +39,11 @@ typedef struct {
 
 /* the device types' DSP and descriptors (each its own file, before the table) */
 #include "umbra_drive.c"
+#include "umbra_filter.c"
 
 static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}};   /* the engine's cost is its own (ENG_VCOST) */
 static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}};
-static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}};
+static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}, FLT_T_SVF};
 static const dev_type_t DEV_T_DRIVE[] = {{"BASIC", 0, 0}, DRV_T_DAMAGE};   /* BASIC: the base tree's, in its budget */
 static const dev_type_t DEV_T_SPACE[] = {{"SENDS", 0, 0}};
 #define NELEM_T(a) ((uint8_t)(sizeof(a) / sizeof((a)[0])))
@@ -88,13 +89,29 @@ static inline uint32_t chain_type(const track_t *t, uint32_t d)   /* the slot's 
 #endif
 }
 
+/* FILTER runs on this track now (its type, not bypassed) */
+static inline int chain_filter_on(const track_t *t)
+{
+    return chain_type(t, DEV_FILTER) != FILTER_THRU && !chain_off(t, DEV_FILTER);
+}
+
 /* after SOURCE rendered into b: SOURCE's bypass, then GRANULAR and FILTER */
 static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
 {
-    uint32_t i;
+    uint32_t i, tr = (uint32_t)(t - trk) % NTRK;
     if (chain_off(t, DEV_SOURCE))
         for (i = 0; i < n; i++)
             b[i] = 0;
+    if (chain_filter_on(t))
+        flt_svf(&flt_st[tr], t, (const int16_t *)uchain[tr].p[DEV_FILTER], b, n);
+    else
+        flt_st[tr].on = 0;                              /* (on again later: a fresh start) */
+}
+
+/* a device still sounding after the track's voices (fx.c mix_part runs the track on: its tail) */
+static inline int chain_ringing(const track_t *t)
+{
+    return chain_filter_on(t) && flt_ringing(&flt_st[(uint32_t)(t - trk) % NTRK]);
 }
 
 /* DRIVE's own types (not BASIC, not bypassed): 1 = it ran on b (fx.c mix_part: then no DIST, INSERT or SLICER gate) */
@@ -161,7 +178,7 @@ static const struct { const char *title; uint8_t dev, type; } DEV_PAGES[] = {
     {"FX", DEV_DRIVE, DRIVE_BASIC}, {"SLICER", DEV_DRIVE, DRIVE_BASIC}, {"INSERT", DEV_DRIVE, DRIVE_BASIC},
     {"INSERT 2", DEV_DRIVE, DRIVE_BASIC},
     {"DAMAGE", DEV_DRIVE, DRIVE_DAMAGE}, {"DAMAGE 2", DEV_DRIVE, DRIVE_DAMAGE},
-    {"THRU", DEV_FILTER, 0},
+    {"THRU", DEV_FILTER, FILTER_THRU}, {"SVF", DEV_FILTER, FILTER_SVF}, {"SVF 2", DEV_FILTER, FILTER_SVF},
 };
 static int dev_page_visible(const page_t *pg)
 {

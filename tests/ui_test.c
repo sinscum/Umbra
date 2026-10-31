@@ -9937,6 +9937,19 @@ static int test_umbra_chain(void)
     ok &= uchain[1].type[DEV_DRIVE] == DRIVE_BASIC && msg_is("DRIVE BASIC") && str_eq(cur_page()->title, "FX") &&
           uchain[1].p[DEV_DRIVE][DRV_FOLD] == 0;    /* (back: BASIC's page; a type change takes its defaults) */
     bad += check("UMBRA: PRESETS on FX: DRIVE BASIC <-> DAMAGE (its pages, FX's taps go round them); KNOB 2 its FOLD", ok);
+    ui_power_on();
+    go_home(); frames(320);
+    press(B_SCL); frames(320);
+    ok = str_eq(cur_page()->title, "THRU");
+    turn(EN_PRESET, 1); frame();
+    ok &= uchain[0].type[DEV_FILTER] == FILTER_SVF && msg_is("FILTER SVF") && str_eq(cur_page()->title, "SVF");
+    turn(EN_K1, -10); frame();
+    ok &= uchain[0].p[DEV_FILTER][SVF_FREQ] < FLT_PD_SVF[SVF_FREQ].def;
+    press(B_SCL); frames(320);
+    ok &= str_eq(cur_page()->title, "SVF 2");
+    press(B_SCL); frames(320);
+    ok &= str_eq(cur_page()->title, "SCL");             /* (then the scale pages, as ever) */
+    bad += check("UMBRA: PRESETS on SCL: FILTER THRU -> SVF (its pages, then SCL's); KNOB 1 its FREQ", ok);
     chain_reset();
     return bad;
 }

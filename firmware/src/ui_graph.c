@@ -504,6 +504,41 @@ static void graph_drive(uint16_t c)
     }
 }
 
+/* UMBRA: FILTER SVF's response, drawn (not measured): across, the cutoff's scale (30 Hz .. 16 kHz); up, the level.
+ * LP flat then falling past FREQ, HP the mirror, BP a peak, NOTCH a dip; MORPH between them as the audio's; RES a
+ * bump at FREQ; MIX lifts it towards flat; a dim mark where the cutoff is now (KEYTRK, WANDER) */
+static int32_t flt_shape(int32_t sh, int32_t dx, int32_t res)   /* dB-ish, x10, of shape sh at dx steps */
+{
+    int32_t a = dx < 0 ? -dx : dx, bump = res * 8 - a * a * res / 6;
+    int32_t lp = dx <= 0 ? 0 : -dx * 16, hp = dx >= 0 ? 0 : dx * 16;
+    if (bump < 0) bump = 0;
+    switch (sh) {
+    case 0: return lp + bump;
+    case 1: return -a * 5 + bump;
+    case 2: return hp + bump;
+    default: return a < 6 ? -(6 - a) * 50 : 0;
+    }
+}
+static void graph_filter(uint16_t c)
+{
+    const volatile int16_t *p = uchain[song.sel % NTRK].p[DEV_FILTER];
+    int32_t x, top = 10 * graph_ht / 100, bot = 92 * graph_ht / 100, py = 0;
+    int32_t f = p[SVF_FREQ], res = p[SVF_RES] * 40 / 127, m = p[SVF_MORPH] * 3, seg = m / 127, fr = m - seg * 127;
+    int32_t now = flt_st[song.sel % NTRK].on ? flt_st[song.sel % NTRK].cut >> 8 : f;
+    cv_rect(PANEL_X0, bot, PANEL_W, 1, T_RAISE);
+    cv_line(PANEL_X0 + now * PANEL_W / 128, top, PANEL_X0 + now * PANEL_W / 128, bot, T_RAISE);
+    for (x = 0; x < PANEL_W; x++) {
+        int32_t dx = x * 128 / PANEL_W - f, a = flt_shape(seg, dx, res), b2 = seg < 3 ? flt_shape(seg + 1, dx, res) : a;
+        int32_t db = a + (b2 - a) * fr / 127, y;
+        db = db + (0 - db) * (127 - p[SVF_MIX]) / 127;
+        y = top + 30 * graph_ht / 100 - clamp(db, -600, 300) * (bot - top) / 900;
+        y = clamp(y, top, bot);
+        if (x)
+            cv_line_t(PANEL_X0 + x - 1, py, PANEL_X0 + x, y, c, 2);
+        py = y;
+    }
+}
+
 static void graph_slicer(const track_t *t, uint16_t c)
 {
     uint32_t i, pat = sl_pattern(t), mode = (uint32_t)t->p[P_SLCR], cur = sl[t - trk].idx;
@@ -2328,6 +2363,9 @@ static void draw_graph(void)
             break;
         case GR_DRV:                                  /* UMBRA */
             graph_drive(c);
+            break;
+        case GR_FLT:
+            graph_filter(c);
             break;
         case GR_MOD:
             cv_oy = 0;

@@ -420,6 +420,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UMBRA chain: nothing bypassed = bit for bit, SOURCE / DRIVE / SPACE bypass, types, the descriptors" "$OUT/chain_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drive_test" tests/drive_test.c -lm
     run "UMBRA DRIVE DAMAGE: defaults bit for bit, each stage bounded and DC-free, no click on a jump, TILT, cost" "$OUT/drive_test"
+    $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/filter_test" tests/filter_test.c -lm
+    run "UMBRA FILTER: SVF's responses, stability at full RES, its ring ending, KEYTRK, WANDER, cost" "$OUT/filter_test"
     # the second core (2ND CORE ON: fx.c mix_block, tests/c1_host.h): a thread renders the parts handed to it, bit for
     # bit
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -DC1_HOST -pthread -o "$OUT/regress_c1" tests/regress.c -lm
