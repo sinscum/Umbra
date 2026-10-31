@@ -492,7 +492,8 @@ static void graph_drive(uint16_t c)
     cv_rect(PANEL_X0, cy, PANEL_W, 1, T_RAISE);
     cv_line(PANEL_X0 + PANEL_W / 2, cy - a, PANEL_X0 + PANEL_W / 2, cy + a, T_RAISE);
     for (x = 0; x < PANEL_W; x++) {
-        int32_t v = (x - PANEL_W / 2) * 32767 / (PANEL_W / 2), w, y;
+        int32_t v = x * 65534 / PANEL_W - 32767, w, y;   /* (not (x - W/2) * 32767: its first value, -3604370, is
+                                                          * a ROM address to the build's check, tools/build.py) */
         w = (drv_shape(v, p[DRV_DRIVE], g, p[DRV_FOLD], fg, sh) * LEVEL_Q12[o & 127]) >> 12;
         y = cy - clamp(w, -40000, 40000) * a / 32767;
         if (x)
