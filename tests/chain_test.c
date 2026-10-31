@@ -50,7 +50,7 @@ static void fresh(void)
 }
 
 /* what a phrase sets on track 1 before it plays */
-static struct { int dist, ins, sends, sprd, byp, byp_trk, damage, fold, svf, svf_mix; } ph;
+static struct { int dist, ins, sends, sprd, byp, byp_trk, damage, fold, svf, svf_mix, fty; } ph;
 
 /* a chord phrase on track 1 (ANALOG, POLY) in a fork()ed child: its output's hash and peak */
 static ph_t phrase(void)
@@ -80,6 +80,8 @@ static ph_t phrase(void)
         for (k = 0; k < DEV_COUNT; k++)
             if ((ph.byp >> k) & 1u)
                 chain_set_bypass((uint32_t)ph.byp_trk, k, 1);
+        if (ph.fty)                                      /* FILTER of type fty at its defaults (umbra_filter.c) */
+            chain_set_type(0, DEV_FILTER, (uint32_t)ph.fty);
         if (ph.svf) {                                    /* FILTER SVF on track 1 (umbra_filter.c) */
             chain_set_type(0, DEV_FILTER, FILTER_SVF);
             uchain[0].p[DEV_FILTER][SVF_FREQ] = 50;
@@ -196,6 +198,18 @@ int main(void)
     base(); ph.sprd = 100; off = phrase();
     ph.svf = 1; ph.svf_mix = 127; ph.byp = 1u << DEV_FILTER; x = phrase();
     ck("FILTER SVF bypassed on a SPREAD track: the base tree bit for bit (stereo kept)", same(x, off));
+
+    /* 8. FILTER COMB, RESONATOR, FORMANT in a track: each changes the sound and stays bounded */
+    {
+        uint32_t ty;
+        int ok = 1;
+        base(); off = phrase();
+        for (ty = FILTER_COMB; ty <= FILTER_FORMANT; ty++) {
+            base(); ph.fty = (int)ty; x = phrase();
+            ok &= !same(x, off) && x.peak <= 32767 && x.peak > 100;
+        }
+        ck("FILTER COMB, RESONATOR, FORMANT at their defaults in a track: each sounds, changes it, within the mix", ok);
+    }
 
     /* 5 */
     {

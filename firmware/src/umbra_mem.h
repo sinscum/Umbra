@@ -18,10 +18,13 @@
 #define UMBRA_MEM_HI(rate, ms) ((rate) * (ms) / 1000u * 2u)
 #define UMBRA_MEM_LO(rate, ms) ((rate) * (ms) / 1000u)
 
-/* ---- the buffers (none in Phase 1) ---------------------------------------------------------------------------
+/* ---- the buffers ----------------------------------------------------------------------------------------------
  * Phase 4 adds: per-track GRANULAR rings, TAPE; Phase 3: the SPACE delay (sharing the base tree's). Each as
  *   #define UMBRA_MEM_<NAME> <bytes>     and its term in the sum below. */
+#define UMBRA_COMB_LEN 1024u                    /* FILTER COMB's delay line a track: 1023 samples, its lowest note
+                                                 * ~43 Hz (F1), int16 (umbra_filter.c) */
+#define UMBRA_MEM_COMB (4u * UMBRA_COMB_LEN * 2u)   /* 8 KiB */
 
-#define UMBRA_MEM_TOTAL (0u)                    /* the sum of every UMBRA_MEM_<NAME> above */
+#define UMBRA_MEM_TOTAL (UMBRA_MEM_COMB)        /* the sum of every UMBRA_MEM_<NAME> above */
 
 #endif

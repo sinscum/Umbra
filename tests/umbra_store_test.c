@@ -230,6 +230,20 @@ int main(void)
     project_load(0);
     bad += check("a stored value out of its range: clamped (FOLD 999 -> 127)", uchain[2].p[DEV_DRIVE][DRV_FOLD] == 127);
 
+    /* 9b. FILTER RESONATOR's TUNE (an enum value) and RING round trip */
+    reset();
+    settings_init();
+    chain_set_type(1, DEV_FILTER, FILTER_RES);
+    uchain[1].p[DEV_FILTER][RSN_TUNE] = TUNE_FIFTHS;
+    uchain[1].p[DEV_FILTER][RSN_RING] = 120;
+    project_save(2);
+    chain_reset();
+    power_cycle();
+    project_load(2);
+    bad += check("FILTER RESONATOR, TUNE FIFTHS, RING 120 saved and loaded",
+                 uchain[1].type[DEV_FILTER] == FILTER_RES && uchain[1].p[DEV_FILTER][RSN_TUNE] == TUNE_FIFTHS &&
+                 uchain[1].p[DEV_FILTER][RSN_RING] == 120);
+
     /* 10. a v1 record (Phase 1: types and bypasses, 36 bytes) loads: its types and bypasses, the values defaults */
     reset();
     settings_init();

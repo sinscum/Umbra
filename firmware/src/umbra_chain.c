@@ -37,13 +37,14 @@ typedef struct {
     const dev_type_t *types;
 } dev_desc_t;
 
-/* the device types' DSP and descriptors (each its own file, before the table) */
+/* the device types' DSP and descriptors (each its own file, before the table); their buffers' sizes: umbra_mem.h */
+#include "umbra_mem.h"
 #include "umbra_drive.c"
 #include "umbra_filter.c"
 
 static const dev_type_t DEV_T_SOURCE[] = {{"SYNTH", 0, 0}};   /* the engine's cost is its own (ENG_VCOST) */
 static const dev_type_t DEV_T_GRANULAR[] = {{"THRU", 0, 0}};
-static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}, FLT_T_SVF};
+static const dev_type_t DEV_T_FILTER[] = {{"THRU", 0, 0}, FLT_T_SVF, FLT_T_COMB, FLT_T_RES, FLT_T_FORMANT};
 static const dev_type_t DEV_T_DRIVE[] = {{"BASIC", 0, 0}, DRV_T_DAMAGE};   /* BASIC: the base tree's, in its budget */
 static const dev_type_t DEV_T_SPACE[] = {{"SENDS", 0, 0}};
 #define NELEM_T(a) ((uint8_t)(sizeof(a) / sizeof((a)[0])))
@@ -102,10 +103,28 @@ static inline void chain_pre(const track_t *t, int32_t *b, uint32_t n)
     if (chain_off(t, DEV_SOURCE))
         for (i = 0; i < n; i++)
             b[i] = 0;
-    if (chain_filter_on(t))
-        flt_svf(&flt_st[tr], t, (const int16_t *)uchain[tr].p[DEV_FILTER], b, n);
-    else
+    if (chain_filter_on(t)) {
+        const int16_t *p = (const int16_t *)uchain[tr].p[DEV_FILTER];
+        flt_state_t *s = &flt_st[tr];
+        uint32_t ty = chain_type(t, DEV_FILTER);
+        if (s->on && s->on != ty + 1u)                  /* (another type than last block: a fresh start) */
+            s->on = 0;
+        if (song.cpu_q8 > 205u)                         /* RESONATOR: 4 bands over ~80 % CPU, 6 again under ~66 % */
+            flt_res_bands = 4;
+        else if (song.cpu_q8 < 170u)
+            flt_res_bands = FLT_BANDS;
+        if (ty == FILTER_SVF)
+            flt_svf(s, t, p, b, n);
+        else if (ty == FILTER_COMB)
+            flt_comb(s, t, p, b, n, flt_comb_buf[tr]);
+        else if (ty == FILTER_RES)
+            flt_res(s, t, p, b, n);
+        else
+            flt_formant(s, t, p, b, n);
+        s->on = (uint8_t)(ty + 1u);                     /* (which type ran) */
+    } else {
         flt_st[tr].on = 0;                              /* (on again later: a fresh start) */
+    }
 }
 
 /* a device still sounding after the track's voices (fx.c mix_part runs the track on: its tail) */
@@ -179,6 +198,9 @@ static const struct { const char *title; uint8_t dev, type; } DEV_PAGES[] = {
     {"INSERT 2", DEV_DRIVE, DRIVE_BASIC},
     {"DAMAGE", DEV_DRIVE, DRIVE_DAMAGE}, {"DAMAGE 2", DEV_DRIVE, DRIVE_DAMAGE},
     {"THRU", DEV_FILTER, FILTER_THRU}, {"SVF", DEV_FILTER, FILTER_SVF}, {"SVF 2", DEV_FILTER, FILTER_SVF},
+    {"COMB", DEV_FILTER, FILTER_COMB}, {"COMB 2", DEV_FILTER, FILTER_COMB},
+    {"RESONATOR", DEV_FILTER, FILTER_RES}, {"RESONATOR 2", DEV_FILTER, FILTER_RES},
+    {"FORMANT", DEV_FILTER, FILTER_FORMANT}, {"FORMANT 2", DEV_FILTER, FILTER_FORMANT},
 };
 static int dev_page_visible(const page_t *pg)
 {

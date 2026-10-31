@@ -408,6 +408,13 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         break;
     case F_NOTE:
         str_cpy(val, N_NOTE[v % 12], 6);
+        if (d->max > 11) {                            /* UMBRA: a pitch, not a key: its octave too (C4 = 60) */
+            uint32_t k = str_len(val);
+            int32_t o = v / 12 - 1;
+            if (o < 0) { val[k++] = '-'; o = -o; }
+            val[k++] = (char)('0' + o % 10);
+            val[k] = 0;
+        }
         break;
     case F_ONOFF:
         str_cpy(val, N_ONOFF[v ? 1 : 0], 6);
@@ -439,7 +446,7 @@ enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK,   /* SC_TRK: the TRACKS 
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_BROWSE, GR_SLOTS, GR_USER, GR_TRK,
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHORD, GR_SLICES, GR_EVENTS,
        GR_FMOP, GR_FMOP2, GR_FMENV, GR_INS, GR_THRU,   /* GR_THRU: a pass-through device's placeholder (UMBRA) */
-       GR_DRV, GR_FLT };        /* UMBRA: DRIVE DAMAGE's transfer curve, FILTER's response */   /* (GR_STEPS: SEQ TOOLS' knobs; GR_FMOP..: FM6's operator pages, ui_fm6op.c) */
+       GR_DRV, GR_FLT, GR_BANDS };   /* UMBRA: DRIVE DAMAGE's transfer curve, FILTER SVF's response, its bands */   /* (GR_STEPS: SEQ TOOLS' knobs; GR_FMOP..: FM6's operator pages, ui_fm6op.c) */
 
 typedef struct {
     const char *title;
@@ -466,6 +473,12 @@ static const page_t PAGES[] = {
     {"THRU", FAM_SCL, SC_TRACK, GR_THRU, {0xFF, 0xFF, 0xFF, 0xFF}},
     {"SVF", FAM_SCL, SC_DEV, GR_FLT, {0, 1, 2, 3}},      /* FREQ RES MORPH MIX (umbra_filter.c) */
     {"SVF 2", FAM_SCL, SC_DEV, GR_FLT, {4, 5, 0xFF, 0xFF}},   /* KEYTRK WANDER */
+    {"COMB", FAM_SCL, SC_DEV, GR_BANDS, {0, 1, 2, 3}},   /* NOTE FDBK DAMP MIX */
+    {"COMB 2", FAM_SCL, SC_DEV, GR_BANDS, {4, 5, 6, 0xFF}},   /* KEYTRK WANDER POL */
+    {"RESONATOR", FAM_SCL, SC_DEV, GR_BANDS, {0, 1, 2, 3}},   /* ROOT RING MORPH MIX */
+    {"RESONATOR 2", FAM_SCL, SC_DEV, GR_BANDS, {4, 5, 6, 7}},   /* TUNE SPREAD WANDER KEYTRK */
+    {"FORMANT", FAM_SCL, SC_DEV, GR_BANDS, {0, 1, 2, 3}},   /* SHIFT RES VOWEL MIX */
+    {"FORMANT 2", FAM_SCL, SC_DEV, GR_BANDS, {4, 5, 0xFF, 0xFF}},   /* KEYTRK WANDER */
     {"SCL", FAM_SCL, SC_TRACK, GR_SCALE, {P_ROOT, P_SCALE, P_QUANT, P_TRANS}},
     {"CHORD", FAM_SCL, SC_TRACK, GR_CHORD, {P_CHRD, P_VOIC, 0xFF, 0xFF}},   /* SCL again: the chord keys (chord.c) */
     {"EDIT 1", FAM_EDIT, SC_ENGINE, GR_NONE, {P_E0, P_E1, P_E2, P_E3}},

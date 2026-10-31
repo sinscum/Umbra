@@ -539,6 +539,50 @@ static void graph_filter(uint16_t c)
     }
 }
 
+/* UMBRA: FILTER COMB / RESONATOR / FORMANT (DESIGN §8.1): a thin line at each band's pitch (across: notes 24..120),
+ * taller while the filter rings (its wet's peak); COMB its harmonics, RESONATOR its six (four under load), FORMANT
+ * its three formants */
+static int32_t note16_of_inc(uint32_t inc)            /* the 1/16 semitone whose increment is inc (a search) */
+{
+    int32_t lo = 0, hi = 2047;
+    while (lo < hi) {
+        int32_t m = (lo + hi) / 2;
+        if (pitch_inc((uint32_t)m) < inc) lo = m + 1;
+        else hi = m;
+    }
+    return lo;
+}
+static void graph_bands(const track_t *t, uint16_t c)
+{
+    const volatile int16_t *p = uchain[song.sel % NTRK].p[DEV_FILTER];
+    uint32_t ty = uchain[song.sel % NTRK].type[DEV_FILTER], k, nb = 0;
+    const flt_state_t *s = &flt_st[song.sel % NTRK];
+    int32_t n16[FLT_BANDS * 2], top = 8 * graph_ht / 100, bot = 92 * graph_ht / 100;
+    int32_t glow = s->on == ty + 1u ? clamp(s->ring / 300, 0, 50) : 0, i;
+    cv_rect(PANEL_X0, bot, PANEL_W, 1, T_RAISE);
+    if (ty == FILTER_COMB) {                          /* the pitch and its harmonics (POL -: the odd ones, an octave down) */
+        uint32_t base = pitch_inc((uint32_t)p[CMB_NOTE] * 16u), h;
+        for (h = 1; h <= 8u && nb < FLT_BANDS * 2; h++)
+            if (!p[CMB_POL] || (h & 1u))
+                n16[nb++] = note16_of_inc(base * h / (p[CMB_POL] ? 2u : 1u));
+    } else if (ty == FILTER_RES) {
+        for (k = 0; k < flt_res_bands; k++)
+            n16[nb++] = p[RSN_ROOT] * 16 + rsn_interval(t, (uint32_t)p[RSN_TUNE], k, p[RSN_ROOT]) * 16 * p[RSN_MORPH] / 64;
+    } else if (ty == FILTER_FORMANT) {
+        int32_t v = clamp(p[FMT_VOWEL] * 4, 0, 508), seg = v / 127, fr = v - seg * 127;
+        if (seg >= 4) { seg = 3; fr = 127; }
+        for (k = 0; k < 3u; k++) {
+            uint32_t hz = ((uint32_t)FMT_HZ[seg][k] * (uint32_t)(127 - fr) + (uint32_t)FMT_HZ[seg + 1][k] * (uint32_t)fr) / 127u;
+            n16[nb++] = note16_of_inc(hz * 97392u) + p[FMT_SHIFT] * 12 * 16 / 64;
+        }
+    }
+    for (i = 0; i < (int32_t)nb; i++) {
+        int32_t x = PANEL_X0 + clamp((n16[i] - 24 * 16) * PANEL_W / (96 * 16), 0, PANEL_W - 2);
+        int32_t h = (bot - top) * (35 + glow) / 100 * (ty == FILTER_FORMANT ? 3 - i : 3) / 3;
+        cv_rect(x, bot - h, 2, h, c);
+    }
+}
+
 static void graph_slicer(const track_t *t, uint16_t c)
 {
     uint32_t i, pat = sl_pattern(t), mode = (uint32_t)t->p[P_SLCR], cur = sl[t - trk].idx;
@@ -1255,7 +1299,7 @@ static uint32_t graph_signature(void)
             h = (h ^ (uint32_t)uchain[song.sel % NTRK].p[fam_device(pg->fam) % DEV_COUNT][i]) * 16777619u;
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
-    if (pg->graph == GR_NONE || pg->graph == GR_ARP) h ^= ui.frame / 2u;
+    if (pg->graph == GR_NONE || pg->graph == GR_ARP || pg->graph == GR_BANDS) h ^= ui.frame / 2u;   /* (UMBRA: the bands glow) */
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
     h ^= (uint32_t)TSEL->preset * 7u + (uint32_t)song.g[G_SLOT] * 13u + TSEL->user * 257u + up_gen * 7919u + ui.uslot * 104729u +
@@ -2366,6 +2410,9 @@ static void draw_graph(void)
             break;
         case GR_FLT:
             graph_filter(c);
+            break;
+        case GR_BANDS:
+            graph_bands(t, c);
             break;
         case GR_MOD:
             cv_oy = 0;
