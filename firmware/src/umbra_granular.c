@@ -12,7 +12,8 @@
  *          stretches or hurries through the ring, wrapping); 0 suspends it: the ring stops recording, the cloud hangs
  *   SCALE  each grain's pitch onto the track's scale (seq.c scale_mask), PITCH and PITCH RAND in semitones
  * Gains: the cloud's level kept near the source's: 1 / sqrt(the grains overlapping). Fixed point throughout; per
- * spawn one 32-bit divide at most. THRU (the default) leaves the block as it is. */
+ * spawn one 32-bit divide at most. THRU (the default) leaves the block as it is. Out of line (noinline): fx.c
+ * mix_part's own loops stay as they were (tests/target_budget.py). */
 #ifndef UMBRA_GRN
 #define UMBRA_GRN UMBRA_CHAIN
 #endif
@@ -87,7 +88,7 @@ static int32_t grn_ratio_q16(int32_t semi)       /* 2^(semi / 12), Q16, semi -36
 }
 
 /* the ring: n samples of the track's block b in, a value a pair (the pair's average), mu-law */
-static void grn_record(uint32_t tr, const int32_t *b, uint32_t n)
+static __attribute__((noinline)) void grn_record(uint32_t tr, const int32_t *b, uint32_t n)
 {
     uint32_t i;
     for (i = 0; i < n; i++) {
@@ -105,7 +106,7 @@ static void grn_record(uint32_t tr, const int32_t *b, uint32_t n)
 }
 
 /* grains of track tr playing now */
-static uint32_t grn_count(uint32_t tr, uint32_t *all)
+static __attribute__((noinline)) uint32_t grn_count(uint32_t tr, uint32_t *all)
 {
     uint32_t g, n = 0, a = 0;
     for (g = 0; g < GRN_MAX; g++)
@@ -117,7 +118,7 @@ static uint32_t grn_count(uint32_t tr, uint32_t *all)
     return n;
 }
 /* no slot for a new grain: the oldest (of the track when it has its share, else of all) fades out */
-static void grn_steal(uint32_t tr, int own)
+static __attribute__((noinline)) void grn_steal(uint32_t tr, int own)
 {
     uint32_t g, best = GRN_MAX, most = 0;
     for (g = 0; g < GRN_MAX; g++) {
@@ -136,7 +137,7 @@ static void grn_steal(uint32_t tr, int own)
 }
 
 /* a new grain for track tr with values p */
-static void grn_spawn(uint32_t tr, const track_t *t, const int16_t *p, uint32_t len)
+static __attribute__((noinline)) void grn_spawn(uint32_t tr, const track_t *t, const int16_t *p, uint32_t len)
 {
     uint32_t g, r = noise32(&grs[tr].rng), span, back, need, limit;
     int32_t semi = p[GRN_PITCH], inc;
@@ -191,7 +192,7 @@ static void grn_spawn(uint32_t tr, const track_t *t, const int16_t *p, uint32_t 
 }
 
 /* track tr's block b (n samples, its SOURCE): recorded, then the cloud over it, MIX of it */
-static void grn_run(uint32_t tr, const track_t *t, const int16_t *p, int32_t *b, uint32_t n)
+static __attribute__((noinline)) void grn_run(uint32_t tr, const track_t *t, const int16_t *p, int32_t *b, uint32_t n)
 {
     static int32_t wet[CTL];
     uint32_t i, g, len = 882u + (uint32_t)(p[GRN_SIZE] * p[GRN_SIZE]), all, mine;
@@ -274,7 +275,7 @@ static void grn_run(uint32_t tr, const track_t *t, const int16_t *p, int32_t *b,
 }
 
 /* GRAINS off (another type, bypassed): its grains go, the ring starts afresh next time */
-static void grn_stop(uint32_t tr)
+static __attribute__((noinline)) void grn_stop(uint32_t tr)
 {
     uint32_t g;
     for (g = 0; g < GRN_MAX; g++)
@@ -283,7 +284,7 @@ static void grn_stop(uint32_t tr)
     grs[tr].on = 0;
 }
 /* the cloud still sounding (fx.c mix_part runs the track on: its grains, a suspended cloud) */
-static int grn_ringing(uint32_t tr)
+static __attribute__((noinline)) int grn_ringing(uint32_t tr)
 {
     uint32_t all;
     return grs[tr].on && (grn_count(tr, &all) || grs[tr].filled);
