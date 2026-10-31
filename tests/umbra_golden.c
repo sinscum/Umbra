@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* UMBRA's golden renders (tests/umbra_golden.txt): each recipe (web/emu/umbra_recipes.c, the emulator's demo list)
- * from power-on, PLAY, 8 s of the stereo mix; its hash (FNV-1a over the samples), peak and mean against the file.
+ * from power-on, PLAY, 8 s of the stereo mix (FROZEN HALL: FREEZE at 4 s, stopped at 5 s); its hash (FNV-1a over the samples), peak and mean against the file.
  * Each recipe in a process of its own (fork): no state from the one before. Also checks that each sounds (peak),
  * does not clip, has no DC.
  *   build/host/umbra_golden [UPDATE=1: write the file] [UMBRA_WAV=dir: the renders as WAVs, to listen]
@@ -40,6 +40,10 @@ static gold_t render(uint32_t n, const char *wavdir)
     transport_req = 1;
     for (f = 0; f < frames; f += CTL) {
         int32_t o[2 * CTL];
+        if (n == 3u && f == 4u * FS / CTL * CTL)
+            usong[US_FRZ] = 1;                  /* FROZEN HALL: FREEZE at 4 s, then stopped at 5 s: the hall hangs */
+        if (n == 3u && f == 5u * FS / CTL * CTL)
+            transport_req = 2;
         mix_block(o, CTL);
         for (i = 0; i < 2u * CTL; i++) {
             int32_t a = o[i] < 0 ? -o[i] : o[i];

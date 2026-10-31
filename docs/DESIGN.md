@@ -130,8 +130,23 @@ Shared reverb and delay buses on the master; per track you set sends.
 - **FREEZE**: input closed, feedback held at unity — the tail hangs indefinitely. A first-class performance control.
 - SHIMMER (pitch shift in feedback) is the most expensive item: its own flag, measured first.
 
+As built (Phase 3, `firmware/src/umbra_space.c`): GLO opens **SPACE** (`REV · DLY · PAN · WIDTH`; WIDTH is the track's
+SPREAD), **SPACE 2** (`SIZE · DAMP · TIME · FDBK`, the base tree's reverb and delay values), **SPACE 3**
+(`WOW · SHIM · PRE · FRZ`), then SENDS (with the chorus send) and the bus pages as before. P2 is the next page, not
+a hold. WOW wavers the delay (0.55 Hz and 1.65 Hz, up to ~5 ms); PRE-DLY delays the reverb's send 0–100 ms;
+FREEZE closes both sends and holds both loops at unity, gliding in and out over ~17 ms. HALL and ROOM hang (HALL's
+taps stop drifting so nothing dulls); SPRING only closes its input. SHIMMER is built only with `UMBRA_SHIMMER=1`
+(off by default; host cost about 0.4 of an ANALOG voice). The song's values are saved (UMB1 v3); FREEZE never is.
+
 ## 4. MIXER — mixer & master
 HOME → MIXER: 4 track levels on the knobs, white keys 1–4 mute, 5–8 solo. Master: one-knob DJ filter (LP ← centre → HP), glue compressor, soft limiter. Start from the base tree's mixer/GLO layer.
+
+As built (Phase 3): MIXER keeps the base tree's knobs (the selected track's LEVEL, PAN, REV, MUTE, with all four
+tracks' cards). The four levels on the knobs are the HOME screen's. On MIXER, white keys 1–4 mute tracks 1–4 and
+5–8 solo them; the keys are silent there and lit while on. Solo is not saved. HOME's round is MIXER → CLOCK →
+**MASTER** (`DJ · GLUE`, `firmware/src/umbra_master.c`): DJ low-pass 16 kHz → ~110 Hz below 0, high-pass
+30 Hz → ~4 kHz above. GLUE is a linked compressor (−3 to −11 dBFS, 2:1 to 4:1). Both sit before the base tree's
+limiter and soft clip.
 
 ## 5. MODS — modulation
 2 per track, control rate (once per block). Shapes: LFO (sine/tri/saw/square/S&H/drunk walk), ENV (note-triggered AD), FOLLOW (envelope follower on the track's own signal), RANDOM. Assign: hold LFO + turn a device knob = depth (bipolar). Reuse the base tree's LFO pages and mod matrix. Rates go very slow (minutes per cycle) — dark ambient lives there.
@@ -239,7 +254,8 @@ Palettes (all must pass the UI test): **TOTALITY** (black, cold grey corona — 
 
 Until factory projects exist (Phase 6), recipes are in the browser emulator's demo list (`web/emu/umbra_recipes.c`;
 golden renders `tests/umbra_golden.txt`). Phase 2 has Sunken Pulse (plus the kit through a RESONATOR in fifths) and
-Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk MOD arrives (Phase 5).
+Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk MOD arrives (Phase 5). Phase 3 adds
+Frozen Hall: the choir and a pad into the longest HALL with PRE-DLY and WOW, for FREEZE.
 
 ## 10. Budget plan
 - Target: 4 tracks, full chain at defaults, ≤ 70 % of one core. 2nd core stays optional.
@@ -251,7 +267,8 @@ Distant Choir; Distant Choir's vowel drift is FORMANT's WANDER until the drunk M
 A project is the base tree's record (one full 4 KB flash sector: no room) plus UMBRA's own record beside it, in
 its own storage object ("UMB1", `firmware/src/umbra_store.c`, flash 0xE8000..0xF1FFF: four project slots and the
 autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Version 2 (Phase 2) adds each device's eight values
-(88 bytes a track; a v1 record loads with the types' defaults). Later versions add
+(88 bytes a track; a v1 record loads with the types' defaults). Version 3 (Phase 3) adds the song's SPACE and MASTER
+values (16 bytes; FREEZE stored as off; a v2 record loads with their defaults). Later versions add
 mods, sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
 record names the project record it was saved with (its CRC): a base-tree project, a slot re-saved by the base tree,
 or a torn write loads with the default chain, never another project's. TAPE audio is **not** saved (RAM only);

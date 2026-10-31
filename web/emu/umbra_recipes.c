@@ -6,9 +6,11 @@
  * the tracks it uses; the others keep their sounds, silent (no steps).
  *   0 FOUR ENGINES    the power-on sounds, a pattern each
  *   1 SUNKEN PULSE    a saw bass through DRIVE DAMAGE and a keytracked SVF; the kit rings a RESONATOR in fifths
- *   2 DISTANT CHOIR   wind through a wandering FORMANT into a long HALL; a low pad under a dark SVF */
-#define UMBRA_NRECIPES 3u
-static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR"};
+ *   2 DISTANT CHOIR   wind through a wandering FORMANT into a long HALL; a low pad under a dark SVF
+ *   3 FROZEN HALL     the choir and the pad into the longest HALL, 40 ms before it, echoes with WOW: turn SPACE 3's
+ *                     FREEZE (KNOB 4) on, stop, and the hall hangs (tests/umbra_golden.c freezes it at 4 s) */
+#define UMBRA_NRECIPES 4u
+static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR", "FROZEN HALL"};
 
 static uint32_t recipe_engine(const char *name)      /* an engine by its name (ENGINES[]), 0 if none */
 {
@@ -78,6 +80,26 @@ static void umbra_recipe(uint32_t n)
         recipe_dev(0, DEV_FILTER, FILTER_FORMANT, FMT);
         load_pat16(&trk[1], PATTERNS[7].note, PATTERNS[7].flags);   /* the power-on pad, SUB */
         trk[1].p[P_REV] = 90;
+        recipe_dev(1, DEV_FILTER, FILTER_SVF, SVF);
+        break;
+    }
+    case 3: {   /* FROZEN HALL */
+        static const int8_t FMT[DEV_NP] = {-20, 90, 60, 127, K_, 100, K_, K_};
+        static const int8_t SVF[DEV_NP] = {25, 30, 0, 127, 0, 60, K_, K_};
+        song.g[G_BPM] = 56;
+        song.g[G_RTYPE] = 2;                                        /* HALL, the longest, little damping */
+        song.g[G_RSIZE] = 127;
+        song.g[G_RDAMP] = 20;
+        song.g[G_DTIME] = 4;                                        /* (1/4D) echoes, wavering */
+        song.g[G_DFDBK] = 70;
+        usong[US_PRE] = 40;
+        usong[US_WOW] = 50;
+        recipe_track(0, "NOISE", "WIND", 5);
+        trk[0].p[P_REV] = 120;
+        trk[0].p[P_DLY] = 40;
+        recipe_dev(0, DEV_FILTER, FILTER_FORMANT, FMT);
+        load_pat16(&trk[1], PATTERNS[7].note, PATTERNS[7].flags);   /* the power-on pad, SUB */
+        trk[1].p[P_REV] = 110;
         recipe_dev(1, DEV_FILTER, FILTER_SVF, SVF);
         break;
     }

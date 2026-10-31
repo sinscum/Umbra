@@ -13,6 +13,7 @@
  *   build/host/space_test (also built with -DUMBRA_SHIMMER=1: SHIMMER bounded, its cost) */
 #define UI_TEST_NO_MAIN 1
 #include "ui_test.c"
+#include "../web/emu/umbra_recipes.c"
 #include <time.h>
 
 static int bad;
@@ -387,6 +388,38 @@ int main(void)
         ck(UMBRA_SHIMMER ? "cost: SPACE's additions with SHIMMER under 1.5 ANALOG voices, MASTER under one"
                          : "cost: SPACE's additions and MASTER each under one ANALOG voice",
            ns_all - ns_base < (UMBRA_SHIMMER ? 1.5 : 1.0) * ns_voice && ns_master < ns_voice);
+    }
+    /* 7. the whole mix: four tracks playing (FOUR ENGINES), the default chain, against every track with DRIVE DAMAGE and
+     * FILTER RESONATOR (6 bands) and the buses with WOW PRE-DLY, MASTER's DJ and GLUE: host time, 4 s each */
+    {
+        struct timespec a, c;
+        double ns[2];
+        uint32_t k, f, tr;
+        static const int16_t DMG[8] = {60, 40, 30, 0, 10, 0, 40, 112};
+        for (k = 0; k < 2u; k++) {
+            ui_power_on();
+            song.master_q12 = 2048;
+            umbra_recipe(0);
+            if (k) {
+                for (tr = 0; tr < NTRK; tr++) {
+                    chain_set_type(tr, DEV_DRIVE, DRIVE_DAMAGE);
+                    for (i = 0; i < 8u; i++) uchain[tr].p[DEV_DRIVE][i] = DMG[i];
+                    chain_set_type(tr, DEV_FILTER, FILTER_RES);
+                    trk[tr].p[P_REV] = 80; trk[tr].p[P_DLY] = 40;
+                }
+                usong[US_WOW] = 60; usong[US_PRE] = 40; usong[US_DJ] = -20; usong[US_GLUE] = 80;
+            }
+            transport_req = 1;
+            for (f = 0; f < FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }   /* (1 s to settle) */
+            clock_gettime(CLOCK_MONOTONIC, &a);
+            for (f = 0; f < 4u * FS; f += CTL) { int32_t o[2 * CTL]; mix_block(o, CTL); }
+            clock_gettime(CLOCK_MONOTONIC, &c);
+            ns[k] = ((c.tv_sec - a.tv_sec) * 1e9 + (c.tv_nsec - a.tv_nsec)) / (4.0 * FS);
+        }
+        printf("space: the whole mix, four tracks: default chain %.1f ns / sample, every track DAMAGE + RESONATOR and the "
+               "buses' and MASTER's additions %.1f ns (x%.2f)\n", ns[0], ns[1], ns[1] / ns[0]);
+        ck("the whole mix with everything on: within 3x the default chain's (host)", ns[1] < 3.0 * ns[0]);
+        chain_reset();
     }
     printf(bad ? "space: %d FAILED\n" : "space: all ok\n", bad);
     return bad ? 1 : 0;
