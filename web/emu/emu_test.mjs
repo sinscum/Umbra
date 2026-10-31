@@ -194,6 +194,21 @@ if (nativePath) {                                             // web/emu/native_
   check(`the same song from the native build (cc): ${web.length / 2} frames, ${diff === 0 ? "bit for bit" : "differs at " + diff}`, diff === 0);
 }
 
+// ---- UMBRA: the page's "Load demo" (umbra_web.c web_demo): a pattern in each track, PLAY sounds the four engines through
+// their chains; refused while playing
+{
+  const g = await device(null);
+  g.render(1200);
+  const loaded = g.ex.web_demo() === 1;
+  g.peak = 0;
+  g.tap(B.PLAY);
+  g.render(2000);
+  const playing = g.ex.web_playing() === 1, pk = g.peak, refused = g.ex.web_demo() === 0;
+  g.tap(B.PLAY);
+  check(`UMBRA: Load demo, then PLAY: the four tracks play (peak ${pk.toFixed(3)}); refused while playing`,
+        loaded && playing && pk > 0.01 && refused);
+}
+
 // ---- the cost: 1 s of the heavy song against real time (the best of 3, after 2 s to settle)
 let best = Infinity;
 s1.rec = false;

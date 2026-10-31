@@ -87,6 +87,7 @@ footer small { font-size: 11px; opacity: .8; }
   <span><kbd>↑</kbd> <kbd>↓</kbd> SELECT</span>
   <span><kbd>←</kbd> <kbd>→</kbd> ALGORITHM</span>
   <span><kbd>Shift</kbd>-click holds a button</span>
+  <span><button id="demo" type="button" hidden>Load demo</button></span>
   <span id="midiknobs" hidden><label><input type="checkbox" id="knobson"> MIDI CC 20–27 turn the panel's knobs</label>
   <select id="knobmode" aria-label="How the controller sends CC 20–26" hidden>
     <option value="abs">absolute</option>
@@ -99,7 +100,7 @@ footer small { font-size: 11px; opacity: .8; }
 <footer>
   <small class="version">@VERSION@@PREVIEW@</small><br>
   UMBRA, built on Felucca by Leo Kuroshita, Hügelton Instruments · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a> · browser build after charlesvestal's <a href="https://github.com/charlesvestal/fm1-x0x">X0X</a> · DotGothic16 font, <a href="fonts/OFL.txt">SIL OFL 1.1</a><br>
-  <nav><a href="https://github.com/sinscum/Umbra">Source</a></nav>
+  <nav><a href="ui/">Screens</a><a href="https://github.com/sinscum/Umbra">Source</a></nav>
   <small>M-VAVE and FM-1 are trademarks of their respective owners. UMBRA is not affiliated with or endorsed by them.</small>
 </footer>
 </main>
@@ -500,7 +501,7 @@ async function switchOn() {
     await new Promise((res, rej) => {
       node.port.onmessage = (e) => {
         const m = e.data;
-        if (m.type === "ready") res();
+        if (m.type === "ready") { res(); document.getElementById("demo").hidden = false; }
         else if (m.type === "error") rej(new Error(m.message));
         else if (m.type === "frame") {
           if (m.fb) drawScreen(m.fb);
@@ -529,6 +530,7 @@ async function switchOn() {
   }
 }
 document.getElementById("go").addEventListener("click", switchOn);
+document.getElementById("demo").addEventListener("click", () => send({ type: "demo" }));   // UMBRA: four tracks to PLAY
 document.addEventListener("visibilitychange", () => send({ type: "visible", on: !document.hidden }));
 </script>
 </body>
