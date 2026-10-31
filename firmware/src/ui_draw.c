@@ -814,6 +814,27 @@ static void sound_name(const track_t *t, char *b)
         str_cpy(b, e->presets[t->preset % e->npresets].name, 16);
 }
 
+/* UMBRA: the chain strip (DESIGN §8.1) in the footer's first row on a device's pages: SRC GRN FLT DRV SPC, the open
+ * device filled, a bypassed one hollow (umbra_chain.c) */
+#define CS_W 40
+#define CS_GAP 6
+static void chain_strip(uint32_t open)
+{
+    uint32_t d, byp = uchain[song.sel % NTRK].bypass;
+    GFX_HOOK_ALIGN(0, 0, 240, 0, AL_H | AL_CELLS | AL_N(DEV_COUNT), "footer chain strip centred");
+    for (d = 0; d < DEV_COUNT; d++) {
+        int32_t x = 8 + (int32_t)d * (CS_W + CS_GAP), tw = text_w(&AF_S, UCH_DESC[d].tag);
+        uint16_t fill = d == open ? T_THEME : T_RAISE, ink = d == open ? T_BG : T_TEXT;
+        if ((byp >> d) & 1u) {                        /* hollow: the open one's outline and tag in the theme */
+            fill = T_BG;
+            ink = d == open ? T_THEME : T_MID;
+            cv_frame(x, 1, CS_W, 13, ink);
+        } else {
+            cv_rrect(x, 1, CS_W, 13, 2, fill, T_BG);
+        }
+        cv_text_on(x + (CS_W - tw) / 2, 0, &AF_S, UCH_DESC[d].tag, ink, fill);
+    }
+}
 static void draw_foot(void)
 {
     char s[48], pn[16], ti[20], ln[24];
@@ -823,6 +844,7 @@ static void draw_foot(void)
     const engine_t *e = ENGINES[TSEL->eng_req % NENGINES];
     const char *ename = e->name, *help;
     int32_t x;
+    uint32_t dev = ui.home || !UMBRA_CHAIN ? DEV_COUNT : fam_device(pg->fam);   /* UMBRA: a device's page: the chain strip */
     sound_name(t, pn);
     if (ui.home)
         str_cpy(ti, "HOME", sizeof ti);
@@ -838,6 +860,8 @@ static void draw_foot(void)
         sig = str_hash(0x9E3779B9u, s) + ph * 97u + (song.seq_mode ? ui.cursor : 0xFFu) * 3001u + steps_hash(t) +
               (ui.home ? 0u : page_icon(pg)) * 7121u +
               ui.bank * 7u + (uint32_t)t->p[P_SLEN] * 13u;
+        if (dev < DEV_COUNT)
+            sig += 0xC4A1u + dev * 131u + (uint32_t)uchain[song.sel % NTRK].bypass * 8191u;
     }
     if (act_cols()) {                                  /* the hint, and whether OCT+ would act */
         char ha[16], hb[16];
@@ -891,6 +915,8 @@ static void draw_foot(void)
             cv_text_r(232, 2, &AF_S, "ACCENT", T_ACCENT, T_BG);
         else
             cv_key_hint(232 - kh_w(KC_KEYS, "STEPS"), 2, KC_KEYS, "STEPS", 1, T_BG);   /* the keys are the steps */
+    } else if (dev < DEV_COUNT) {
+        chain_strip(dev);                             /* row 1 (UMBRA): the chain, in place of the steps */
     } else {
         uint32_t i;
         if ((ui.bank + 1u) * 16u <= (uint32_t)t->p[P_SLEN])

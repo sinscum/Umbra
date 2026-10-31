@@ -168,6 +168,7 @@ static int check(const char *what, int ok)
 static void ui_power_on(void)
 {
     uint32_t i;
+    chain_reset();                                   /* (UMBRA: the chain as at boot, nothing bypassed) */
     memset(trk, 0, sizeof trk);
     memset(&song, 0, sizeof song);
     memset(midi_lit_ms, 0, sizeof midi_lit_ms); midi_seen = 0;   /* (1.5.5: no MIDI IN light) */
@@ -2710,7 +2711,8 @@ static int test_page_cycles(void)
     for (i = 0; i < NPAGES; i++) {                       /* every page in a family its button reaches, and its LED */
         uint32_t f = PAGES[i].fam;
         ok &= f != FAM_SEQ || PAGES[i].graph == GR_ROLL || PAGES[i].graph == GR_EVENTS;
-        ok &= f != FAM_GLO || PAGES[i].graph == GR_SONG;   /* (1.2: GLO's only page) */
+        ok &= f != FAM_GLO || PAGES[i].graph == GR_SONG || PAGES[i].scope == SC_GLOBAL ||   /* UMBRA: GLO is SPACE: */
+              str_eq(PAGES[i].title, "SENDS");      /* SENDS, DLY REVERB CHORUS, SONG */
         ok &= f != FAM_TRK || PAGES[i].graph == GR_TRK || str_eq(PAGES[i].title, "CLOCK");   /* HOME's: MIXER CLOCK */
         ok &= PAGES[i].graph != GR_TRK || f == FAM_TRK;
         ui_power_on(); ui.home = 0; ui.page = (uint8_t)i; page_entered();
@@ -2719,7 +2721,7 @@ static int test_page_cycles(void)
     }
     for (i = 0; i < NPAGES; i++)
         ok &= !str_eq(PAGES[i].title, "PATTERN") && !str_eq(PAGES[i].title, "CHANCE") && !str_eq(PAGES[i].title, "AUTO LIST");
-    bad += check("1.2: SEQ has STEP and AUTOMATION only; SONG is GLO's only page, PHRASES SAVE's, MIXER and CLOCK HOME's "
+    bad += check("1.2: SEQ has STEP and AUTOMATION only; GLO (SPACE) SENDS, the FX bus, SONG; PHRASES SAVE's, MIXER and CLOCK HOME's "
                  "(their LED HOME)", ok);
     {   /* 1.2: GLOBAL and SYSTEM are gone; their knobs: BPM SWG CLK on HOME > CLOCK, TUNE and ROUT on no page (the MENU's),
          * MIDI SYNC CPU on none (INFO shows the USB state and the CPU) */
@@ -2746,20 +2748,18 @@ static int test_page_cycles(void)
         else if (PAGES[i].graph == GR_PATS) ui.fam_last[FAM_SEQ] = (uint8_t)i;
     ui.fam_last[FAM_SAVE] = 200u;
     ui.fam_last[FAM_ENV] = 250u;
-    open_family(FAM_GLO); ok = str_eq(cur_page()->title, "SONG");
+    open_family(FAM_GLO); ok = str_eq(cur_page()->title, "SENDS");   /* UMBRA: SPACE's first */
     open_family(FAM_SEQ); ok &= cur_page()->graph == GR_ROLL;
     open_family(FAM_ENV); ok &= str_eq(cur_page()->title, "ENV");
     open_family(FAM_SAVE); ok &= str_eq(cur_page()->title, "USER");
-    open_family(FAM_GLO); open_family(FAM_GLO);          /* SONG again (its only page) */
-    ok &= str_eq(cur_page()->title, "SONG");
-    go_home(); open_family(FAM_GLO); ok &= str_eq(cur_page()->title, "SONG");
-    for (i = 0; i < 256u; i++) {                         /* any remembered index (the old GLOBAL 25, SYSTEM 27, ..) */
+    for (i = 0; i < 256u; i++) {                         /* any remembered index: one of GLO's (SPACE's) pages, else its first */
         go_home(); ui.fam_last[FAM_GLO] = (uint8_t)i; open_family(FAM_GLO);
-        ok &= str_eq(cur_page()->title, "SONG") && ui.fam_last[FAM_GLO] == ui.page;
+        ok &= cur_page()->fam == FAM_GLO && ui.fam_last[FAM_GLO] == ui.page &&
+              (i < NPAGES && PAGES[i].fam == FAM_GLO ? ui.page == i : str_eq(cur_page()->title, "SENDS"));
         go_home(); ui.fam_last[FAM_TRK] = (uint8_t)i; press(B_HOME);
         ok &= cur_page()->graph == GR_TRK && !ui.home;
     }
-    bad += check("1.2: a remembered page no longer in its family (or none) lands on the family's first; GLO always SONG, "
+    bad += check("1.2: a remembered page no longer in its family (or none) lands on the family's first (GLO: SENDS), "
                  "HOME always the MIXER first", ok);
 
     /* AUTOMATION: + ADD CHANCE / RATCH, the knobs, EDIT: the step's fields only */
@@ -2901,10 +2901,14 @@ static int test_product_ux(void)
     bad += check("1.2: HOME held still opens the menu", ui.menu == 1);
     ui_power_on();
     frames(320);                                       /* (taps further apart than a double tap: #83) */
-    press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "SONG");
-    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SONG") && cur_page()->fam == FAM_GLO && !ui.home;
-    go_title("CLOCK"); press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SONG");
-    bad += check("1.2: GLO opens SONG directly, again SONG (no GLOBAL, no SYSTEM, no MIXER)", ok);
+    press(B_GLO); frames(320); ok = cur_page()->fam == FAM_GLO && str_eq(cur_page()->title, "SENDS");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "DLY") && cur_page()->fam == FAM_GLO && !ui.home;
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "REVERB");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "CHORUS");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SONG");
+    press(B_GLO); frames(320); ok &= str_eq(cur_page()->title, "SENDS");
+    go_title("CLOCK"); press(B_GLO); frames(320); ok &= cur_page()->fam == FAM_GLO;
+    bad += check("UMBRA: GLO (SPACE) cycles SENDS > DLY > REVERB > CHORUS > SONG > SENDS (no GLOBAL, no SYSTEM, no MIXER)", ok);
     go_home(); btn_down(B_SEQ); frames(500);
     ok = ui.layer == LAYER_SEQ && ui.home;
     btn_up(B_SEQ); frame();
@@ -3237,11 +3241,11 @@ static int test_layer(void)
     key_up(white(14)); btn_up(B_FX); frame();
     bad += check("FX + G4 / A4: OCT UP / OCT DN held, silent, no MIDI; KNOB 4 turns; B4 FLANGER, D5 REV THROW, F5 nothing; FX let go: K4 0",
                  ok && !perf_held && !ui.layer && !perf_k[3] && mo_w == mo);
-    /* REVERB > TYPE (FX family, global): ROOM / SPRING / HALL on KNOB 1 (HALL at power-on since 1.2), kept by a
-     * project */
+    /* REVERB > TYPE (SPACE's, GLO: UMBRA; FX's up to Felucca 1.7, global): ROOM / SPRING / HALL on KNOB 1 (HALL at
+     * power-on since 1.2), kept by a project */
     ui_power_on();
     go_title("REVERB");
-    ok = cur_page()->fam == FAM_FX && cur_page()->id[0] == G_RTYPE && cur_page()->id[1] == G_RSIZE &&
+    ok = cur_page()->fam == FAM_GLO && cur_page()->id[0] == G_RTYPE && cur_page()->id[1] == G_RSIZE &&
          cur_page()->id[2] == G_RDAMP && song.g[G_RTYPE] == 2 && str_eq(GP[G_RTYPE].names[2], "HALL");
     turn(EN_K1, -2);
     ok &= song.g[G_RTYPE] == 0 && str_eq(GP[G_RTYPE].names[song.g[G_RTYPE]], "ROOM");
@@ -3259,7 +3263,7 @@ static int test_layer(void)
     bad += check("REVERB page: TYPE HALL (power-on) / ROOM / SPRING on KNOB 1 (SIZE, DAMP beside it); a project keeps SPRING",
                  ok && song.g[G_RTYPE] == 1);
     go_title("CHORUS");
-    bad += check("  CHORUS page: CRT CDP", cur_page()->fam == FAM_FX && cur_page()->id[0] == G_CRATE &&
+    bad += check("  CHORUS page: CRT CDP", cur_page()->fam == FAM_GLO && cur_page()->id[0] == G_CRATE &&
                  cur_page()->id[1] == G_CDEPTH && cur_page()->id[2] == 0xFFu);
     /* chording: a key held before FX stays a note, its note-off arrives */
     ui_power_on();
@@ -3599,9 +3603,9 @@ static int engine_cycle(const char *const *want, uint32_t n)   /* EDIT tapped fr
 }
 static int test_edit_cycle(void)
 {
-    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "FILTER", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};   /* (1.5: FILTER) */
+    static const char *const CYC_A[] = {"EDIT 1", "EDIT 2", "FILTER", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};   /* (1.5: FILTER) */
     static const char *const CYC_D[] = {"EDIT 1", "EDIT 2", "OP1 ENV", "OP2 ENV", "OP3 ENV", "OP4 ENV",
-                                        "OP LEVEL", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};
+                                        "OP LEVEL", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
     int bad = 0, ok;
     uint32_t i;
     ui_power_on();
@@ -3613,24 +3617,24 @@ static int test_edit_cycle(void)
         ok &= !str_eq(PAGES[i].title, "ENGINE");
     bad += check("no ENGINE page (engines are the EDIT layer's)", ok);
     set_engine_of(TSEL, 0);
-    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 FILTER VOICE VOICE 2 VOICE 3 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
+    bad += check("EDIT cycle (ANALOG): EDIT 1 EDIT 2 FILTER VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_A, NELEM(CYC_A)));
 #if UMBRA_FM4
     set_engine_of(TSEL, 1);
-    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 VOICE 3 EDIT 1",
+    bad += check("EDIT cycle (DIGITAL): EDIT 1 EDIT 2 OP1..OP4 ENV OP LEVEL VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1",
                  engine_cycle(CYC_D, NELEM(CYC_D)));
 #else
     set_engine_of(TSEL, ENGI_DIGITAL);
     {
-        static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};
+        static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
         bad += check("EDIT cycle (engine 1 asked for: FM6, DIGITAL retired): EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE .. VOICE 3",
                      TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     }
     (void)CYC_D;
 #endif
     {   /* #97: a DRUM track's lane levels on EDIT > LANES (KICK SNARE CLAP HATCL) and LANES 2 (HATOP TOM RIM BELL) */
-        static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "LANES", "LANES 2", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};
+        static const char *const CYC_K[] = {"EDIT 1", "EDIT 2", "LANES", "LANES 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
         set_engine_of(TSEL, ENGI_DRUM);
-        bad += check("EDIT cycle (DRUM): EDIT 1 EDIT 2 LANES LANES 2 VOICE VOICE 2 VOICE 3 EDIT 1", engine_cycle(CYC_K, NELEM(CYC_K)));
+        bad += check("EDIT cycle (DRUM): EDIT 1 EDIT 2 LANES LANES 2 VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_K, NELEM(CYC_K)));
         go_title("LANES 2"); frame();
         ok = TSEL->p[P_LN5] == 127;
         turn(EN_K2, -3);
@@ -3754,12 +3758,13 @@ static void host_slot_make(uint32_t k)                /* USR k + 1: 2 s at 22.05
 }
 static int test_slices(void)
 {
-    static const char *const CYC_S[] = {"EDIT 1", "EDIT 2", "SLICES", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};
+    static const char *const CYC_S[] = {"EDIT 1", "EDIT 2", "SLICES", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
     int bad = 0, ok;
     uint32_t n, j, p0, k, note;
     ui_power_on();
+    sp.sel = 0;                                      /* (UMBRA: the boot state; earlier tests leave the page's marker) */
     set_engine_of(TSEL, 13u);                        /* SLICE CHOP: BREAK, 16 */
-    bad += check("SLICES: SLICE's EDIT cycle EDIT 1 EDIT 2 SLICES VOICE VOICE 2 VOICE 3 EDIT 1", engine_cycle(CYC_S, NELEM(CYC_S)));
+    bad += check("SLICES: SLICE's EDIT cycle EDIT 1 EDIT 2 SLICES VOICE VOICE 2 VOICE 3 ARP ARP 2 EDIT 1", engine_cycle(CYC_S, NELEM(CYC_S)));
     go_page(GR_SLICES); frame();
     n = slice_count();
     p0 = TSEL->p[P_E1];
@@ -3913,7 +3918,7 @@ static int test_quick_layers(void)
         btn_down(LB[i]);
         for (flash = 0, k = 0; k < 20u; k++) { frame(); flash |= ui.layer; }      /* 0.32 s */
         btn_up(LB[i]); frame();
-        ok &= !flash && !ui.home && (LB[i] == B_GLO ? str_eq(cur_page()->title, "SONG") :
+        ok &= !flash && !ui.home && (LB[i] == B_GLO ? str_eq(cur_page()->title, "SENDS") :   /* (UMBRA: SPACE) */
                                      LB[i] == B_SCL ? cur_page()->fam == FAM_SCL : str_eq(cur_page()->title, "EDIT 1"));
         hint &= msg_is(HINT[i]);
         go_home(); frame();
@@ -4370,7 +4375,9 @@ static int test_chord_page(void)
     t->p[P_VOICE] = V_POLY;
     go_home(); frame();
     press(B_SCL); frames(400);
-    ok = str_eq(cur_page()->title, "SCL");
+    ok = str_eq(cur_page()->title, "THRU");                /* (UMBRA: SCL is FILTER's: its page first) */
+    press(B_SCL); frames(400);
+    ok &= str_eq(cur_page()->title, "SCL");
     press(B_SCL); frames(400);
     ok &= str_eq(cur_page()->title, "CHORD") && cur_page()->graph == GR_CHORD && cur_page()->fam == FAM_SCL;
     bad += check("SCL tapped again: the CHORD page (CHRD VOIC, the chord graph)", ok && cur_page()->id[0] == P_CHRD &&
@@ -5816,8 +5823,8 @@ static int test_momentary(void)
     bad += check("  OCT+ with LFO held keeps them (no octave shift), LFO let go then changes nothing",
                  ok && TSEL->p[id0] != v0 && ui.home);
     /* an FX page (a global) and an engine page */
-    open_family(FAM_FX); frame();
-    for (k = 0; k < NPAGES && cur_page()->id[0] != G_RSIZE && cur_page()->id[1] != G_RSIZE; k++) { open_family(FAM_FX); frame(); }
+    open_family(FAM_GLO); frame();                         /* (UMBRA: the FX bus is SPACE's, GLO) */
+    for (k = 0; k < NPAGES && cur_page()->id[0] != G_RSIZE && cur_page()->id[1] != G_RSIZE; k++) { open_family(FAM_GLO); frame(); }
     g0 = song.g[G_RSIZE];
     btn_down(B_LFO); frame();
     turn(cur_page()->id[0] == G_RSIZE ? EN_K1 : EN_K2, 9);
@@ -6449,7 +6456,7 @@ static int test_seq_quant(void)
     const char *unit = 0;
     ui_power_on();
     song.sel = 0;
-    open_family(FAM_SCL);
+    go_title("SCL");                                     /* (UMBRA: SCL's first page is FILTER's) */
     frame();
     ok = cur_page()->id[2] == P_QUANT && t->p[P_QUANT] == 0;
     turn(EN_K3, 10);
@@ -7186,12 +7193,12 @@ static int test_layer_lock(void)
     btn_up(B_SEQ); frame();
     ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "STEP");
     press(B_GLO); frames(400);
-    ok &= str_eq(cur_page()->title, "SONG") && !ui.lock;
+    ok &= str_eq(cur_page()->title, "SENDS") && !ui.lock;   /* (UMBRA: GLO is SPACE: SENDS first) */
     press(B_GLO);
     btn_down(B_GLO); frames(500);
     ok &= ui.layer == LAYER_GLO && !ui.lock;
     btn_up(B_GLO); frame();
-    ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "SONG");
+    ok &= !ui.layer && !ui.lock && str_eq(cur_page()->title, "DLY");
     press(B_SCL);
     lay_combo(B_SCL, white(2));
     key_up(white(2)); btn_up(B_SCL); frame(); frames(400);
@@ -7202,7 +7209,8 @@ static int test_layer_lock(void)
     press(B_GLO); frames(16);
     press(B_LFO); frames(16);
     press(B_GLO); frames(400);
-    ok = !ui.lock && str_eq(cur_page()->title, "SONG");   /* (another button between the taps: two taps) */
+    ok = !ui.lock && str_eq(cur_page()->title, "SENDS");   /* (another button between the taps: two taps; GLO's
+                                                             * remembered page, SENDS) */
     ui_power_on();
     go_title("ENV"); frame();
     press(B_FX); press(B_FX); frames(100);
@@ -7632,6 +7640,11 @@ static int test_fx_latch(void)
         ok &= !ui.layer && ui.home == h && ui.page == pg;
     }
     btn_down(B_FX); frame(); frames(800); press(B_OCTUP); btn_up(B_FX); frame();
+    ok &= UMBRA_CHAIN ? song.octave == -1 && (uchain[song.sel].bypass >> DEV_DRIVE & 1u)   /* UMBRA: FX + OCT+ */
+                      : song.octave == 0;                         /* bypasses DRIVE (UMBRA_CHAIN 0: the octave, as Felucca) */
+    chain_reset();
+    if (UMBRA_CHAIN)
+        press(B_OCTUP);
     ok &= song.octave == 0;
     btn_down(B_FX); frame(); btn_up(B_FX); frame();               /* FX tap: its page still */
     ok &= !ui.home && cur_page()->fam == FAM_FX;
@@ -7643,7 +7656,7 @@ static int test_fx_latch(void)
     ok &= song.octave == 0 && msg_is("MIX PUT BACK");
     btn_up(B_GLO); frame();
     ok &= ui.home && !ui.layer;
-    bad += check("  FX LATCH OFF: FX + OCT- quick / held shifts the octave (no page); FX tap: the FX page; "
+    bad += check("  FX LATCH OFF: FX + OCT- quick shifts the octave (no page), FX + OCT+ bypasses DRIVE (UMBRA); FX tap: its page; "
                  "GLO + OCT- quick: put back, no octave", ok);
     fx_latch = 1;
     frame();
@@ -9083,7 +9096,7 @@ static void fop_pick(uint32_t opn)                   /* KNOB 1: OP opn (1..6) */
 static int slot_own(void) { return TSEL->p[P_E7] == FM6_OWN && fm6_slot[song.sel] == FM6_OWN; }
 static int test_fm6_ops(void)
 {
-    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "EDIT 1"};
+    static const char *const CYC_F[] = {"EDIT 1", "EDIT 2", "OPERATOR", "OP ENV", "OPERATOR 2", "VOICE", "VOICE 2", "VOICE 3", "ARP", "ARP 2", "EDIT 1"};
     static const struct { const char *page; uint32_t k, off; } F[] = {
         {"OPERATOR", EN_K2, FP_FC}, {"OPERATOR", EN_K3, FP_FF}, {"OPERATOR", EN_K4, FP_OL},
         {"OPERATOR 2", EN_K2, FP_MODE}, {"OPERATOR 2", EN_K3, FP_DET}, {"OPERATOR 2", EN_K4, FP_KVS},
@@ -9095,7 +9108,7 @@ static int test_fm6_ops(void)
     ui_power_on();
     song.sel = 1;                                    /* T2: FM6 PAD (SLOT F5) */
     tr = song.sel;
-    bad += check("FM6 ops: FM6's EDIT cycle EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE VOICE 2 EDIT 1",
+    bad += check("FM6 ops: FM6's EDIT cycle EDIT 1 EDIT 2 OPERATOR OP ENV OPERATOR 2 VOICE .. ARP 2 EDIT 1",
                  TSEL->eng_req == ENGI_FM6 && engine_cycle(CYC_F, NELEM(CYC_F)));
     ok = TSEL->p[P_E7] == 4 && fm6_slot[tr] == 4u;
     go_title("OPERATOR"); frame();
@@ -9844,6 +9857,60 @@ static int test_edit_quick_actions(void)
     return bad;
 }
 
+/* UMBRA: the chain's pages and controls (umbra_chain.c, DESIGN §7): EDIT ARP SCL FX GLO open SOURCE GRANULAR FILTER
+ * DRIVE SPACE (the footer's chain strip, the open device filled); a device's button held + OCT+ bypasses it on the
+ * selected track (no octave), again turns it back on; two device buttons held: nothing */
+static int test_umbra_chain(void)
+{
+    static const uint32_t DB[DEV_COUNT] = {B_EDIT, B_ARP, B_SCL, B_FX, B_GLO};
+    static const char *const FIRST[DEV_COUNT] = {"EDIT 1", "THRU", "THRU", "FX", "SENDS"};
+    int bad = 0, ok = 1;
+    uint32_t d;
+    int8_t oct;
+    ui_power_on();
+    for (d = 0; d < DEV_COUNT; d++) {
+        go_home(); frames(320);
+        press(DB[d]); frames(320);
+        ok &= !ui.home && fam_device(cur_page()->fam) == d && str_eq(cur_page()->title, FIRST[d]);
+    }
+    go_home(); frame();
+    ok &= fam_device(FAM_ENV) == DEV_COUNT && fam_device(FAM_SEQ) == DEV_COUNT && fam_device(FAM_SAVE) == DEV_COUNT;
+    bad += check("UMBRA: EDIT ARP SCL FX GLO open SOURCE GRANULAR FILTER DRIVE SPACE (their first pages); ENV SEQ SAVE none", ok);
+    ui_power_on();
+    chain_reset();
+    oct = song.octave;
+    ok = 1;
+    for (d = 0; d < DEV_COUNT; d++) {
+        btn_down(DB[d]); frame();
+        press(B_OCTUP); frame();
+        ok &= ((uchain[song.sel].bypass >> d) & 1u) && song.octave == oct;
+        press(B_OCTUP); frame();
+        {
+            char want[24];
+            snprintf(want, sizeof want, "%s ON", UCH_DESC[d].name);
+            ok &= !((uchain[song.sel].bypass >> d) & 1u) && song.octave == oct && msg_is(want);
+        }
+        btn_up(DB[d]); frames(320);
+        go_home(); frame();
+    }
+    bad += check("UMBRA: a device's button held + OCT+ bypasses it (again: back on), no octave shift, each device", ok);
+    ui_power_on();
+    chain_reset();
+    song.sel = 2;
+    btn_down(B_FX); frame();
+    press(B_OCTUP); frame();
+    ok = msg_is("DRIVE BYPASSED");                       /* (let go, FX's first-time layer hint may follow) */
+    btn_up(B_FX); frames(320);
+    ok &= uchain[2].bypass == 1u << DEV_DRIVE && !uchain[0].bypass;
+    btn_down(B_FX); btn_down(B_GLO); frame();
+    press(B_OCTUP); frame();
+    btn_up(B_FX); btn_up(B_GLO); frames(320);
+    ok &= uchain[2].bypass == 1u << DEV_DRIVE;
+    bad += check("UMBRA: the selected track's (T3) only; \"DRIVE BYPASSED\"; two device buttons held: nothing", ok);
+    chain_reset();
+    return bad;
+}
+
 int main(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -9930,6 +9997,9 @@ int main(void)
     bad += test_home_tracks();
     bad += test_fx_map_columns();
     bad += test_help();
+#if UMBRA_CHAIN
+    bad += test_umbra_chain();                        /* UMBRA: the chain's pages and controls */
+#endif
     bad += test_no_flash();
 #if UMBRA_FM4
     bad += test_fm_charts();                        /* (DIGITAL's charts: built with UMBRA_FM4=1 only) */

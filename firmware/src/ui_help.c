@@ -23,10 +23,12 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"FX", "[K1-4]SENDS[FX]HOLD: PERFORM"},
     {"SLICER", "[K1]ON[K2]PATTERN[FX]INSERT"},
     {"INSERT", "[K1]TYPE[FX]DRY / WET"},
-    {"INSERT 2", "[K1]DRY / WET[FX]DLY"},
-    {"DLY", "[K1-4]ALL TRACKS[FX]REVERB"},
-    {"REVERB", "[K1]ROOM SPRING HALL[FX]CHORUS"},
-    {"CHORUS", "[K1-4]ALL TRACKS[FX]FX"},
+    {"INSERT 2", "[K1]DRY / WET[FX]FX"},
+    {"SENDS", "[K1-4]SENDS[GLO]DLY"},   /* UMBRA: SPACE (GLO) */
+    {"DLY", "[K1-4]ALL TRACKS[GLO]REVERB"},
+    {"REVERB", "[K1]ROOM SPRING HALL[GLO]CHORUS"},
+    {"CHORUS", "[K1-4]ALL TRACKS[GLO]SONG"},
+    {"THRU", "[KEYS]PLAY[OCT+]+ BUTTON: BYPASS"},   /* UMBRA: GRANULAR, FILTER */
     {"SCL", "[K2]SCALE[K3]QUANTIZE[SCL]CHORDS"},
     {"CHORD", "[K1]CHORD[KEYS]ONE FINGER[SCL]SCL"},
     {"EDIT 1", H_EDIT},
@@ -40,15 +42,15 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"OPERATOR 2", H_FMOP},
     {"VOICE", "[K1]POLY, MONO[K2]GLIDE"},
     {"VOICE 2", "[K2]DETUNE[K3]PAN[K4]MUTE"},
-    {"VOICE 3", "[K1]STEREO SPREAD[EDIT]EDIT 1"},
+    {"VOICE 3", "[K1]STEREO SPREAD[EDIT]ARP"},
     {"SONG", "[K1]SECTION[KEYS]A-D[PLAY]SONG"},
     {"USER", "[K1]SLOT[OCT+]SAVE[SAVE]PRESETS"},
     {"PRESETS", "[K2]ENGINE[K3]FAV[K4]LIST"},
     {"PHRASES", "[K1]PHRASE[OCT+]LOAD[SAVE]PROJECT"},
     {"PROJECT", "[K2]ERASE[K4]SAVE[EDIT]NAME"},   /* (1.5.5, #199: ERASE) */
     {"TOOLS", "[K1]CLEAR[K2]INIT, CLEAN[OCT+]DO"},   /* (1.5.5, #190: KNOB 2 on, CLEAN INIT) */
-    {"ARP", "[K1]MODE[KEYS]CHORD[ARP]ARP 2"},
-    {"ARP 2", "[K3]LATCH[K4]ORDER[ARP]ARP"},
+    {"ARP", "[K1]MODE[KEYS]CHORD[EDIT]ARP 2"},
+    {"ARP 2", "[K3]LATCH[K4]ORDER[EDIT]EDIT 1"},
     {"STEP", "[KEYS]WRITE[K1]STEP[SEQ]RATCH"},   /* (1.5.1: SEQ to DETAIL) */
     {"DETAIL", "[PRESETS]STEP[K1]CHANCE, 1:4, FILL"},   /* (1.5.5: the conditions past 100 %) */
     {"AUTOMATION", "[K1]ROW[OCT+]DO[EDIT]DELETE"},

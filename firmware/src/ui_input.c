@@ -40,6 +40,22 @@ static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_ENV, B_LFO, B_FX, B_SCL, B_
 
 static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
 
+/* UMBRA (umbra_chain.c): the device whose button (EDIT ARP SCL FX GLO) is the only one of them held */
+static uint32_t chain_btn_held(void)
+{
+    static const uint8_t DB[DEV_COUNT] = {B_EDIT, B_ARP, B_SCL, B_FX, B_GLO};
+    uint32_t d, hit = DEV_COUNT;
+    if (!UMBRA_CHAIN)
+        return DEV_COUNT;
+    for (d = 0; d < DEV_COUNT; d++)
+        if ((fm1_in.buttons >> panel.btn[DB[d]]) & 1u) {
+            if (hit < DEV_COUNT)
+                return DEV_COUNT;
+            hit = d;
+        }
+    return hit;
+}
+
 static int layer_set_open(void);                       /* (ui_layer.c) */
 /* the OCT LEDs, bit 0 OCT- lit, bit 1 OCT+ lit, OCT_BREATH OCT+ breathing (can be pressed: dark .. ~60 %,
  * bsp/boards/fm1/fm1_input.h fm1_led_breath, #119). In the dialogs and on action pages OCT- (back) is lit and OCT+ breathes
@@ -1504,6 +1520,14 @@ static void ui_input(void)
         mom.n = 0;
         pressed &= ~(1u << panel.btn[B_OCTUP]);
         ui_message("KEPT");
+    }
+    if (((pressed >> panel.btn[B_OCTUP]) & 1u) && !ui.menu && !ui.confirm && !name_on()) {
+        uint32_t d = chain_btn_held();                  /* UMBRA: a device's button held + OCT+: bypass it on the */
+        if (d < DEV_COUNT) {                            /* selected track (umbra_chain.c); no octave, no layer combo */
+            pressed &= ~(1u << panel.btn[B_OCTUP]);
+            chain_set_bypass(song.sel, d, !((uchain[song.sel % NTRK].bypass >> d) & 1u));
+            ui_say(UCH_DESC[d].name, (uchain[song.sel % NTRK].bypass >> d) & 1u ? " BYPASSED" : " ON");
+        }
     }
     home = btn_hold(&ui.home_t0, B_HOME, now, 1);
     rec = btn_hold(&ui.rec_t0, B_REC, now, 0);          /* (a tap; held, the REC layer: ui_layer.c) */

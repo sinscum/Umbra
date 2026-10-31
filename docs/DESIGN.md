@@ -140,7 +140,7 @@ PLAY REC; OCT− OCT+; 27 keys (16 white). Reference: `docs/controls.jpg`.
 | Open SOURCE / GRANULAR / FILTER / DRIVE / SPACE | EDIT / ARP / SCL / FX / GLO (tap = open, again = next page) |
 | Select track 1–4 | ALGORITHM knob, on every page |
 | Change device type | PRESETS knob on a device page (SOURCE SYNTH: engine, then preset) |
-| Bypass a device | hold its button + OCT− |
+| Bypass a device | hold its button + OCT+ (OCT− stays the quick layers' put-back; FX held + OCT− is still the octave) |
 | MIXER | HOME (tap round to it); hold HOME = MENU |
 | MODS / TEMP | LFO (pages); hold LFO + knob |
 | MACROS & SCENES | ENV; hold ENV + white keys 9–16 = SCENES |
@@ -149,7 +149,10 @@ PLAY REC; OCT− OCT+; 27 keys (16 white). Reference: `docs/controls.jpg`.
 | Tempo, volume | SELECT, MASTER |
 | Transport, sequencer, record, save | PLAY, SEQ, REC, SAVE |
 
-ARP and scale settings move into SOURCE P3 / the menu; the base tree's FX layer becomes DRIVE + SPACE.
+Phase 1 (interim, until each device's own DSP lands): SOURCE = the engine's pages + VOICE + ARP; GRANULAR and
+FILTER = pass-through pages (FILTER's button keeps the scale and chord pages after it); DRIVE = DIST, SLICER, INSERT;
+SPACE = the track's sends, the shared delay / reverb / chorus, then SONG. The footer's first row shows the chain strip
+on every device page. Turning PRESETS to change a device's type arrives with the first device that has two types.
 
 ## 8. Screen & look (240×240)
 

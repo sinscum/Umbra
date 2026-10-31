@@ -1189,7 +1189,8 @@ static uint32_t graph_signature(void)
     uint32_t h = 2166136261u, i;
     if (ui.home)
         return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
-    h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u;
+    h ^= (uint32_t)pg->graph * 131u + TSEL->eng_req + song.sel * 7777u + ui.page * 1291u +
+         (uint32_t)uchain[song.sel % NTRK].bypass * 524287u;   /* (UMBRA: GR_THRU says BYPASSED) */
     if (strip_kind() == SK_TITLE)                    /* MENU > LARGE: the page's title (its engine, its number) */
         return h ^ 0x5A17u;
     if (pg->graph == GR_NONE || pg->graph == GR_ARP) h ^= ui.frame / 2u;
@@ -2343,6 +2344,13 @@ static void draw_graph(void)
         case GR_FMENV:
             if (fop_ok()) graph_fm6env(t, c);
             break;
+        case GR_THRU: {                               /* UMBRA: a pass-through device (umbra_chain.c) */
+            uint32_t d = fam_device(pg->fam) % DEV_COUNT;
+            cv_oy = 0;
+            panel_note(UCH_DESC[d].name, (uchain[song.sel % NTRK].bypass >> d) & 1u ? "BYPASSED" : "PASS-THROUGH FOR NOW",
+                       "HOLD ITS BUTTON + OCT+: BYPASS");
+            break;
+        }
         default:
             if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_WHEEL) graph_wheel(t, c);
             else if (pg->scope == SC_ENGINE && ENGINES[t->eng_req % NENGINES] == &ENG_SAMPLE && sample_wave.ready) graph_sample(c);

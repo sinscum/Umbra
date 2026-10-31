@@ -90,3 +90,16 @@ static void chain_reset(void)                           /* every track: first ty
         uchain[i].bypass = 0;
     }
 }
+
+/* the device a page family is (DESIGN §7: EDIT ARP SCL FX GLO open SOURCE GRANULAR FILTER DRIVE SPACE); DEV_COUNT none */
+static uint32_t fam_device(uint32_t fam)
+{
+    switch (fam) {
+    case FAM_EDIT: return DEV_SOURCE;
+    case FAM_ARP: return DEV_GRANULAR;
+    case FAM_SCL: return DEV_FILTER;
+    case FAM_FX: return DEV_DRIVE;
+    case FAM_GLO: return DEV_SPACE;
+    default: return DEV_COUNT;
+    }
+}
