@@ -224,7 +224,8 @@ int main(void)
                 const param_desc_t *pd = UCH_DESC[d].types[k].pd;
                 uint32_t j;
                 for (j = 0; pd && j < DEV_NP; j++)
-                    ok &= pd[j].label && pd[j].min <= pd[j].def && pd[j].def <= pd[j].max && strlen(pd[j].label) <= 4u;
+                    ok &= pd[j].label ? pd[j].min <= pd[j].def && pd[j].def <= pd[j].max && strlen(pd[j].label) <= 4u
+                                      : !pd[j].min && !pd[j].max && !pd[j].def;   /* (none: a value the type lacks) */
             }
         ck("descriptors: 5 devices, 3-letter tags, names <= 8, each with a type; values' defaults in range, labels <= 4",
            ok);
