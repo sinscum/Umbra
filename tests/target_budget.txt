@@ -61,4 +61,4 @@ track_insert 3
 ins_drive 277
 ins_swept 230
 grn_run 282
-tape_run 2178
+tape_run 1975
