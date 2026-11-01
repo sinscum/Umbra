@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* UMBRA's saved chain ("UMB1", version 3): each project slot's tracks' chains (umbra_chain.c: types, bypasses, values)
+/* UMBRA's saved chain ("UMB1", version 5): each project slot's tracks' chains (umbra_chain.c: types, bypasses, values)
  * and the song's SPACE / MASTER values (umbra_space.c usong: WOW SHIMMER PRE-DLY, DJ FILTER GLUE; FREEZE never),
  * beside the project in a storage object of its own (storage.c OBJ_UCHAIN0.., A/B at 0xE8000..: the BSP's FL_XDATA1,
  * a firmware's own data), and the autosave's (OBJ_UCHAIN_AUTO). The project record stays the base tree's (a full
@@ -10,7 +10,7 @@
  * write) gets the default chain (every slot its first type, nothing bypassed). Included by project.c, after its
  * staging (proj_wire, proj_slot). Main loop only. */
 #define UCH_MAGIC 0x31424D55u                  /* "UMB1" */
-#define UCH_VER 4u                             /* 4 (Phase 4): 12 values a device. 3 (Phase 3): + the song's 8 values.
+#define UCH_VER 5u                             /* 5 (Phase 5a): + each track's two MODS. 4 (Phase 4): 12 values a device. 3 (Phase 3): + the song's 8 values.
                                                 * 2 (Phase 2): + each device's 8 values. 1 (Phase 1): types,
                                                 * bypasses. Older ones load: what they lack, the defaults */
 #define UCH_NP 12u                             /* values a device as stored (DEV_NP) */
@@ -24,7 +24,10 @@ typedef struct {
     uint32_t proj_crc;                         /* the project record's (uch_crc), 0 = none */
     uch_trk_t c[NTRK];
     int16_t song[8];                           /* usong (US_FRZ stored as 0) */
+    int8_t mod[NTRK][2][4];                    /* v5: umod (umbra_mod.c: SHAPE RATE DEST DEPTH) */
 } uch_store_t;
+#define UCH_MOD_DEF 0x80                       /* a MOD value "the default" (-128: no MOD value is; RATE 127 is 0x7F) */
+#define UCH_V4_BYTES (12u + NTRK * 128u + 16u)  /* version 4, as Phase 4 wrote it: v5 without the MODS */
 typedef struct {                               /* a track as versions 2 and 3 stored it: 8 values a device */
     uint8_t type[5], bypass, rsv[2];
     int16_t p[5][8];
@@ -42,7 +45,8 @@ typedef struct {                               /* version 1, as Phase 1 wrote it
     uint32_t proj_crc;
     uint8_t c[NTRK][6];                        /* type[5], bypass */
 } uch_v1_t;
-_Static_assert(sizeof(uch_trk_t) == 128u && sizeof(uch_store_t) == 12u + NTRK * 128u + 16u, "UMB1 v4 layout");
+_Static_assert(sizeof(uch_trk_t) == 128u && sizeof(uch_store_t) == UCH_V4_BYTES + NTRK * 8u, "UMB1 v5 layout");
+_Static_assert(UMOD_N == 2 && UMOD_NP == 4 && UMOD_DEST_N <= 127, "UMB1 v5 stores 2 MODS x 4 values (int8)");
 _Static_assert(sizeof(uch_v3_t) == 12u + NTRK * 88u + 16u, "UMB1 v3 layout");
 _Static_assert(US_N == 8, "UMB1 stores 8 song values");
 _Static_assert(sizeof(uch_v1_t) == 36u, "UMB1 v1 layout");
@@ -87,6 +91,12 @@ static int uch_take(uch_store_t *s, int n)
         }
         for (k = 0; k < 8u; k++)
             s->song[k] = v3 ? o.song[k] : UCH_DEF;
+        memset(s->mod, UCH_MOD_DEF, sizeof s->mod);   /* (no MODS: the defaults) */
+        return 1;
+    }
+    if (n == (int)UCH_V4_BYTES && s->magic == UCH_MAGIC && s->ver == 4u && s->ntrk == NTRK) {   /* (v4: no MODS) */
+        memset(s->mod, UCH_MOD_DEF, sizeof s->mod);   /* (the defaults, DEST OFF) */
+        s->ver = UCH_VER;
         return 1;
     }
     if (n == (int)sizeof *s && s->magic == UCH_MAGIC && s->ver == UCH_VER && s->ntrk == NTRK)
@@ -114,6 +124,10 @@ static void uch_capture(uch_store_t *s, uint32_t crc)
     }
     for (k = 0; k < US_N; k++)
         s->song[k] = k == US_FRZ ? 0 : usong[k];   /* (FREEZE: a performance control, never saved) */
+    for (i = 0; i < NTRK; i++)
+        for (d = 0; d < UMOD_N; d++)
+            for (k = 0; k < UMOD_NP; k++)
+                s->mod[i][d][k] = (int8_t)umod[i][d][k];
 }
 
 /* s -> the chain playing, when it is the chain of the project record of CRC crc; else the default chain. 1 = taken.
@@ -138,6 +152,11 @@ static int uch_apply(const uch_store_t *s, uint32_t crc)
     for (k = 0; k < US_N; k++)                 /* the song's values (chain_reset: their defaults, FREEZE off) */
         if (k != US_FRZ && s->song[k] != UCH_DEF)
             usong[k] = (int16_t)clamp(s->song[k], US_PD[k].min, US_PD[k].max);
+    for (i = 0; i < NTRK; i++)                 /* the MODS (chain_reset: their defaults); UCH_MOD_DEF: the default */
+        for (d = 0; d < UMOD_N; d++)
+            for (k = 0; k < UMOD_NP; k++)
+                if (s->mod[i][d][k] != (int8_t)UCH_MOD_DEF)
+                    umod[i][d][k] = (int16_t)clamp(s->mod[i][d][k], UMOD_PD[k].min, UMOD_PD[k].max);
     return 1;
 }
 

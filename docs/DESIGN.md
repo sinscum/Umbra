@@ -177,6 +177,18 @@ limiter and soft clip.
 ## 5. MODS — modulation
 2 per track, control rate (once per block). Shapes: LFO (sine/tri/saw/square/S&H/drunk walk), ENV (note-triggered AD), FOLLOW (envelope follower on the track's own signal), RANDOM. Assign: hold LFO + turn a device knob = depth (bipolar). Reuse the base tree's LFO pages and mod matrix. Rates go very slow (minutes per cycle) — dark ambient lives there.
 
+As built (Phase 5a, `firmware/src/umbra_mod.c`, kept simple at Shane's request; more shapes and gestures when needed):
+two MODS a track on pages **MOD 1** / **MOD 2** (the end of LFO's cycle, after the base tree's MOD matrix): `SHAP · RATE · DEST · DPTH`.
+- SHAPE SINE TRI SAW SQR S&H DRIFT (S&H: a new random value each cycle; DRIFT: glides to it). ENV and FOLLOW: later.
+- RATE: a cycle from 10 minutes (0) down to 0.1 s (127); 64 is ~7.4 s.
+- DEST: OFF or a value of the track's SOURCE, GRANULAR, FILTER or DRIVE as its type has it, shown by name and the
+  device's letter (`FREQ F`); the knob passes over what the devices lack and over choices (MODE, REC...). A type
+  change leaves a DEST the new type lacks doing nothing.
+- DEPTH -64..63: at 63 the value swings by its whole range either way (clamped); negative: upside down.
+- Assigning is DEST on the page; hold LFO + knob stays the base tree's TEMP (momentary). Per block, in the audio ISR
+  like the base tree's matrix: the stored values are put back after each block, so the UI and saves never see a
+  moved value. Nothing set: bit-identical. `UMBRA_MOD=0` keeps the pages, moves nothing. Saved: UMB1 v5.
+
 ## 6. Performance
 - **TEMP**: hold LFO + turn knobs → changes snap back on release.
 - **MACROS**: 4 macros, each driving up to 4 params with ranges.
@@ -296,7 +308,8 @@ Frozen Hall: the choir and a pad into the longest HALL with PRE-DLY and WOW, for
 (FM6 BELL → GRAINS, long grains, slow scan → RESONATOR A minor → HALL; FREEZE by GLO + G5 until SCENES). Phase 4b
 adds Worn Cathedral (an FM6 pad; track 2's TAPE takes the mix in LO until full, then GRAINS hangs over the take, SPEED
 0, random pitches on C minor, into a long HALL) and Shadow (an ANALOG pluck; track 4 a RETURN of it through GRAINS
-60 % reversed and a COMB).
+60 % reversed and a COMB). Phase 5a adds Low Tide (an FM6 pad through a resonant SVF, MOD 1 sweeping its FREQ, MOD 2
+drifting its RES).
 
 ## 10. Budget plan
 - Target: 4 tracks, full chain at defaults, ≤ 70 % of one core. 2nd core stays optional.
@@ -310,8 +323,9 @@ its own storage object ("UMB1", `firmware/src/umbra_store.c`, flash 0xE8000..0xF
 autosave, A/B each). Version 1 (Phase 1): per track, each device's type and bypass. Version 2 (Phase 2) adds each device's eight values
 (88 bytes a track; a v1 record loads with the types' defaults). Version 3 (Phase 3) adds the song's SPACE and MASTER
 values (16 bytes; FREEZE stored as off; a v2 record loads with their defaults). Version 4 (Phase 4) stores 12 values
-a device (GRANULAR's three pages): 128 bytes a track, 540 in all; v1–v3 load. Later versions add
-mods, sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
+a device (GRANULAR's three pages): 128 bytes a track, 540 in all; v1–v3 load. Version 5 (Phase 5a) adds each
+track's two MODS (4 values each, 32 bytes: 572 in all); v1–v4 load with the MODS off. Later versions add
+sends, macros and scenes (more objects per project if needed: 40 KiB of FL_XDATA1 is still free). The UMBRA
 record names the project record it was saved with (its CRC): a base-tree project, a slot re-saved by the base tree,
 or a torn write loads with the default chain, never another project's. TAPE audio is **not** saved (RAM only);
 flash-saved TAPE is a later version with its own bump.

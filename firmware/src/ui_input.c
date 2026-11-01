@@ -1160,7 +1160,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         *vp = TREC_OFF;
         confirm_open(CF_CLEAR_TAPE, song.sel);
     }
-    if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV && pg->scope != SC_USONG) {   /* (UMBRA: a device's values, the
+    if (pg->scope != SC_GLOBAL && pg->scope != SC_DEV && pg->scope != SC_USONG && pg->scope != SC_UMOD) {   /* (UMBRA: a device's values, the
                                                                                      * song's: not P_*, no motion yet) */
         motion_capture(TSEL, (uint32_t)(vp - TSEL->p), *vp);
         ml_knob(TSEL, (uint32_t)(vp - TSEL->p));        /* (MIDI LEARN: picked) */

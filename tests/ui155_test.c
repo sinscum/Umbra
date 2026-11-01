@@ -165,7 +165,7 @@ static int select_page(void)
     turn(EN_SELECT, 2);
     ok &= title_is("LFO DEST");
     turn(EN_SELECT, -3);
-    ok &= title_is("MOD");                              /* (LFO LFO 2 LFO DEST MOD, round) */
+    ok &= title_is("MOD 2");                            /* (LFO LFO 2 LFO DEST MOD, UMBRA's MOD 1 MOD 2, round) */
     ok &= song.g[G_BPM] == b0;
     bad += check("  PAGE: SELECT steps the family's pages, a detent each, round both ways; the tempo stays", ok);
 

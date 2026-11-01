@@ -339,6 +339,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UI, a UMBRA_CHAIN=0 build: no bypass, no chain strip; the pages as UMBRA's" "$OUT/ui_test_ch0"
     $CC -w -DUMBRA_TAPE=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_tape0" tests/ui_test.c -lm
     run "UI, a UMBRA_TAPE=0 build: TAPE a silent type, the rest as ever" "$OUT/ui_test_tape0"
+    $CC -w -DUMBRA_MOD=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_mod0" tests/ui_test.c -lm
+    run "UI, a UMBRA_MOD=0 build: the MOD pages, nothing moves" "$OUT/ui_test_mod0"
     $CC -w -DUMBRA_CPU2=0 -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test_c1" tests/ui_test.c -lm
     run "UI, a UMBRA_CPU2=0 build: MENU > SYSTEM without 2ND CORE, the rest as the default build" "$OUT/ui_test_c1"
     $CC -DPREEMPT -g -fwrapv -fsanitize=address,undefined -fno-sanitize=shift -fno-sanitize-recover=all -w \
@@ -426,6 +428,8 @@ if [ -f build/gen/umbra_tables.h ]; then
     run "UMBRA FILTER: SVF's responses, stability at full RES, its ring ending, KEYTRK, WANDER, cost" "$OUT/filter_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/tape_test" tests/tape_test.c -lm
     run "UMBRA SOURCE RETURN / TAPE: parts, a take's loop and pitch, HI / LO, full, KEYS, overdub, CLEAR, FROM MIX, GRAINS on it, cost" "$OUT/tape_test"
+    $CC -O1 -w -Ibuild/gen -Ifirmware/src -o "$OUT/umod_test" tests/umod_test.c -lm
+    run "UMBRA MODS: nothing set moves nothing, DEST's names and skips, depth, rate, shapes, the stored values back" "$OUT/umod_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/granular_test" tests/granular_test.c -lm
     run "UMBRA GRANULAR GRAINS: mu-law, the ring, pitch, the pool's caps and steals (no click), SPEED 0, SCALE, cost" "$OUT/granular_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/space_test" tests/space_test.c -lm

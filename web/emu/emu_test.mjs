@@ -206,7 +206,7 @@ for (let n = 0; n < 7; n++) {
   const playing = g.ex.web_playing() === 1, pk = g.peak, refused = g.ex.web_demo(n) === 0;
   g.tap(B.PLAY);
   check(`UMBRA: recipe ${n} loaded, then PLAY: it plays (peak ${pk.toFixed(3)}); refused while playing`,
-        loaded && playing && pk > 0.01 && pk < 1.0 && refused && g.ex.web_recipes() === 7 && g.ex.web_demo(7) === 0);
+        loaded && playing && pk > 0.01 && pk < 1.0 && refused && g.ex.web_recipes() === 8 && g.ex.web_demo(8) === 0);
 }
 
 // ---- the cost: 1 s of the heavy song against real time (the best of 3, after 2 s to settle)

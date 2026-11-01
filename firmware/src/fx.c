@@ -968,6 +968,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
     uint32_t nr;
 #endif
     mod_begin(t);                                       /* the matrix's per-block values into t->p (mod.c) */
+#if UMBRA_CHAIN
+    umod_begin(t);                                      /* UMBRA MODS: their values into the chain (umbra_mod.c) */
+#endif
     T_SPREAD(t) = t->p[P_SPRD] > 0 && (trk_vmode(t) == V_POLY || trk_vmode(t) == V_UNISON) &&   /* (SPREAD, mix_spread) */
                   !chain_filter_on(t) && !chain_granular_on(t) && chain_src_engine(t);   /* UMBRA: a FILTER, GRAINS:
                                                      * mono through them (the side would pass them by); a TAPE, RETURN: mono */
@@ -987,6 +990,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
             ins_rest(t);                                /* TYPE OFF while silent: no fade-out left for the next note */
         if (MOD(t).on)
             mod_end(t);
+#if UMBRA_CHAIN
+        umod_end(t);
+#endif
         return;
     }
     chain_pre(t, b, n);                                 /* UMBRA: SOURCE's bypass, GRANULAR, FILTER (umbra_chain.c) */
@@ -1036,6 +1042,9 @@ static void mix_part(track_t *t, uint32_t n SM_DECL)
         perf_throw(t, b, SM(d), SM(v), n);              /* perform.c: REV / ECHO THROW (1.5.1), the sends towards full */
     if (MOD(t).on)
         mod_end(t);                                     /* the stored values back */
+#if UMBRA_CHAIN
+    umod_end(t);                                        /* UMBRA MODS: the chain's stored values back */
+#endif
 }
 
 /* the HOME oscilloscope (ui_graph.c graph_scope): every other sample of the left channel. MENU > DISPLAY > SCOPE (1.2,

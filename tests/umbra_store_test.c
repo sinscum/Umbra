@@ -209,8 +209,8 @@ int main(void)
     }
 
     /* 8. the record (v3: + the song's values) */
-    bad += check("the chain record v4: 12 + 4 tracks x 128 + 16 bytes, in one object",
-                 sizeof(uch_store_t) == 12u + 4u * 128u + 16u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
+    bad += check("the chain record v5: 12 + 4 tracks x 128 + 16 + 4 tracks x 8 (MODS) bytes, in one object",
+                 sizeof(uch_store_t) == 12u + 4u * 128u + 16u + 4u * 8u && sizeof(uch_store_t) <= ST_PAYLOAD_MAX);
 
     /* 9. a device's type and values round trip (DRIVE DAMAGE, FOLD 90, TILT -20); out-of-range stored values clamp */
     reset();
@@ -322,6 +322,46 @@ int main(void)
     bad += check("a v3 record: its types, values and song values (8 a device), the rest their defaults",
                  uchain[2].type[DEV_DRIVE] == DRIVE_DAMAGE && uchain[2].p[DEV_DRIVE][DRV_OUT] == 100 &&
                  usong[US_WOW] == 33 && uch_slot[1].ver == UCH_VER && uch_slot[1].c[2].p[DEV_DRIVE][9] == UCH_DEF);
+
+    /* 14. the MODS (v5) round trip */
+    reset();
+    settings_init();
+    chain_set_type(1, DEV_FILTER, FILTER_SVF);
+    umod[1][0][UM_SHAPE] = UMS_DRIFT; umod[1][0][UM_RATE] = 10; umod[1][0][UM_DEST] = DEV_FILTER * DEV_NP + SVF_FREQ + 1;
+    umod[1][0][UM_DEPTH] = -40; umod[3][1][UM_RATE] = 127;
+    project_save(0);
+    chain_reset();
+    power_cycle();
+    project_load(0);
+    bad += check("the MODS saved and loaded (T2 MOD 1 DRIFT RATE 10 FLT FREQ DEPTH -40, T4 MOD 2 RATE 127)",
+                 umod[1][0][UM_SHAPE] == UMS_DRIFT && umod[1][0][UM_RATE] == 10 &&
+                 umod[1][0][UM_DEST] == DEV_FILTER * DEV_NP + SVF_FREQ + 1 && umod[1][0][UM_DEPTH] == -40 &&
+                 umod[3][1][UM_RATE] == 127 && umod[0][0][UM_DEST] == 0 && umod[0][0][UM_RATE] == 64);
+
+    /* 15. a v4 record (Phase 4, 540 bytes) loads: its chain and song values, the MODS their defaults */
+    reset();
+    settings_init();
+    project_save(2);
+    {
+        static uch_store_t v;
+        memset(&v, 0, sizeof v);
+        v.magic = UCH_MAGIC;
+        v.ver = 4;
+        v.ntrk = NTRK;
+        v.proj_crc = uch_crc(&proj_slot[2], sizeof(project_store_t));
+        v.c[0].type[DEV_GRANULAR] = GRAN_GRAINS;
+        v.c[0].p[DEV_GRANULAR][GRN_SIZE] = 99;
+        v.c[0].p[DEV_GRANULAR][11] = 7;
+        v.song[US_GLUE] = 21;
+        st_save(OBJ_UCHAIN0 + 2, &v, UCH_V4_BYTES);
+    }
+    power_cycle();
+    umod[2][0][UM_DEST] = 5;                            /* (playing before the load: the load puts the default back) */
+    project_load(2);
+    bad += check("a v4 record: its types, 12 values a device and song values; the MODS their defaults",
+                 uchain[0].type[DEV_GRANULAR] == GRAN_GRAINS && uchain[0].p[DEV_GRANULAR][GRN_SIZE] == 99 &&
+                 uchain[0].p[DEV_GRANULAR][11] == 7 && usong[US_GLUE] == 21 && uch_slot[2].ver == UCH_VER &&
+                 umod[2][0][UM_DEST] == 0 && umod[2][0][UM_DEPTH] == UMOD_PD[UM_DEPTH].def);
     printf(bad ? "store: %d FAILED\n" : "store: all ok\n", bad);
     return bad ? 1 : 0;
 }

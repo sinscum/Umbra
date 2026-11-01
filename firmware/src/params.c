@@ -271,9 +271,10 @@ static int32_t param_fit(const param_desc_t *d, int32_t v)
 }
 
 /* v is a value a knob passes over: an alias, or one of FM6's bank slots without a voice */
+static int umod_skip(const param_desc_t *d, int32_t v);   /* (UMBRA MODS' DEST, umbra_mod.c) */
 static int enum_skip(const param_desc_t *d, int32_t v)
 {
-    return enum_orig(d, v) != v || (d->names == N_FM6_PATCH && !fm6_slot_ok(v));
+    return umod_skip(d, v) || enum_orig(d, v) != v || (d->names == N_FM6_PATCH && !fm6_slot_ok(v));
 }
 /* a knob moved an F_ENUM from `from` to v: past any value it skips in that direction; with none left to the end, the
  * last one it does not skip on the way from `from` (else `from`) */
@@ -323,10 +324,13 @@ static int32_t param_turn(const param_desc_t *d, int32_t v, int32_t steps)
 static uint8_t fmt_named;        /* the last param_format was a name (F_ENUM, even "4"): ui_draw.c's digits do not roll it */
 
 /* value string (<= 5 chars) and unit for a parameter value */
+static int umod_format(const param_desc_t *d, int32_t v, char *val, const char **unit);   /* (umbra_mod.c) */
 static void param_format(const param_desc_t *d, int32_t v, char *val, const char **unit)
 {
     *unit = "";
     fmt_named = d->fmt == F_ENUM;
+    if (umod_format(d, v, val, unit))                 /* UMBRA MODS: RATE as a cycle, DEST by name */
+        return;
     switch (d->fmt) {
     case F_PCT:                                     /* a 0..100 range (SWG) is its value, others a share of 127 */
         fmt_int(val, d->max == 100 ? v : (v * 100 + 63) / 127);
@@ -443,7 +447,8 @@ enum { FAM_HOME, FAM_ENV, FAM_LFO, FAM_FX, FAM_SCL, FAM_EDIT, FAM_GLO, FAM_SAVE,
        FAM_COUNT };
 enum { SC_TRACK, SC_GLOBAL, SC_ENGINE, SC_STEP, SC_TRK,   /* SC_TRK: the TRACKS page (ui_input.c tracks_edit) */
        SC_DEV,                  /* UMBRA: a chain device's values, ids its index (umbra_chain.c dev_page_desc) */
-       SC_USONG };              /* UMBRA: the song's SPACE / MASTER values, ids into usong (umbra_space.c) */
+       SC_USONG,                /* UMBRA: the song's SPACE / MASTER values, ids into usong (umbra_space.c) */
+       SC_UMOD };               /* UMBRA: the selected track's MODS, id MOD x 4 + value (umbra_mod.c) */
 enum { GR_NONE, GR_ADSR, GR_LFO, GR_STEPS, GR_ARP, GR_SCALE, GR_FX, GR_ROLL, GR_BROWSE, GR_SLOTS, GR_USER, GR_TRK,
        GR_SLCR, GR_MOD, GR_PATS, GR_SONG, GR_TOOLS, GR_CHORD, GR_SLICES, GR_EVENTS,
        GR_FMOP, GR_FMOP2, GR_FMENV, GR_INS, GR_THRU,   /* GR_THRU: a pass-through device's placeholder (UMBRA) */
@@ -463,6 +468,8 @@ static const page_t PAGES[] = {
     {"LFO 2", FAM_LFO, SC_TRACK, GR_LFO, {P_LSYNC, P_LTRIG, P_LPOL, 0xFF}},   /* 1.2: SYNC TRIG POL */
     {"LFO DEST", FAM_LFO, SC_TRACK, GR_NONE, {P_LD_PIT, P_LD_FLT, P_LD_SHP, P_LD_AMP}},
     {"MOD", FAM_LFO, SC_TRACK, GR_MOD, {0xFF, P_M1SRC, P_M1DST, P_M1AMT}},   /* KNOB 1: the slot (mod_ui_slot) */
+    {"MOD 1", FAM_LFO, SC_UMOD, GR_NONE, {0, 1, 2, 3}},     /* UMBRA MODS: SHAPE RATE DEST DEPTH (umbra_mod.c), after */
+    {"MOD 2", FAM_LFO, SC_UMOD, GR_NONE, {4, 5, 6, 7}},     /* the base tree's matrix (its pages keep their places) */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, 0xFF, 0xFF, 0xFF}},   /* (UMBRA: the sends are SPACE's) */
     {"SLICER", FAM_FX, SC_TRACK, GR_SLCR, {P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH}},
     {"INSERT", FAM_FX, SC_TRACK, GR_INS, {P_ITYPE, P_IA, P_IB, P_IC}},   /* 1.5: the track's INSERT (fx.c) */
@@ -549,6 +556,7 @@ static const param_desc_t *dev_page_desc(const page_t *pg, uint32_t id, int16_t 
 static const param_desc_t *usong_desc(uint32_t id, int16_t **valp);   /* (umbra_space.c) */
 static uint8_t mod_ui_slot;      /* the MOD page: the matrix slot (0..3) KNOB 2..4 edit */
 
+static const param_desc_t *umod_desc(uint32_t id, int16_t **valp);   /* (UMBRA MODS, umbra_mod.c) */
 static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **valp)
 {
     uint32_t id = pg->id[slot];
@@ -568,6 +576,8 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         return dev_page_desc(pg, id, valp);
     if (pg->scope == SC_USONG)                        /* UMBRA: the song's SPACE / MASTER values */
         return usong_desc(id, valp);
+    if (pg->scope == SC_UMOD)                         /* UMBRA: the selected track's MODS */
+        return umod_desc(id, valp);
     if (pg->graph == GR_MOD)                          /* SRC DST AMT of the slot shown */
         id += 3u * mod_ui_slot;
     *valp = &TSEL->p[id];

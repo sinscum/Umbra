@@ -31,6 +31,8 @@ static const struct { const char *title, *hint; } HELP_PAGE[] = {
     {"TAPE 2", "[K3]LOOP / KEYS[EDIT]MORE"},
     {"TAPE 3", "[K3]REC / CLEAR[EDIT]MORE"},
     {"RETURN", "[K1]FROM TRACK[K2]LEVEL"},
+    {"MOD 1", "[K1-4]SHAP RATE DEST DPTH[LFO]MOD 2"},
+    {"MOD 2", "[K1-4]SHAP RATE DEST DPTH[LFO]LFO"},
     {"GRAINS 2", "[K2]SPEED 0: HOLD[ARP]MORE"},
     {"GRAINS 3", "[K3]SCALE LOCK[ARP]GRAINS"},
     {"SPACE 2", "[K1-4]DECAY DAMP TIME[GLO]MORE"},

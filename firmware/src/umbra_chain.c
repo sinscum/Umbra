@@ -219,6 +219,7 @@ static void chain_set_type(uint32_t tr, uint32_t d, uint32_t type)   /* (its def
         dev_defaults(tr, d);
     }
 }
+static void umod_reset(void);                           /* (umbra_mod.c, at the end) */
 static void chain_reset(void)                           /* every track: first types and their defaults, no bypass */
 {
     uint32_t i, d;
@@ -230,6 +231,7 @@ static void chain_reset(void)                           /* every track: first ty
         uchain[i].bypass = 0;
     }
     usong_reset();                                      /* (SPACE's and MASTER's song values; FREEZE off) */
+    umod_reset();                                       /* (MODS: their defaults, DEST OFF) */
     usolo = 0;
 }
 
@@ -287,3 +289,5 @@ static const param_desc_t *dev_page_desc(const page_t *pg, uint32_t id, int16_t 
     *valp = (int16_t *)&uchain[tr].p[d][id];
     return &pd[id];
 }
+
+#include "umbra_mod.c"          /* MODS: two a track, each moving one of the chain's values (Phase 5a) */

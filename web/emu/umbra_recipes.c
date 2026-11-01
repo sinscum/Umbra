@@ -14,10 +14,11 @@
  *   5 WORN CATHEDRAL  an FM6 pad; track 2's TAPE records the mix (LO) until full, then its take hangs as a suspended
  *                     cloud of grains, pitches at random on the scale (C minor), in a long HALL
  *   6 SHADOW          an ANALOG pluck on track 1; track 4 a RETURN of it: grains 60 % backwards through a COMB, a ghost
- *                     behind it */
-#define UMBRA_NRECIPES 7u
+ *                     behind it
+ *   7 LOW TIDE        an FM6 pad through a resonant SVF; MOD 1 sweeps its FREQ (SINE, ~5 s), MOD 2 drifts its RES */
+#define UMBRA_NRECIPES 8u
 static const char *const RECIPE_NAME[UMBRA_NRECIPES] = {"FOUR ENGINES", "SUNKEN PULSE", "DISTANT CHOIR", "FROZEN HALL",
-                                                        "DEAD BELLS", "WORN CATHEDRAL", "SHADOW"};
+                                                        "DEAD BELLS", "WORN CATHEDRAL", "SHADOW", "LOW TIDE"};
 
 static uint32_t recipe_engine(const char *name)      /* an engine by its name (ENGINES[]), 0 if none */
 {
@@ -154,6 +155,25 @@ static void umbra_recipe(uint32_t n)
         recipe_dev(3, DEV_FILTER, FILTER_COMB, CMB);
         trk[3].p[P_REV] = 90;
         trk[3].p[P_PAN] = 40;
+        break;
+    }
+    case 7: {   /* LOW TIDE */
+        static const int8_t SVF[DEV_NP] = {50, 90, 0, 127, 0, 0, K_, K_};   /* FREQ RES MORPH MIX KTRK WNDR */
+        song.g[G_BPM] = 60;
+        song.g[G_RTYPE] = 2;
+        song.g[G_RSIZE] = 110;
+        recipe_track(0, "FM6", "PAD", 5);                          /* PAD: long notes */
+        trk[0].p[P_LEVEL] = 120;
+        trk[0].p[P_REV] = 80;
+        recipe_dev(0, DEV_FILTER, FILTER_SVF, SVF);
+        umod[0][0][UM_SHAPE] = UMS_SINE;                            /* MOD 1: FREQ up and down, ~5 s */
+        umod[0][0][UM_RATE] = 70;
+        umod[0][0][UM_DEST] = DEV_FILTER * DEV_NP + SVF_FREQ + 1;
+        umod[0][0][UM_DEPTH] = 20;
+        umod[0][1][UM_SHAPE] = UMS_DRIFT;                           /* MOD 2: RES wandering, ~20 s */
+        umod[0][1][UM_RATE] = 45;
+        umod[0][1][UM_DEST] = DEV_FILTER * DEV_NP + SVF_RES + 1;
+        umod[0][1][UM_DEPTH] = 12;
         break;
     }
     default:    /* FOUR ENGINES */
